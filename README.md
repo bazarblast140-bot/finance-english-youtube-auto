@@ -87,6 +87,9 @@ Even then it uploads **private + only if verdict READY** — never instant-publi
 | File | Does |
 |---|---|
 | `check_setup.py` | preflight: keys, ffmpeg, deps, config TODOs — fails before spending credits |
+| `sketch.py` | hand-drawn (Excalidraw-style) marker highlights, rough strokes, xkcd charts |
+| `assets_pexels.py` | real stock footage per shot, cached in `assets/cache/` |
+| `sfx.py` | synthesized click track — no sound files to ship |
 | `pick_topic.py` | picks next unused topic from `topic_bank.json` |
 | `run_script.py` | Script Agent + **Gate 1** (hook, facts, compliance) |
 | `run_voice.py` | Voice Agent + Edge TTS / ElevenLabs + **Gate 2** (coverage, length, TTS-safety) |
@@ -100,13 +103,23 @@ Even then it uploads **private + only if verdict READY** — never instant-publi
 
 ---
 
-## KNOWN v1 LIMITATION (be honest about this)
+## HOW THE VIDEO IS BUILT
 
-`run_assembly.py` v1 renders **text/data cards**, not real stock footage or live charts.
-It produces a real, publishable video so you can test the pipeline end-to-end today —
-but for a competitive finance channel you'll want to upgrade `_make_card()` to pull real
-footage (via each shot's `source_asset_query`) and render real charts (matplotlib).
-The timing, subtitle, and audio-mux logic already works and won't change.
+Each shot becomes its own clip, then the clips are joined. Per shot:
 
-This is the one place where "good enough to test" ≠ "good enough to win." Upgrade it
-once the content formula is validated.
+- **backdrop** — real Pexels footage (slow pan), or a hand-drawn xkcd chart of the
+  script's own numbers, or a plain card. Whichever is available; footage never
+  fails a run.
+- **overlay** — coloured section kicker, headline with a marker highlight on the
+  key phrase, bottom scrim, progress bar. Zooms and fades in.
+- **sound** — a quiet click on the cut, synthesized (no asset files).
+
+Layout is fixed so the two text layers can never collide: kicker on top, headline
+in the middle, and the bottom 28% belongs to captions alone. On chart shots the
+headline shrinks to a title band so the chart stays readable.
+
+**Memory:** the renderer caps x264 threads and lookahead. On a 3–4GB machine the
+defaults die with `malloc of size N failed` partway through a render.
+
+**Footage cache:** `assets/cache/` fills up (~120MB per video) and is gitignored.
+Delete it any time — clips are re-fetched from each shot's `source_asset_query`.

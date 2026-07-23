@@ -1,146 +1,208 @@
 """Stage 5: Assemble the video.
 
-v1 (this file): renders clean data CARDS from the shot list, times them to the
-narration, lays the voiceover on top, burns captions. Produces a real, playable
-mp4 so you can TEST the whole pipeline today.
+Each shot is rendered as its own short clip and the clips are concatenated. One
+giant filtergraph over the whole timeline is unreadable and undebuggable; per-shot
+clips let a single bad backdrop fail alone instead of taking the render with it.
+
+Per shot:
+  backdrop   real Pexels footage (slow pan), or a hand-drawn xkcd chart of the
+             script's own numbers, or a plain card — whichever is available
+  overlay    section kicker, headline, marker highlight, bottom scrim, progress
+             bar; rendered once with PIL, then zoomed and faded in by ffmpeg
+  sound      a quiet click on the cut
 
 Layout contract — the two text layers must never fight for the same pixels:
 
-    y 0.00 - 0.08   channel label (muted, small)
-    y 0.08 - 0.68   headline zone: the shot's on_screen_text, auto-sized to fit
-    y 0.68 - 0.72   accent rule
-    y 0.72 - 1.00   CAPTION ZONE — cards draw nothing here, burned-in only
+    y 0.00 - 0.10   section kicker (coloured, sketch underline)
+    y 0.10 - 0.66   headline zone, auto-sized
+    y 0.66 - 0.72   breathing room
+    y 0.72 - 1.00   CAPTION ZONE — overlay draws only the scrim here
 
-Captions are written as .ass, not .srt: ffmpeg renders SRT against ASS's default
-288px canvas and then upscales, so an SRT font size is roughly 3.75x larger than
-it reads. Declaring PlayResX/Y makes the sizes below literal pixels.
-
-UPGRADE PATH: replace _make_card() with real assets — pull stock footage via each
-shot's source_asset_query (PEXELS_API_KEY is already in .env) and render real
-charts with matplotlib. The timing, caption, and audio-mux logic stays the same.
+Captions are .ass, not .srt: ffmpeg renders SRT against ASS's default 288px canvas
+and upscales, so an SRT font size reads ~3.75x larger than it looks. And fps= must
+come before ass= in the final chain — the concatenated video changes frames only
+at cuts, so burning onto it directly freezes each caption until the next cut.
 """
 import json, pathlib, re, shutil, subprocess
+
 from PIL import Image, ImageDraw, ImageFont
+
+import assets_pexels
+import sfx
+import sketch
 from common import cfg, read, ok, die, RUN, ROOT
 
 W, H = 1920, 1080
-BG = (14, 17, 22)
-FG = (235, 235, 235)
-ACCENT = (245, 197, 66)
-MUTED = (110, 118, 130)
+CAPTION_TOP = 0.72
+SIDE = 150
+CAPTION_WORDS = 6
+POP_IN = 0.32          # seconds of headline zoom-in
+FADE_IN = 0.28
 
-CAPTION_TOP = 0.72          # cards must not draw below this
-SIDE_MARGIN = 150
-CAPTION_WORDS = 6           # words per caption cue
+EMPHASIS = {"positive": sketch.GREEN, "warning": sketch.POP, "neutral": sketch.COOL}
 
-FONT_CANDIDATES = [
+# x264 allocates frame buffers per thread and per lookahead slot. On a 3.4GB
+# machine the defaults fail outright with "malloc of size N failed", so cap them.
+# Costs a little compression efficiency; the alternative is a render that dies.
+X264 = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
+        "-threads", "2", "-g", "60",
+        "-x264-params", "threads=2:lookahead-threads=1:sync-lookahead=0:"
+                        "rc-lookahead=10:bframes=2:ref=2",
+        "-pix_fmt", "yuv420p"]
+
+FONTS = [
     ROOT / "assets/fonts/Inter-Bold.ttf",
-    ROOT / "assets/fonts/DejaVuSans-Bold.ttf",
     "C:/Windows/Fonts/segoeuib.ttf",
     "C:/Windows/Fonts/arialbd.ttf",
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
     "/System/Library/Fonts/Helvetica.ttc",
 ]
-_font_cache = {}
+_cache = {}
 
 
 def _font(size):
-    if size in _font_cache:
-        return _font_cache[size]
-    for p in FONT_CANDIDATES:
-        try:
-            if pathlib.Path(p).exists():
-                f = ImageFont.truetype(str(p), size)
-                _font_cache[size] = f
-                return f
-        except OSError:
-            continue
-    try:
-        f = ImageFont.load_default(size=size)
-    except TypeError:
-        f = ImageFont.load_default()
-    _font_cache[size] = f
-    return f
+    size = int(size)
+    if size not in _cache:
+        for p in FONTS:
+            try:
+                if pathlib.Path(p).exists():
+                    _cache[size] = ImageFont.truetype(str(p), size)
+                    break
+            except OSError:
+                continue
+        else:
+            try:
+                _cache[size] = ImageFont.load_default(size=size)
+            except TypeError:
+                _cache[size] = ImageFont.load_default()
+    return _cache[size]
 
 
-def _fit(d, text, max_w, max_h, hi=400, lo=48, gap=1.18):
-    """Shrink until the wrapped text fits the box. Headlines vary from '72' to a
-    full sentence, so a fixed size either clips the long ones or wastes the short."""
+def _wrap(d, text, font, max_w):
+    lines, cur = [], ""
+    for word in str(text).split():
+        trial = f"{cur} {word}".strip()
+        if d.textlength(trial, font=font) <= max_w or not cur:
+            cur = trial
+        else:
+            lines.append(cur)
+            cur = word
+    if cur:
+        lines.append(cur)
+    return lines
+
+
+def _fit(d, text, max_w, max_h, hi=340, lo=54, gap=1.16):
+    """Headlines range from '72' to a six-word phrase; a fixed size either clips
+    the long ones or wastes the short ones."""
     size = hi
     while size >= lo:
         f = _font(size)
-        lines, cur = [], ""
-        for word in text.split():
-            trial = f"{cur} {word}".strip()
-            if d.textlength(trial, font=f) <= max_w or not cur:
-                cur = trial
-            else:
-                lines.append(cur)
-                cur = word
-        if cur:
-            lines.append(cur)
+        lines = _wrap(d, text, f, max_w)
         line_h = size * gap
         if len(lines) * line_h <= max_h and all(d.textlength(l, font=f) <= max_w for l in lines):
             return f, lines, line_h
         size -= 8
     f = _font(lo)
-    return f, text.split()[:6], lo * gap
+    return f, _wrap(d, text, f, max_w)[:4], lo * gap
 
 
-def _make_card(shot, idx, total, channel):
-    """v1: a data card. Renders ONLY the headline the Visual Agent marked for
-    screen — visual_description is a production note for sourcing footage and
-    must never be shown to a viewer."""
-    img = Image.new("RGB", (W, H), BG)
-    d = ImageDraw.Draw(img)
+def _scrim(layer):
+    """Dark gradient over the caption zone so burned-in captions stay legible on
+    top of bright footage."""
+    d = ImageDraw.Draw(layer)
+    top = int(H * 0.58)
+    for y in range(top, H):
+        t = (y - top) / (H - top)
+        d.line([(0, y), (W, y)], fill=(8, 10, 14, int(225 * t ** 1.4)))
 
-    # channel label, top-left
-    if channel and not str(channel).startswith("TODO"):
-        d.text((SIDE_MARGIN, 56), str(channel).upper(), font=_font(30), fill=MUTED)
+
+def build_overlay(shot, idx, total, path, mode):
+    """mode: 'chart' | 'footage' | 'card'.
+
+    On a chart shot the chart IS the visual, so the headline shrinks to a title
+    band at the top — a 300px headline over a chart hides the very numbers the
+    shot exists to show.
+    """
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+
+    # Footage varies wildly in brightness (one clip here is a green-screen
+    # subscribe animation). A flat veil keeps text contrast predictable.
+    if mode == "footage":
+        layer.alpha_composite(Image.new("RGBA", (W, H), (8, 10, 14, 96)))
+    _scrim(layer)
+    d = ImageDraw.Draw(layer)
+
+    accent = EMPHASIS.get(str(shot.get("emphasis", "neutral")).lower(), sketch.COOL)
+
+    section = str(shot.get("section") or "").strip().upper()
+    if section:
+        f = _font(38)
+        d.text((SIDE, 66), section, font=f, fill=accent)
+        sketch.rough_underline(d, SIDE, SIDE + d.textlength(section, font=f), 124,
+                               accent, 5, seed=idx * 13 + 1)
 
     headline = str(shot.get("on_screen_text") or "").strip()
     if headline.lower() == "null":
         headline = ""
 
     if headline:
-        box_top, box_bottom = int(H * 0.14), int(H * 0.64)
-        f, lines, line_h = _fit(d, headline, W - 2 * SIDE_MARGIN, box_bottom - box_top)
-        y = box_top + ((box_bottom - box_top) - len(lines) * line_h) / 2
-        for line in lines:
-            w = d.textlength(line, font=f)
-            d.text(((W - w) / 2, y), line, font=f, fill=ACCENT)
-            y += line_h
-        # accent rule under the headline, still above the caption zone
-        rule_y = int(H * 0.685)
-        d.rectangle([W // 2 - 90, rule_y, W // 2 + 90, rule_y + 5], fill=ACCENT)
+        if mode == "chart":
+            box_top, box_bottom, hi, lo = int(H * 0.145), int(H * 0.265), 78, 40
+        else:
+            box_top, box_bottom, hi, lo = int(H * 0.17), int(H * 0.64), 340, 54
+        f, lines, line_h = _fit(d, headline, W - 2 * SIDE, box_bottom - box_top, hi, lo)
+        y0 = box_top + ((box_bottom - box_top) - len(lines) * line_h) / 2
 
-    # progress bar
+        # locate the highlighted span with real glyph metrics — line_h fractions
+        # drift away from the actual ink at different sizes
+        hl = str(shot.get("highlight") or "").strip()
+        hl_i, hl_pos, hl_box = -1, -1, None
+        if hl and hl.lower() != "null":
+            for i, line in enumerate(lines):
+                pos = line.lower().find(hl.lower())
+                if pos >= 0:
+                    lx = (W - d.textlength(line, font=f)) / 2
+                    x = lx + d.textlength(line[:pos], font=f)
+                    ly = y0 + i * line_h
+                    b = d.textbbox((x, ly), line[pos:pos + len(hl)], font=f)
+                    hl_box = (b[0] - 8, b[1] - 8, b[2] + 8, b[3] + 8)
+                    hl_i, hl_pos = i, pos
+                    break
+        if hl_box:
+            layer.alpha_composite(sketch.marker_highlight((W, H), hl_box, sketch.HIGHLIGHT,
+                                                          seed=idx * 13 + 5))
+            d = ImageDraw.Draw(layer)
+
+        for i, line in enumerate(lines):
+            lx = (W - d.textlength(line, font=f)) / 2
+            y = y0 + i * line_h
+            d.text((lx, y), line, font=f, fill=sketch.INK)
+            if i == hl_i:
+                # dark-on-amber, the way a real highlighter reads
+                span = line[hl_pos:hl_pos + len(hl)]
+                d.text((lx + d.textlength(line[:hl_pos], font=f), y), span, font=f,
+                       fill=sketch.PAPER)
+
     frac = (idx + 1) / max(total, 1)
-    d.rectangle([0, H - 7, int(W * frac), H], fill=ACCENT)
+    d.rectangle([0, H - 8, int(W * frac), H], fill=sketch.HIGHLIGHT + (255,))
 
-    p = RUN / f"card_{idx:03d}.png"
-    img.save(p)
-    return p
+    layer.save(path)
+    return path
 
 
 def _ass_time(sec):
     sec = max(0.0, float(sec))
-    h = int(sec // 3600)
-    m = int((sec % 3600) // 60)
-    s = sec % 60
-    return f"{h:d}:{m:02d}:{s:05.2f}"
+    return f"{int(sec // 3600):d}:{int((sec % 3600) // 60):02d}:{sec % 60:05.2f}"
 
 
 def _cues(text, start, end, max_words=CAPTION_WORDS):
-    """Split a shot's spoken line into short cues spread across its duration.
-    Dumping a whole 20-word sentence on screen for 6 seconds is unreadable."""
     words = str(text or "").split()
     if not words:
         return []
     groups = [words[i:i + max_words] for i in range(0, len(words), max_words)]
     span = max(0.4, float(end) - float(start))
-    t = float(start)
-    out = []
+    t, out = float(start), []
     for g in groups:
         share = span * (len(g) / len(words))
         out.append((t, t + share, " ".join(g)))
@@ -168,6 +230,22 @@ def _ass_escape(text):
     return re.sub(r"\s+", " ", str(text)).replace("{", "(").replace("}", ")").strip()
 
 
+def _run(args, **kw):
+    """ffmpeg failures surface as a bare exit code otherwise, which says nothing
+    about which filter rejected what."""
+    p = subprocess.run(args, cwd=RUN, stdout=subprocess.DEVNULL,
+                       stderr=subprocess.PIPE, text=True, **kw)
+    if p.returncode != 0:
+        lines = (p.stderr or "").splitlines()
+        # the real message is buried above the encoder's summary statistics
+        hits = [l for l in lines
+                if re.search(r"error|invalid|no such|unable|cannot|not found|failed to",
+                             l, re.I) and "libx264" not in l]
+        detail = "\n".join(hits[-8:] or lines[-8:])
+        die(f"ffmpeg failed (exit {p.returncode}):\n{detail}")
+    return p
+
+
 def _require_ffmpeg():
     for tool in ("ffmpeg", "ffprobe"):
         if not shutil.which(tool):
@@ -177,12 +255,52 @@ def _require_ffmpeg():
                 f"  Linux:   sudo apt-get install ffmpeg")
 
 
-def _audio_seconds(path):
+def _seconds(path):
     out = subprocess.run(
         ["ffprobe", "-v", "error", "-show_entries", "format=duration",
          "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
         capture_output=True, text=True, check=True)
     return float(out.stdout.strip())
+
+
+def render_shot(idx, shot, dur, fps, overlay, backdrop, still):
+    """One shot -> shot_NNN.mp4. Backdrop drifts; the overlay zooms and fades in."""
+    out = f"shot_{idx:03d}.mp4"
+    args = ["ffmpeg", "-y"]
+
+    if backdrop and still:
+        args += ["-loop", "1", "-t", f"{dur:.3f}", "-i", str(backdrop)]
+    elif backdrop:
+        args += ["-stream_loop", "-1", "-t", f"{dur:.3f}", "-i", str(backdrop)]
+    else:
+        args += ["-f", "lavfi", "-t", f"{dur:.3f}",
+                 "-i", f"color=c=0x101319:s={W}x{H}:r={fps}"]
+    args += ["-loop", "1", "-t", f"{dur:.3f}", "-i", str(overlay)]
+
+    # A chart is data — it must not drift under the viewer's eye. Footage does,
+    # because a frozen stock clip looks like the video has hung.
+    is_chart = still and backdrop and "chart" in str(backdrop)
+    if backdrop and not is_chart:
+        # force_original_aspect_ratio=increase on BOTH axes, or an ultrawide clip
+        # scales to under 1080 tall and the crop fails outright
+        ow, oh = int(W * 1.12) // 2 * 2, int(H * 1.12) // 2 * 2
+        pan = (f"scale={ow}:{oh}:force_original_aspect_ratio=increase,"
+               f"crop={W}:{H}:'(iw-{W})*t/{max(dur, 0.1):.3f}':'(ih-{H})/2'")
+        bg = f"[0:v]{pan},fps={fps},eq=brightness=-0.20:saturation=0.72,setsar=1[bg]"
+    else:
+        bg = (f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,"
+              f"crop={W}:{H},fps={fps},setsar=1[bg]")
+
+    zoom = (f"trunc({W}*min(1\\,0.90+0.10*t/{POP_IN})/2)*2")
+    fc = (f"{bg};"
+          f"[1:v]format=rgba,fade=t=in:st=0:d={FADE_IN}:alpha=1,"
+          f"scale=w='{zoom}':h=-2:eval=frame[tx];"
+          f"[bg][tx]overlay=x='(W-w)/2':y='(H-h)/2':format=auto[v]")
+
+    args += ["-filter_complex", fc, "-map", "[v]", "-an",
+             "-t", f"{dur:.3f}", "-r", str(fps), "-fps_mode", "cfr", *X264, out]
+    _run(args)
+    return out
 
 
 def main():
@@ -197,8 +315,10 @@ def main():
     if not voice.exists():
         die("run/voice.mp3 missing — run run_voice.py first.")
 
-    # 1) rescale estimated shot timings onto the real narration length
-    audio_dur = _audio_seconds(voice)
+    fps = int(c["video"]["fps"])
+
+    # 1) rescale estimated timings onto the real narration
+    audio_dur = _seconds(voice)
     planned = max(float(s["end_sec"]) for s in shots)
     scale = audio_dur / planned if planned > 0 else 1.0
     ok(f"narration {audio_dur:.1f}s vs planned {planned:.1f}s — scaling timings x{scale:.3f}")
@@ -206,41 +326,57 @@ def main():
         s["start_sec"] = float(s["start_sec"]) * scale
         s["end_sec"] = float(s["end_sec"]) * scale
 
-    # 2) cards + concat list + captions
-    channel = c["channel"].get("name", "")
-    concat, events = [], []
+    # 2) fetch footage up front so the render loop never stalls on the network
+    print("=== footage ===")
+    assets_pexels.warm_cache(shots)
+
+    # 3) per-shot clips
+    print("=== shots ===")
+    clips, events, click_times = [], [], []
     for i, shot in enumerate(shots):
-        dur = max(0.5, float(shot["end_sec"]) - float(shot["start_sec"]))
-        card = _make_card(shot, i, len(shots), channel)
-        concat.append(f"file '{card.name}'\nduration {dur:.3f}")
-        for start, end, text in _cues(shot.get("spoken_line"), shot["start_sec"], shot["end_sec"]):
-            events.append(f"Dialogue: 0,{_ass_time(start)},{_ass_time(end)},Cap,,0,0,0,,{_ass_escape(text)}")
-    concat.append(f"file '{(RUN / f'card_{len(shots)-1:03d}.png').name}'")
+        dur = max(0.6, float(shot["end_sec"]) - float(shot["start_sec"]))
 
-    (RUN / "concat.txt").write_text("\n".join(concat), encoding="utf-8")
+        # backdrop first — the overlay's layout depends on what is behind it
+        backdrop, still, mode = None, False, "card"
+        chart = shot.get("chart_data")
+        if isinstance(chart, dict):
+            cp = RUN / f"chart_{i:03d}.png"
+            if sketch.chart_png(chart, str(cp)):
+                backdrop, still, mode = cp, True, "chart"
+        if backdrop is None and shot.get("_backdrop"):
+            backdrop = pathlib.Path(shot["_backdrop"])
+            still = backdrop.suffix.lower() in (".jpg", ".jpeg", ".png")
+            mode = "footage"
+
+        overlay = build_overlay(shot, i, len(shots), RUN / f"ov_{i:03d}.png", mode)
+
+        clips.append(render_shot(i, shot, dur, fps, overlay.name,
+                                 backdrop.resolve() if backdrop else None, still))
+        click_times.append(float(shot["start_sec"]))
+        for a, b, text in _cues(shot.get("spoken_line"), shot["start_sec"], shot["end_sec"]):
+            events.append(f"Dialogue: 0,{_ass_time(a)},{_ass_time(b)},Cap,,0,0,0,,{_ass_escape(text)}")
+        print(f"  [{i+1}/{len(shots)}] {dur:4.1f}s  {mode:<7} "
+              f"{str(shot.get('on_screen_text'))[:44]}")
+
+    (RUN / "clips.txt").write_text("\n".join(f"file '{c_}'" for c_ in clips), encoding="utf-8")
     (RUN / "subs.ass").write_text(ASS_HEADER + "\n".join(events) + "\n", encoding="utf-8")
-    ok(f"built {len(shots)} cards + {len(events)} caption cues")
+    ok(f"built {len(clips)} clips + {len(events)} caption cues")
 
-    # 3) images -> silent video
-    subprocess.run([
-        "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", "concat.txt",
-        "-fps_mode", "vfr", "-pix_fmt", "yuv420p", "silent.mp4"
-    ], cwd=RUN, check=True)
+    # 4) join clips
+    _run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", "clips.txt",
+          "-c", "copy", "silent.mp4"])
 
-    # 4) voiceover + burned captions -> final.mp4
-    #
-    # fps= MUST come before ass=. silent.mp4 is variable-frame-rate with one frame
-    # per card, so burning captions straight onto it gives the filter only 18 frames
-    # to draw on — every caption would freeze until the next card change. Resampling
-    # to the target rate first gives each caption its own frames.
-    fps = str(c["video"]["fps"])
-    subprocess.run([
-        "ffmpeg", "-y", "-i", "silent.mp4", "-i", "voice.mp3",
-        "-vf", f"fps={fps},ass=subs.ass",
-        "-r", fps, "-fps_mode", "cfr",
-        "-c:v", "libx264", "-preset", "medium", "-crf", "20",
-        "-c:a", "aac", "-b:a", "192k", "-shortest", "final.mp4"
-    ], cwd=RUN, check=True)
+    # 5) narration + shot-change clicks
+    sfx.click_track(click_times, audio_dur, RUN / "clicks.wav")
+    _run(["ffmpeg", "-y", "-i", "voice.mp3", "-i", "clicks.wav",
+          "-filter_complex", "[0:a][1:a]amix=inputs=2:duration=first:normalize=0[a]",
+          "-map", "[a]", "-c:a", "aac", "-b:a", "192k", "mixed.m4a"])
+
+    # 6) captions + mux. fps= before ass= or every caption freezes until the next cut.
+    _run(["ffmpeg", "-y", "-i", "silent.mp4", "-i", "mixed.m4a",
+          "-vf", f"fps={fps},ass=subs.ass",
+          "-r", str(fps), "-fps_mode", "cfr", *X264,
+          "-c:a", "copy", "-shortest", "final.mp4"])
 
     ok(f"wrote run/final.mp4 ({audio_dur/60:.1f} min)")
 

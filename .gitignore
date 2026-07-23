@@ -5,3 +5,12 @@ logs/*
 !logs/.gitkeep
 __pycache__/
 *.pyc
+
+# Downloaded Pexels footage — 119MB for one video, and re-fetchable any time
+# from each shot's source_asset_query. Never belongs in the repo.
+assets/cache/
+# Synthesized click/whoosh, rebuilt on demand by sfx.ensure()
+assets/sfx/
+# Drop your own TTF here; the renderer falls back to a system font without it
+assets/fonts/*
+!assets/fonts/.gitkeep
