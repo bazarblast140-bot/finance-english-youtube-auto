@@ -1,0 +1,65 @@
+{
+  "_note": "Evergreen, worldwide-safe finance topics. No country-specific tax. pick_topic.py marks 'used': true so nothing repeats. Add your own freely.",
+  "topics": [
+    {
+      "id": 1,
+      "used": false,
+      "topic": "Compound interest: why starting 10 years earlier beats investing twice as much"
+    },
+    {
+      "id": 2,
+      "used": false,
+      "topic": "Why money sitting in a savings account quietly loses value to inflation"
+    },
+    {
+      "id": 3,
+      "used": false,
+      "topic": "Index funds explained simply: what they are and why they beat most stock pickers"
+    },
+    {
+      "id": 4,
+      "used": false,
+      "topic": "Dollar-cost averaging: the boring strategy that beats trying to time the market"
+    },
+    {
+      "id": 5,
+      "used": false,
+      "topic": "The difference between saving and investing \u2014 and why you need both"
+    },
+    {
+      "id": 6,
+      "used": false,
+      "topic": "How fees quietly eat your returns: 1% a year can cost you a fortune"
+    },
+    {
+      "id": 7,
+      "used": false,
+      "topic": "Emergency fund first: why investing before you have one is a mistake"
+    },
+    {
+      "id": 8,
+      "used": false,
+      "topic": "The rule of 72: mental math to see how fast your money doubles"
+    },
+    {
+      "id": 9,
+      "used": false,
+      "topic": "Diversification explained: why you should not put everything in one stock"
+    },
+    {
+      "id": 10,
+      "used": false,
+      "topic": "Good debt vs bad debt: which debt builds wealth and which destroys it"
+    },
+    {
+      "id": 11,
+      "used": false,
+      "topic": "Why most people underestimate how much they need to retire"
+    },
+    {
+      "id": 12,
+      "used": false,
+      "topic": "The psychology of panic selling: why investors buy high and sell low"
+    }
+  ]
+}

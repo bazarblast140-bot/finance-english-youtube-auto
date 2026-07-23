@@ -1,0 +1,37 @@
+{
+  "channel": {
+    "name": "TODO — your channel name",
+    "niche": "finance/investing",
+    "audience": "US/UK/CA/AU beginner-to-intermediate",
+    "language": "English"
+  },
+  "video": {
+    "target_minutes": 8,
+    "words_per_minute": 150,
+    "target_word_count": 1200,
+    "resolution": "1920x1080",
+    "fps": 30
+  },
+  "models": {
+    "script_model": "claude-fable-5",
+    "verify_model": "claude-fable-5",
+    "visual_model": "claude-fable-5",
+    "max_tokens": 4000
+  },
+  "voice": {
+    "engine": "elevenlabs",
+    "voice_id": "TODO — your ElevenLabs voice ID",
+    "model": "eleven_multilingual_v2",
+    "stability": 0.5,
+    "style": 0.3
+  },
+  "pipeline": {
+    "auto_publish": false,
+    "publish_visibility": "private",
+    "stop_on_gate_fail": true,
+    "word_count_tolerance": 0.4
+  },
+  "notify": {
+    "channel": "telegram"
+  }
+}

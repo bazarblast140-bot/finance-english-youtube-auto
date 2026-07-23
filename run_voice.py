@@ -1,0 +1,158 @@
+"""Stage 3: Voice Agent converts script to spoken text, generates audio via ElevenLabs, Gate 2.
+Exits non-zero if Gate 2 fails (coverage, length band, or leftover markers)."""
+import re, time, subprocess
+import requests
+from common import cfg, claude_json, read, save, need, ok, die, RUN
+
+VOICE_SYSTEM = """You are the Voice Prep Agent. Convert a finished script to clean spoken English for TTS. You do NOT change meaning or drop content.
+
+RULES:
+1. Preserve every sentence. Strip [SEGMENT], [SOURCE], [UNVERIFIED], FACT LEDGER, TITLE — these are NOT spoken.
+2. Convert to spoken form: "$1,500"->"fifteen hundred dollars", "8%"->"eight percent", "S&P 500"->"the S and P five hundred", "2026"->"twenty twenty-six". Kill all symbols/abbreviations.
+3. Separate segments with a blank line for a natural breath.
+
+Return ONLY JSON: {"spoken_text":"...","word_count_in":N,"word_count_out":N,"coverage_note":"FULL — all content voiced" | "MISMATCH — ..."}
+Start your response with {"""
+
+# markers that must never survive into narration
+LEFTOVER = ["[SEGMENT", "[SOURCE", "[UNVERIFIED", "FACT LEDGER", "TITLE:", "DISCLAIMER LINE"]
+# symbols TTS mangles — the Voice Agent is told to spell these out
+BAD_SYMBOLS = ["$", "%", "&", "#", "€", "£"]
+
+MAX_CHARS = 4000   # ElevenLabs per-request limit is well above this; stay safely under
+
+
+def gate2(spoken, c):
+    """Gate 2 checks the ARTIFACT, not the agent's self-report. Length is judged
+    against the configured target (spoken form expands numbers into words, so
+    comparing in-words to out-words produces false failures)."""
+    fails = []
+    words = len(spoken.split())
+    target = c["video"]["target_word_count"]
+    tol = c["pipeline"].get("word_count_tolerance", 0.4)
+    lo, hi = int(target * (1 - tol)), int(target * (1 + tol))
+    if not (lo <= words <= hi):
+        fails.append(f"spoken length {words} words outside {lo}-{hi} (target {target})")
+
+    found = [m for m in LEFTOVER if m in spoken]
+    if found:
+        fails.append(f"unspoken markers leaked into narration: {found}")
+
+    syms = [s for s in BAD_SYMBOLS if s in spoken]
+    if syms:
+        fails.append(f"TTS-unsafe symbols still present: {syms}")
+
+    return fails, words
+
+
+def chunk(text, limit=MAX_CHARS):
+    """Split on paragraph breaks (the Voice Agent's breath marks), then sentences
+    if a single paragraph is still too long. Never splits mid-sentence."""
+    out, cur = [], ""
+    for para in text.split("\n\n"):
+        para = para.strip()
+        if not para:
+            continue
+        if len(para) > limit:
+            pieces = re.split(r"(?<=[.!?])\s+", para)
+        else:
+            pieces = [para]
+        for piece in pieces:
+            candidate = f"{cur}\n\n{piece}".strip() if cur else piece
+            if len(candidate) > limit and cur:
+                out.append(cur)
+                cur = piece
+            else:
+                cur = candidate
+    if cur:
+        out.append(cur)
+    return out
+
+
+def tts_request(text, c, key, prev=None, nxt=None, retries=3):
+    vid = c["voice"]["voice_id"]
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{vid}"
+    payload = {
+        "text": text,
+        "model_id": c["voice"]["model"],
+        "voice_settings": {"stability": c["voice"]["stability"], "style": c["voice"]["style"]},
+    }
+    # prosody continuity across chunk boundaries
+    if prev:
+        payload["previous_text"] = prev[-500:]
+    if nxt:
+        payload["next_text"] = nxt[:500]
+
+    for attempt in range(retries):
+        r = requests.post(url, headers={"xi-api-key": key, "Content-Type": "application/json"},
+                          json=payload, timeout=300)
+        if r.status_code == 200:
+            return r.content
+        if r.status_code in (429, 500, 502, 503) and attempt < retries - 1:
+            wait = 5 * (2 ** attempt)
+            print(f"[retry] ElevenLabs {r.status_code}; retrying in {wait}s")
+            time.sleep(wait)
+            continue
+        die(f"ElevenLabs error {r.status_code}: {r.text[:300]}")
+
+
+def tts_elevenlabs(text, c):
+    key = need("ELEVENLABS_API_KEY")
+    if str(c["voice"]["voice_id"]).startswith("TODO"):
+        die("Set your ElevenLabs voice_id in config.json")
+
+    parts = chunk(text)
+    ok(f"narration split into {len(parts)} TTS chunk(s)")
+
+    if len(parts) == 1:
+        (RUN / "voice.mp3").write_bytes(tts_request(parts[0], c, key))
+        ok("wrote run/voice.mp3")
+        return
+
+    files = []
+    for i, part in enumerate(parts):
+        prev = parts[i - 1] if i else None
+        nxt = parts[i + 1] if i + 1 < len(parts) else None
+        p = RUN / f"voice_{i:02d}.mp3"
+        p.write_bytes(tts_request(part, c, key, prev, nxt))
+        files.append(p)
+        print(f"  chunk {i+1}/{len(parts)} done ({len(part)} chars)")
+
+    # stitch with ffmpeg (stream copy — no re-encode, no quality loss)
+    listing = "\n".join(f"file '{p.name}'" for p in files)
+    (RUN / "voice_parts.txt").write_text(listing, encoding="utf-8")
+    try:
+        subprocess.run(["ffmpeg", "-y", "-f", "concat", "-safe", "0",
+                        "-i", "voice_parts.txt", "-c", "copy", "voice.mp3"],
+                       cwd=RUN, check=True)
+    except FileNotFoundError:
+        die("ffmpeg not found — needed to join multi-chunk narration. Install it "
+            "(Windows: winget install Gyan.FFmpeg) and re-run.")
+    ok("wrote run/voice.mp3")
+
+
+def main():
+    c = cfg()
+    script = read("script.txt")
+    prep = claude_json(VOICE_SYSTEM, f"<script>{script}</script>", model=c["models"]["script_model"],
+                       max_tokens=c["models"]["max_tokens"])
+
+    spoken = prep.get("spoken_text", "").strip()
+    if not spoken:
+        die("GATE 2 FAILED: Voice Agent returned empty spoken_text")
+
+    # ---- GATE 2 ----
+    fails, words = gate2(spoken, c)
+    if "FULL" not in prep.get("coverage_note", ""):
+        fails.insert(0, f"agent coverage note: {prep.get('coverage_note')}")
+    if fails:
+        save("gate2_report.txt", "\n".join(fails))
+        die(f"GATE 2 FAILED: {fails}")
+    ok(f"GATE 2 PASSED (full coverage, {words} spoken words)")
+
+    save("spoken.txt", spoken)
+    tts_elevenlabs(spoken, c)
+
+
+if __name__ == "__main__":
+    main()
