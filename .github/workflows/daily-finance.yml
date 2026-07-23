@@ -1,9 +1,14 @@
 name: Daily Finance Video
 
 on:
-  schedule:
-    # 01:00 UTC = 06:30 AM IST daily. GitHub cron can drift a few min under load — fine for daily.
-    - cron: "0 1 * * *"
+  # THE GOLDEN RULE (see README): the daily cron stays OFF until 3-5 videos have
+  # proven they retain viewers. Until then, run this manually from the Actions tab
+  # ("Run workflow" button) so every video gets looked at before the next one.
+  #
+  # TO GO DAILY: delete the two # marks on the schedule lines below and push.
+  # 01:00 UTC = 06:30 AM IST daily. GitHub cron can drift a few min under load — fine for daily.
+  # schedule:
+  #   - cron: "0 1 * * *"
   workflow_dispatch: {}
 
 concurrency:
