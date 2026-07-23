@@ -18,7 +18,9 @@ Start your response with {"""
 def main():
     c = cfg()
     spoken = read("spoken.txt")
-    plan = claude_json(VISUAL_SYSTEM, f"<script>{spoken}</script>", model=c["models"]["visual_model"], max_tokens=c["models"]["max_tokens"])
+    plan = claude_json(VISUAL_SYSTEM, f"<script>{spoken}</script>",
+                       model=c["models"]["visual_model"],
+                       max_tokens=c["models"].get("visual_max_tokens", 48000))
 
     # ---- GATE 3 ----
     ch = plan.get("checks", {})

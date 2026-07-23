@@ -16,7 +16,9 @@
     "script_model": "claude-fable-5",
     "verify_model": "claude-fable-5",
     "visual_model": "claude-fable-5",
-    "max_tokens": 4000
+    "_note": "visual_max_tokens is much larger: an 8-min video is ~60 shots of verbose JSON. A truncated shot list breaks assembly.",
+    "max_tokens": 16000,
+    "visual_max_tokens": 48000
   },
   "voice": {
     "_note": "engine: 'edge' = free Microsoft neural TTS, no API key. 'elevenlabs' = better prosody, needs ELEVENLABS_API_KEY + voice_id.",
