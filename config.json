@@ -1,9 +1,17 @@
 {
   "channel": {
-    "name": "TODO — your channel name",
+    "name": "The Money Rule",
+    "tagline": "One rule. Every video.",
     "niche": "finance/investing",
     "audience": "US/UK/CA/AU beginner-to-intermediate",
     "language": "English"
+  },
+  "branding": {
+    "_note": "The intro is generated once and cached in assets/. It rebuilds automatically when the name or tagline changes.",
+    "intro_seconds": 4.0,
+    "watermark": true,
+    "typewriter": true,
+    "thumbnail": true
   },
   "video": {
     "target_minutes": 8,

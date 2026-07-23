@@ -28,6 +28,7 @@ import json, pathlib, re, shutil, subprocess
 from PIL import Image, ImageDraw, ImageFont
 
 import assets_pexels
+import branding
 import sfx
 import sketch
 from common import cfg, read, ok, die, RUN, ROOT
@@ -135,13 +136,6 @@ def build_overlay(shot, idx, total, path, mode):
 
     accent = EMPHASIS.get(str(shot.get("emphasis", "neutral")).lower(), sketch.COOL)
 
-    section = str(shot.get("section") or "").strip().upper()
-    if section:
-        f = _font(38)
-        d.text((SIDE, 66), section, font=f, fill=accent)
-        sketch.rough_underline(d, SIDE, SIDE + d.textlength(section, font=f), 124,
-                               accent, 5, seed=idx * 13 + 1)
-
     headline = str(shot.get("on_screen_text") or "").strip()
     if headline.lower() == "null":
         headline = ""
@@ -184,11 +178,74 @@ def build_overlay(shot, idx, total, path, mode):
                 d.text((lx + d.textlength(line[:hl_pos], font=f), y), span, font=f,
                        fill=sketch.PAPER)
 
-    frac = (idx + 1) / max(total, 1)
-    d.rectangle([0, H - 8, int(W * frac), H], fill=sketch.HIGHLIGHT + (255,))
-
     layer.save(path)
     return path
+
+
+KICK_Y = 66
+KICK_FONT = 38
+
+
+def build_chrome(shot, idx, total, path, channel):
+    """Static layer: the heading's underline, the channel watermark, the progress
+    bar. Static on purpose — a watermark that zooms along with the headline stops
+    reading as a channel mark."""
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+
+    section = str(shot.get("section") or "").strip().upper()
+    if section:
+        accent = EMPHASIS.get(str(shot.get("emphasis", "neutral")).lower(), sketch.COOL)
+        w = d.textlength(section, font=_font(KICK_FONT))
+        sketch.rough_underline(d, SIDE, SIDE + w, KICK_Y + 58, accent, 5, seed=idx * 13 + 1)
+
+    if channel:
+        f = _font(30)
+        d.text((W - SIDE - d.textlength(channel.upper(), font=f), KICK_Y + 6),
+               channel.upper(), font=f, fill=(210, 214, 222, 150))
+
+    frac = (idx + 1) / max(total, 1)
+    d.rectangle([0, H - 8, int(W * frac), H], fill=sketch.HIGHLIGHT + (255,))
+    layer.save(path)
+    return path
+
+
+def _ass_colour(rgb):
+    r, g, b = rgb
+    return f"&H00{b:02X}{g:02X}{r:02X}&"
+
+
+def kicker_events(shot, start, end, typewriter=True):
+    """Type the section heading in, as ASS events.
+
+    ffmpeg's crop filter evaluates w only at configuration time — there is no
+    per-frame option — so a growing-width reveal is not expressible as a filter.
+    Doing it in the subtitle track costs nothing: the ass pass already runs, and
+    it needs no extra input, no alpha-capable intermediate codec, no re-encode.
+    """
+    section = str(shot.get("section") or "").strip().upper()
+    if not section:
+        return []
+    colour = _ass_colour(EMPHASIS.get(str(shot.get("emphasis", "neutral")).lower(), sketch.COOL))
+    out = []
+    typed_until = start
+
+    if typewriter:
+        step = TYPE_LEN / max(1, len(section))
+        for k in range(1, len(section) + 1):
+            t0 = start + TYPE_START + (k - 1) * step
+            t1 = min(end, t0 + step)
+            if t1 <= t0:
+                break
+            caret = "|" if k < len(section) else ""
+            out.append(f"Dialogue: 0,{_ass_time(t0)},{_ass_time(t1)},Kick,,0,0,0,,"
+                       f"{{\\c{colour}}}{_ass_escape(section[:k])}{caret}")
+        typed_until = min(end, start + TYPE_START + TYPE_LEN)
+
+    if typed_until < end:
+        out.append(f"Dialogue: 0,{_ass_time(typed_until)},{_ass_time(end)},Kick,,0,0,0,,"
+                   f"{{\\c{colour}}}{_ass_escape(section)}")
+    return out
 
 
 def _ass_time(sec):
@@ -220,6 +277,7 @@ ScaledBorderAndShadow: yes
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Cap,Arial,58,&H00FFFFFF,&H00FFFFFF,&H00101010,&H80000000,-1,0,0,0,100,100,0,0,1,4,1,2,160,160,90,1
+Style: Kick,Arial,38,&H00FFFFFF,&H00FFFFFF,&H00101010,&H80000000,-1,0,0,0,100,100,2,0,1,3,0,7,{SIDE},160,{KICK_Y},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -263,8 +321,15 @@ def _seconds(path):
     return float(out.stdout.strip())
 
 
-def render_shot(idx, shot, dur, fps, overlay, backdrop, still):
-    """One shot -> shot_NNN.mp4. Backdrop drifts; the overlay zooms and fades in."""
+TYPE_START, TYPE_LEN = 0.15, 0.70
+
+
+def render_shot(idx, shot, dur, fps, overlay, backdrop, still, chrome=None):
+    """One shot -> shot_NNN.mp4.
+
+    Layers, bottom to top: backdrop (drifts), headline (zooms + fades), chrome
+    (static). The section heading is typed in later by the subtitle pass.
+    """
     out = f"shot_{idx:03d}.mp4"
     args = ["ffmpeg", "-y"]
 
@@ -276,6 +341,11 @@ def render_shot(idx, shot, dur, fps, overlay, backdrop, still):
         args += ["-f", "lavfi", "-t", f"{dur:.3f}",
                  "-i", f"color=c=0x101319:s={W}x{H}:r={fps}"]
     args += ["-loop", "1", "-t", f"{dur:.3f}", "-i", str(overlay)]
+
+    idx_chrome = None
+    if chrome:
+        args += ["-loop", "1", "-t", f"{dur:.3f}", "-i", str(chrome)]
+        idx_chrome = 2
 
     # A chart is data — it must not drift under the viewer's eye. Footage does,
     # because a frozen stock clip looks like the video has hung.
@@ -291,13 +361,18 @@ def render_shot(idx, shot, dur, fps, overlay, backdrop, still):
         bg = (f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,"
               f"crop={W}:{H},fps={fps},setsar=1[bg]")
 
-    zoom = (f"trunc({W}*min(1\\,0.90+0.10*t/{POP_IN})/2)*2")
-    fc = (f"{bg};"
-          f"[1:v]format=rgba,fade=t=in:st=0:d={FADE_IN}:alpha=1,"
-          f"scale=w='{zoom}':h=-2:eval=frame[tx];"
-          f"[bg][tx]overlay=x='(W-w)/2':y='(H-h)/2':format=auto[v]")
+    zoom = f"trunc({W}*min(1\\,0.90+0.10*t/{POP_IN})/2)*2"
+    parts = [bg,
+             f"[1:v]format=rgba,fade=t=in:st=0:d={FADE_IN}:alpha=1,"
+             f"scale=w='{zoom}':h=-2:eval=frame[tx]",
+             "[bg][tx]overlay=x='(W-w)/2':y='(H-h)/2':format=auto[s1]"]
+    last = "s1"
 
-    args += ["-filter_complex", fc, "-map", "[v]", "-an",
+    if idx_chrome is not None:
+        parts.append(f"[{last}][{idx_chrome}:v]overlay=x=0:y=0:format=auto[s2]")
+        last = "s2"
+
+    args += ["-filter_complex", ";".join(parts), "-map", f"[{last}]", "-an",
              "-t", f"{dur:.3f}", "-r", str(fps), "-fps_mode", "cfr", *X264, out]
     _run(args)
     return out
@@ -330,9 +405,24 @@ def main():
     print("=== footage ===")
     assets_pexels.warm_cache(shots)
 
-    # 3) per-shot clips
+    # 3) permanent intro. Everything after it shifts by its length.
+    brand = c.get("branding", {})
+    channel = str(c["channel"].get("name", "")).strip()
+    if channel.startswith("TODO"):
+        channel = ""
+    intro = branding.intro_clip(c, fps, X264)
+    offset = _seconds(intro) if intro else 0.0
+    if intro:
+        ok(f"intro {offset:.1f}s — everything after it shifts by that much")
+
+    typewriter = bool(brand.get("typewriter", True))
+
+    # 4) per-shot clips
     print("=== shots ===")
     clips, events, click_times = [], [], []
+    if intro:
+        shutil.copyfile(intro, RUN / "intro.mp4")
+        clips.append("intro.mp4")
     for i, shot in enumerate(shots):
         dur = max(0.6, float(shot["end_sec"]) - float(shot["start_sec"]))
 
@@ -349,12 +439,18 @@ def main():
             mode = "footage"
 
         overlay = build_overlay(shot, i, len(shots), RUN / f"ov_{i:03d}.png", mode)
+        chrome = build_chrome(shot, i, len(shots), RUN / f"ch_{i:03d}.png", channel)
 
-        clips.append(render_shot(i, shot, dur, fps, overlay.name,
-                                 backdrop.resolve() if backdrop else None, still))
-        click_times.append(float(shot["start_sec"]))
+        clips.append(render_shot(
+            i, shot, dur, fps, overlay.name,
+            backdrop.resolve() if backdrop else None, still, chrome=chrome.name))
+
+        click_times.append(float(shot["start_sec"]) + offset)
+        s0, s1 = shot["start_sec"] + offset, shot["end_sec"] + offset
+        events += kicker_events(shot, s0, s1, typewriter)
         for a, b, text in _cues(shot.get("spoken_line"), shot["start_sec"], shot["end_sec"]):
-            events.append(f"Dialogue: 0,{_ass_time(a)},{_ass_time(b)},Cap,,0,0,0,,{_ass_escape(text)}")
+            events.append(f"Dialogue: 0,{_ass_time(a + offset)},{_ass_time(b + offset)},"
+                          f"Cap,,0,0,0,,{_ass_escape(text)}")
         print(f"  [{i+1}/{len(shots)}] {dur:4.1f}s  {mode:<7} "
               f"{str(shot.get('on_screen_text'))[:44]}")
 
@@ -366,10 +462,13 @@ def main():
     _run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", "clips.txt",
           "-c", "copy", "silent.mp4"])
 
-    # 5) narration + shot-change clicks
-    sfx.click_track(click_times, audio_dur, RUN / "clicks.wav")
+    # 6) narration (pushed past the intro) + shot-change clicks
+    sfx.click_track(click_times, audio_dur + offset, RUN / "clicks.wav")
+    delay = int(offset * 1000)
     _run(["ffmpeg", "-y", "-i", "voice.mp3", "-i", "clicks.wav",
-          "-filter_complex", "[0:a][1:a]amix=inputs=2:duration=first:normalize=0[a]",
+          "-filter_complex",
+          f"[0:a]adelay={delay}|{delay}[nar];"
+          f"[nar][1:a]amix=inputs=2:duration=longest:normalize=0[a]",
           "-map", "[a]", "-c:a", "aac", "-b:a", "192k", "mixed.m4a"])
 
     # 6) captions + mux. fps= before ass= or every caption freezes until the next cut.
@@ -378,7 +477,13 @@ def main():
           "-r", str(fps), "-fps_mode", "cfr", *X264,
           "-c:a", "copy", "-shortest", "final.mp4"])
 
-    ok(f"wrote run/final.mp4 ({audio_dur/60:.1f} min)")
+    ok(f"wrote run/final.mp4 ({(audio_dur + offset)/60:.1f} min)")
+
+    # 8) thumbnail — generated from the punchiest shot, not the first frame
+    if brand.get("thumbnail", True):
+        thumb = branding.thumbnail(c, shots, RUN / "thumbnail.jpg")
+        if thumb:
+            ok("wrote run/thumbnail.jpg (1280x720)")
 
 
 if __name__ == "__main__":
