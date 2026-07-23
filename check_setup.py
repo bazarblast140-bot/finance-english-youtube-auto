@@ -11,9 +11,8 @@ def main():
     # --- secrets ---
     if not (ROOT / ".env").exists() and not os.environ.get("ANTHROPIC_API_KEY"):
         problems.append("No .env file. Copy .env.example to .env and fill in your keys.")
-    for key in ("ANTHROPIC_API_KEY", "ELEVENLABS_API_KEY"):
-        if not os.environ.get(key):
-            problems.append(f"{key} not set (.env or environment).")
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        problems.append("ANTHROPIC_API_KEY not set (.env or environment).")
     for key in ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"):
         if not os.environ.get(key):
             warnings.append(f"{key} not set — report will print to console instead of Telegram.")
@@ -22,8 +21,22 @@ def main():
     c = cfg()
     if str(c["channel"]["name"]).startswith("TODO"):
         warnings.append("config.json -> channel.name is still TODO.")
-    if str(c["voice"]["voice_id"]).startswith("TODO"):
-        problems.append("config.json -> voice.voice_id is still TODO (your ElevenLabs voice ID).")
+
+    # --- voice engine (only ElevenLabs needs a key) ---
+    engine = c["voice"].get("engine", "edge").lower()
+    if engine == "elevenlabs":
+        if not os.environ.get("ELEVENLABS_API_KEY"):
+            problems.append("voice.engine is 'elevenlabs' but ELEVENLABS_API_KEY is not set.")
+        if str(c["voice"]["voice_id"]).startswith("TODO"):
+            problems.append("voice.engine is 'elevenlabs' but voice.voice_id is still TODO.")
+    elif engine == "edge":
+        try:
+            __import__("edge_tts")
+        except ImportError:
+            problems.append("voice.engine is 'edge' but edge-tts is not installed. "
+                            "Run: pip install -r requirements.txt")
+    else:
+        problems.append(f"config.json -> voice.engine '{engine}' unknown (use 'edge' or 'elevenlabs').")
 
     # --- binaries ---
     for tool in ("ffmpeg", "ffprobe"):

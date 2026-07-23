@@ -1,6 +1,6 @@
 """Stage 3: Voice Agent converts script to spoken text, generates audio via ElevenLabs, Gate 2.
 Exits non-zero if Gate 2 fails (coverage, length band, or leftover markers)."""
-import re, time, subprocess
+import asyncio, re, time, subprocess
 import requests
 from common import cfg, claude_json, read, save, need, ok, die, RUN
 
@@ -96,29 +96,35 @@ def tts_request(text, c, key, prev=None, nxt=None, retries=3):
         die(f"ElevenLabs error {r.status_code}: {r.text[:300]}")
 
 
-def tts_elevenlabs(text, c):
-    key = need("ELEVENLABS_API_KEY")
-    if str(c["voice"]["voice_id"]).startswith("TODO"):
-        die("Set your ElevenLabs voice_id in config.json")
+def edge_request(text, c, path):
+    """Free Microsoft neural TTS — no API key. Same engine the Hindi project uses."""
+    try:
+        import edge_tts
+    except ImportError:
+        die("edge_tts not installed. Run: pip install -r requirements.txt")
 
-    parts = chunk(text)
-    ok(f"narration split into {len(parts)} TTS chunk(s)")
+    async def go():
+        comm = edge_tts.Communicate(text, c["voice"]["edge_voice"],
+                                    rate=c["voice"].get("edge_rate", "+0%"),
+                                    pitch=c["voice"].get("edge_pitch", "+0Hz"))
+        await comm.save(str(path))
 
-    if len(parts) == 1:
-        (RUN / "voice.mp3").write_bytes(tts_request(parts[0], c, key))
-        ok("wrote run/voice.mp3")
-        return
+    for attempt in range(3):
+        try:
+            asyncio.run(go())
+            if path.exists() and path.stat().st_size > 1000:
+                return
+            raise RuntimeError("edge-tts produced an empty file")
+        except Exception as e:  # noqa: BLE001 — edge_tts raises a wide range
+            if attempt == 2:
+                die(f"Edge TTS failed after 3 attempts: {e}")
+            wait = 5 * (2 ** attempt)
+            print(f"[retry] Edge TTS failed ({e}); retrying in {wait}s")
+            time.sleep(wait)
 
-    files = []
-    for i, part in enumerate(parts):
-        prev = parts[i - 1] if i else None
-        nxt = parts[i + 1] if i + 1 < len(parts) else None
-        p = RUN / f"voice_{i:02d}.mp3"
-        p.write_bytes(tts_request(part, c, key, prev, nxt))
-        files.append(p)
-        print(f"  chunk {i+1}/{len(parts)} done ({len(part)} chars)")
 
-    # stitch with ffmpeg (stream copy — no re-encode, no quality loss)
+def _stitch(files):
+    """Join chunk mp3s with ffmpeg (stream copy — no re-encode, no quality loss)."""
     listing = "\n".join(f"file '{p.name}'" for p in files)
     (RUN / "voice_parts.txt").write_text(listing, encoding="utf-8")
     try:
@@ -128,6 +134,42 @@ def tts_elevenlabs(text, c):
     except FileNotFoundError:
         die("ffmpeg not found — needed to join multi-chunk narration. Install it "
             "(Windows: winget install Gyan.FFmpeg) and re-run.")
+
+
+def synthesize(text, c):
+    engine = c["voice"].get("engine", "edge").lower()
+    if engine not in ("edge", "elevenlabs"):
+        die(f"Unknown voice.engine '{engine}' in config.json — use 'edge' or 'elevenlabs'.")
+
+    key = None
+    if engine == "elevenlabs":
+        key = need("ELEVENLABS_API_KEY")
+        if str(c["voice"]["voice_id"]).startswith("TODO"):
+            die("voice.engine is 'elevenlabs' but voice_id is still TODO in config.json")
+
+    parts = chunk(text)
+    ok(f"narration: {engine} engine, {len(parts)} chunk(s)")
+
+    def render(part, path, i):
+        if engine == "edge":
+            edge_request(part, c, path)
+        else:
+            prev = parts[i - 1] if i else None
+            nxt = parts[i + 1] if i + 1 < len(parts) else None
+            path.write_bytes(tts_request(part, c, key, prev, nxt))
+
+    if len(parts) == 1:
+        render(parts[0], RUN / "voice.mp3", 0)
+        ok("wrote run/voice.mp3")
+        return
+
+    files = []
+    for i, part in enumerate(parts):
+        p = RUN / f"voice_{i:02d}.mp3"
+        render(part, p, i)
+        files.append(p)
+        print(f"  chunk {i+1}/{len(parts)} done ({len(part)} chars)")
+    _stitch(files)
     ok("wrote run/voice.mp3")
 
 
@@ -151,7 +193,7 @@ def main():
     ok(f"GATE 2 PASSED (full coverage, {words} spoken words)")
 
     save("spoken.txt", spoken)
-    tts_elevenlabs(spoken, c)
+    synthesize(spoken, c)
 
 
 if __name__ == "__main__":

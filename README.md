@@ -29,8 +29,17 @@ pip install -r requirements.txt
 ```
 
 Edit `config.json`:
-- `channel.name`, `voice.voice_id` (your ElevenLabs voice)
+- `channel.name`
 - keep `pipeline.auto_publish: false` for now
+
+**Voice:** defaults to `voice.engine: "edge"` — free Microsoft neural TTS, no API key,
+no per-character cost (same engine the Hindi project uses). To switch to ElevenLabs,
+put a key in `.env` and set `voice.engine: "elevenlabs"` + `voice.voice_id`.
+
+Check everything before spending credits:
+```bash
+python check_setup.py
+```
 
 (Optional, nicer text) drop a bold TTF into `assets/fonts/Inter-Bold.ttf`.
 
@@ -80,7 +89,7 @@ Even then it uploads **private + only if verdict READY** — never instant-publi
 | `check_setup.py` | preflight: keys, ffmpeg, deps, config TODOs — fails before spending credits |
 | `pick_topic.py` | picks next unused topic from `topic_bank.json` |
 | `run_script.py` | Script Agent + **Gate 1** (hook, facts, compliance) |
-| `run_voice.py` | Voice Agent + ElevenLabs + **Gate 2** (coverage) |
+| `run_voice.py` | Voice Agent + Edge TTS / ElevenLabs + **Gate 2** (coverage, length, TTS-safety) |
 | `run_visuals.py` | Visual Agent + **Gate 3** (density, numbers, repeats) |
 | `run_assembly.py` | FFmpeg: cards + voice + burned subtitles → `final.mp4` |
 | `run_verify.py` | **Final Gate** → Hinglish `report.md` |
