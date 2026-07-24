@@ -12,6 +12,7 @@ Hindi channel, which is the one mistake this whole separation exists to prevent.
 So this script reads the channel back after authorising and shows you which one
 you actually picked, before writing anything.
 """
+import os
 import re
 import sys
 
@@ -57,13 +58,21 @@ def main():
         scopes=SCOPES,
     )
 
+    account = os.environ.get("YOUTUBE_ACCOUNT", "").strip()
+
     print("\nA browser window is opening.")
-    print("  1. Pick the Google account that owns your FINANCE channel")
+    if account:
+        print(f"  1. Sign in as  {account}  (it should already be selected)")
+    else:
+        print("  1. Pick the Google account that owns your FINANCE channel")
     print("  2. If it asks which channel, pick the finance one — NOT the Hindi one")
     print("  3. Google will warn the app is unverified: Advanced -> Go to (unsafe)\n")
 
-    # prompt=consent forces a refresh token even if this account authorised before
-    creds = flow.run_local_server(port=0, prompt="consent", access_type="offline")
+    # login_hint pre-selects the account, so the wrong one is not one careless
+    # click away. prompt=consent forces a refresh token even if this account has
+    # authorised the app before.
+    extra = {"login_hint": account} if account else {}
+    creds = flow.run_local_server(port=0, prompt="consent", access_type="offline", **extra)
 
     if not creds.refresh_token:
         die("Google returned no refresh token. Revoke this app's access at "
@@ -83,6 +92,8 @@ def main():
     print(f"  Authorised channel : {title}")
     print(f"  Channel ID         : {channel_id}")
     print(f"  https://www.youtube.com/channel/{channel_id}")
+    if account:
+        print(f"  Expected account   : {account}")
     print("=" * 58)
 
     answer = input("\nIs this your FINANCE channel? Uploads will go here. [y/N] ").strip().lower()
