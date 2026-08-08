@@ -1,101 +1,85 @@
-"""Shared helpers for the finance pipeline. Import this everywhere."""
-import os, json, sys, time, pathlib
-from datetime import datetime
+import json
+import os
+import sys
+import requests
+from pathlib import Path
 
-ROOT = pathlib.Path(__file__).parent
+ROOT = Path(__file__).parent.resolve()
 RUN = ROOT / "run"
-RUN.mkdir(exist_ok=True)
-
-# Windows consoles default to cp1252 and blow up on the emojis in the verify
-# report. Force UTF-8 on stdout/stderr so printing a report never crashes a run.
-for _stream in (sys.stdout, sys.stderr):
-    try:
-        _stream.reconfigure(encoding="utf-8", errors="replace")
-    except (AttributeError, ValueError):
-        pass
-
-# ---- env loading (simple .env parser, no extra deps) ----
-def load_env():
-    envf = ROOT / ".env"
-    if envf.exists():
-        for line in envf.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, v = line.split("=", 1)
-                os.environ.setdefault(k.strip(), v.strip())
-load_env()
 
 def cfg():
-    return json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
+    path = ROOT / "config.json"
+    if not path.exists():
+        die("config.json missing")
+    return json.loads(path.read_text(encoding="utf-8"))
 
-def need(key):
-    v = os.environ.get(key)
-    if not v:
-        die(f"Missing env var {key}. Set it in .env (see .env.example).")
-    return v
+def read(filename):
+    p = RUN / filename
+    if not p.exists():
+        die(f"run/{filename} missing")
+    return p.read_text(encoding="utf-8")
 
-def die(msg, code=1):
-    print(f"[FAIL] {msg}", file=sys.stderr)
-    sys.exit(code)
+def save(filename, content):
+    RUN.mkdir(parents=True, exist_ok=True)
+    (RUN / filename).write_text(content, encoding="utf-8")
+
+def need(env_var):
+    val = os.environ.get(env_var, "").strip()
+    if not val:
+        die(f"Missing required environment variable: {env_var}")
+    return val
 
 def ok(msg):
     print(f"[OK] {msg}")
 
-def save(name, text):
-    (RUN / name).write_text(text, encoding="utf-8")
-    ok(f"wrote run/{name}")
+def die(msg):
+    print(f"[ERROR] {msg}", file=sys.stderr)
+    sys.exit(1)
 
-def read(name):
-    return (RUN / name).read_text(encoding="utf-8")
+def claude_json(system_prompt, user_prompt, model="kimi-k3", max_tokens=4096):
+    """Call LLM API (Moonshot Kimi K3 or Anthropic) and parse JSON output."""
+    moonshot_key = os.environ.get("MOONSHOT_API_KEY", "").strip()
+    anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
 
-# ---- Anthropic call ----
-def claude(system, user, model=None, max_tokens=4000, retries=3):
-    """One Claude call. Streams (so a large max_tokens can't hit an HTTP timeout),
-    retries transient errors, and refuses to return a truncated response —
-    a cut-off JSON reply silently breaks the stage that parses it."""
-    import anthropic
-    client = anthropic.Anthropic(api_key=need("ANTHROPIC_API_KEY"))
-    model = model or cfg()["models"]["script_model"]
-    last = None
-
-    for attempt in range(retries):
-        try:
-            with client.messages.stream(
-                model=model, max_tokens=max_tokens,
-                system=system,
-                messages=[{"role": "user", "content": user}],
-            ) as stream:
-                resp = stream.get_final_message()
-        except (anthropic.APIStatusError, anthropic.APIConnectionError) as e:
-            status = getattr(e, "status_code", None)
-            if status is not None and status not in (429, 500, 502, 503, 529):
-                die(f"Anthropic API error {status}: {e}")
-            last = e
-            if attempt < retries - 1:
-                wait = 5 * (2 ** attempt)
-                print(f"[retry] Anthropic call failed ({status or type(e).__name__}); retrying in {wait}s")
-                time.sleep(wait)
-            continue
-
-        if resp.stop_reason == "refusal":
-            die(f"Model declined this request (category: "
-                f"{getattr(resp.stop_details, 'category', None)}). Rewrite the topic and re-run.")
-        if resp.stop_reason == "max_tokens":
-            die(f"Response hit the {max_tokens}-token output cap and was cut off. "
-                f"Raise the relevant max_tokens in config.json -> models.")
-        return "".join(b.text for b in resp.content if b.type == "text")
-
-    die(f"Anthropic call failed after {retries} attempts: {last}")
-
-def claude_json(system, user, model=None, max_tokens=4000):
-    """For agents that must return JSON. Strips fences, parses."""
-    raw = claude(system, user, model, max_tokens)
-    raw = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError as e:
-        die(f"Agent did not return valid JSON: {e}\n---\n{raw[:500]}")
-
-# ---- prompt loading ----
-def load_prompt(name):
-    return (ROOT / "prompts" / name).read_text(encoding="utf-8")
+    if moonshot_key:
+        url = "https://api.moonshot.ai/v1/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {moonshot_key}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": model if model and "kimi" in model else "kimi-k3",
+            "response_format": {"type": "json_object"},
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            "temperature": 0.3
+        }
+        r = requests.post(url, headers=headers, json=payload, timeout=120)
+        if r.status_code != 200:
+            die(f"Moonshot API error {r.status_code}: {r.text[:300]}")
+        res_data = r.json()
+        content = res_data["choices"][0]["message"]["content"]
+        return json.loads(content)
+    elif anthropic_key:
+        url = "https://api.anthropic.com/v1/messages"
+        headers = {
+            "x-api-key": anthropic_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json"
+        }
+        payload = {
+            "model": "claude-3-5-sonnet-20241022",
+            "max_tokens": max_tokens,
+            "system": system_prompt,
+            "messages": [{"role": "user", "content": user_prompt}]
+        }
+        r = requests.post(url, headers=headers, json=payload, timeout=120)
+        if r.status_code != 200:
+            die(f"Anthropic API error {r.status_code}: {r.text[:300]}")
+        res_data = r.json()
+        content = res_data["content"][0]["text"]
+        return json.loads(content)
+    else:
+        die("Missing API Key! Please set MOONSHOT_API_KEY or ANTHROPIC_API_KEY in environment/secrets.")
