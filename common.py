@@ -1,8 +1,6 @@
-import json
-import os
-import sys
-import requests
+import json, os, re, sys, time
 from pathlib import Path
+import requests
 
 ROOT = Path(__file__).parent.resolve()
 RUN = ROOT / "run"
@@ -36,8 +34,10 @@ def die(msg):
     print(f"[ERROR] {msg}", file=sys.stderr)
     sys.exit(1)
 
-def claude_json(system_prompt, user_prompt, model="kimi-k3", max_tokens=4096):
-    """Call LLM API (Moonshot Kimi K3 or Anthropic) and parse JSON output."""
+def claude_json(system_prompt, user_prompt, model=None, max_tokens=4096):
+    c = cfg()
+    model = model or c["models"].get("script_model", "kimi-k3")
+    
     moonshot_key = os.environ.get("MOONSHOT_API_KEY", "").strip()
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
 
@@ -48,20 +48,31 @@ def claude_json(system_prompt, user_prompt, model="kimi-k3", max_tokens=4096):
             "Content-Type": "application/json"
         }
         payload = {
-            "model": model if model and "kimi" in model else "kimi-k3",
-            "response_format": {"type": "json_object"},
+            "model": "kimi-k3",
             "messages": [
-                {"role": "system", "content": system_prompt},
+                {"role": "system", "content": system_prompt + "\nIMPORTANT: Return ONLY valid JSON."},
                 {"role": "user", "content": user_prompt}
             ],
-            "temperature": 0.3
+            "response_format": {"type": "json_object"}
         }
-        r = requests.post(url, headers=headers, json=payload, timeout=120)
-        if r.status_code != 200:
-            die(f"Moonshot API error {r.status_code}: {r.text[:300]}")
-        res_data = r.json()
-        content = res_data["choices"][0]["message"]["content"]
-        return json.loads(content)
+        for attempt in range(3):
+            try:
+                r = requests.post(url, headers=headers, json=payload, timeout=120)
+                if r.status_code == 200:
+                    content = r.json()["choices"][0]["message"]["content"]
+                    match = re.search(r"\{.*\}", content, re.DOTALL)
+                    if match:
+                        return json.loads(match.group(0))
+                    return json.loads(content)
+                if r.status_code in (429, 500, 502, 503) and attempt < 2:
+                    time.sleep(3 * (attempt + 1))
+                    continue
+                die(f"Moonshot Kimi K3 API error {r.status_code}: {r.text[:300]}")
+            except Exception as e:
+                if attempt == 2:
+                    die(f"Moonshot API request failed: {e}")
+                time.sleep(3)
+
     elif anthropic_key:
         url = "https://api.anthropic.com/v1/messages"
         headers = {
@@ -76,10 +87,12 @@ def claude_json(system_prompt, user_prompt, model="kimi-k3", max_tokens=4096):
             "messages": [{"role": "user", "content": user_prompt}]
         }
         r = requests.post(url, headers=headers, json=payload, timeout=120)
-        if r.status_code != 200:
-            die(f"Anthropic API error {r.status_code}: {r.text[:300]}")
-        res_data = r.json()
-        content = res_data["content"][0]["text"]
-        return json.loads(content)
+        if r.status_code == 200:
+            text = r.json()["content"][0]["text"]
+            match = re.search(r"\{.*\}", text, re.DOTALL)
+            if match:
+                return json.loads(match.group(0))
+            return json.loads(text)
+        die(f"Anthropic API error {r.status_code}: {r.text[:300]}")
     else:
-        die("Missing API Key! Please set MOONSHOT_API_KEY or ANTHROPIC_API_KEY in environment/secrets.")
+        die("Neither MOONSHOT_API_KEY nor ANTHROPIC_API_KEY is set in environment!")
