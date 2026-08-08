@@ -42,6 +42,7 @@ def claude_json(system_prompt, user_prompt, model=None, max_tokens=4096):
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
 
     if moonshot_key:
+        print("[LLM] Using Moonshot Kimi K3 API...")
         url = "https://api.moonshot.ai/v1/chat/completions"
         headers = {
             "Authorization": f"Bearer {moonshot_key}",
@@ -50,10 +51,9 @@ def claude_json(system_prompt, user_prompt, model=None, max_tokens=4096):
         payload = {
             "model": "kimi-k3",
             "messages": [
-                {"role": "system", "content": system_prompt + "\nIMPORTANT: Return ONLY valid JSON."},
+                {"role": "system", "content": system_prompt + "\n\nCRITICAL: Respond ONLY with a valid JSON object matching the requested schema. Do NOT wrap in markdown or backticks."},
                 {"role": "user", "content": user_prompt}
-            ],
-            "response_format": {"type": "json_object"}
+            ]
         }
         for attempt in range(3):
             try:
@@ -64,16 +64,19 @@ def claude_json(system_prompt, user_prompt, model=None, max_tokens=4096):
                     if match:
                         return json.loads(match.group(0))
                     return json.loads(content)
+                print(f"[WARN] Moonshot API HTTP {r.status_code}: {r.text[:300]}")
                 if r.status_code in (429, 500, 502, 503) and attempt < 2:
                     time.sleep(3 * (attempt + 1))
                     continue
                 die(f"Moonshot Kimi K3 API error {r.status_code}: {r.text[:300]}")
             except Exception as e:
+                print(f"[WARN] Moonshot request failed: {e}")
                 if attempt == 2:
                     die(f"Moonshot API request failed: {e}")
                 time.sleep(3)
 
     elif anthropic_key:
+        print("[LLM] Using Anthropic API...")
         url = "https://api.anthropic.com/v1/messages"
         headers = {
             "x-api-key": anthropic_key,
