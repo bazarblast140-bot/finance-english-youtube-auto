@@ -1,51 +1,29 @@
 {
   "channel": {
-    "name": "The Money Rule",
-    "tagline": "One rule. Every video.",
-    "niche": "finance/investing",
-    "audience": "US/UK/CA/AU beginner-to-intermediate",
-    "language": "English"
-  },
-  "branding": {
-    "_note": "The intro is generated once and cached in assets/. It rebuilds automatically when the name or tagline changes.",
-    "intro_seconds": 4.0,
-    "watermark": true,
-    "typewriter": true,
-    "thumbnail": true
-  },
-  "video": {
-    "target_minutes": 8,
-    "words_per_minute": 150,
-    "target_word_count": 1200,
-    "resolution": "1920x1080",
-    "fps": 30
-  },
-  "models": {
-    "script_model": "claude-fable-5",
-    "verify_model": "claude-fable-5",
-    "visual_model": "claude-fable-5",
-    "_note": "visual_max_tokens is much larger: an 8-min video is ~60 shots of verbose JSON. A truncated shot list breaks assembly.",
-    "max_tokens": 16000,
-    "visual_max_tokens": 48000
-  },
-  "voice": {
-    "_note": "engine: 'edge' = free Microsoft neural TTS, no API key. 'elevenlabs' = better prosody, needs ELEVENLABS_API_KEY + voice_id.",
-    "engine": "edge",
-    "edge_voice": "en-US-GuyNeural",
-    "edge_rate": "+8%",
-    "edge_pitch": "+0Hz",
-    "voice_id": "TODO — your ElevenLabs voice ID",
-    "model": "eleven_multilingual_v2",
-    "stability": 0.5,
-    "style": 0.3
+    "name": "Finance English"
   },
   "pipeline": {
     "auto_publish": false,
-    "publish_visibility": "private",
-    "stop_on_gate_fail": true,
+    "max_stock_ratio": 0.55,
     "word_count_tolerance": 0.4
   },
-  "notify": {
-    "channel": "telegram"
+  "video": {
+    "target_word_count": 150
+  },
+  "voice": {
+    "engine": "edge",
+    "edge_voice": "en-US-ChristopherNeural",
+    "edge_rate": "+0%",
+    "edge_pitch": "+0Hz",
+    "voice_id": "TODO",
+    "model": "eleven_turbo_v2_5",
+    "stability": 0.5,
+    "style": 0.0
+  },
+  "models": {
+    "script_model": "kimi-k3",
+    "visual_model": "kimi-k3",
+    "max_tokens": 4096,
+    "visual_max_tokens": 48000
   }
 }
