@@ -3,7 +3,7 @@
   "topics": [
     {
       "id": 1,
-      "used": false,
+      "used": true,
       "topic": "Compound interest: why starting 10 years earlier beats investing twice as much"
     },
     {
