@@ -50,4 +50,7 @@ jobs:
             run/final.mp4
             run/report.md
             run/script.txt
+            run/gate1_report.txt
+            run/gate2_report.txt
+            run/spoken.txt
           retention-days: 7

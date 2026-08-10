@@ -94,14 +94,19 @@ def main():
 <output_format>TITLE / HOOK (0-15 sec) / BODY with [SEGMENT n: label] and [SOURCE: ...] tags / CTA / DISCLAIMER LINE / FACT LEDGER listing every figure + source status.</output_format>"""
 
     last_fails = []
+    model = c["models"]["script_model"]
+    max_tok = c["models"].get("script_max_tokens", 4000)
+    print(f"[info] Script Agent: model={model}, max_tokens={max_tok}, topic='{topic}'")
+
     for attempt in range(2):  # max 2 attempts (was 3)
         user = prompt
         if last_fails:
             user += f"\n\n<previous_attempt_issues>\nThe previous script was rejected by automated checks due to these structural issues:\n- " + "\n- ".join(last_fails) + "\n\nYou MUST fix every listed issue in this rewrite.\n</previous_attempt_issues>"
 
-        script = claude(SCRIPT_SYSTEM, user, model=c["models"]["script_model"],
-                        max_tokens=c["models"].get("script_max_tokens", 4000))
+        print(f"[info] Attempt {attempt+1}/2: calling LLM...")
+        script = claude(SCRIPT_SYSTEM, user, model=model, max_tokens=max_tok)
         save("script.txt", script)
+        print(f"[info] Script generated: {len(script)} chars, ~{len(script.split())} words")
 
         # ---- GATE 1 (local, no LLM call, zero credits) ----
         passed, fails = gate1_local(script, c)
