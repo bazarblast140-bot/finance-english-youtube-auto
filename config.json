@@ -35,12 +35,13 @@
     "fps": 30
   },
   "models": {
-    "_note": "llm_provider: 'anthropic' or 'kimi'. For kimi, use moonshot-v1-8k/32k/128k.",
+    "_note": "llm_provider: 'kimi'. script_model and verify_model use kimi-k3 (general-purpose, better creative writing). visual_model uses code-highspeed for structured JSON output.",
     "llm_provider": "kimi",
-    "script_model": "kimi-k2.7-code-highspeed",
-    "verify_model": "kimi-k2.7-code-highspeed",
+    "script_model": "kimi-k3",
+    "verify_model": "kimi-k3",
     "visual_model": "kimi-k2.7-code-highspeed",
     "max_tokens": 16000,
+    "script_max_tokens": 4000,
     "visual_max_tokens": 16000
   },
   "voice": {

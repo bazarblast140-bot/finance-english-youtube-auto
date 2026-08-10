@@ -88,12 +88,12 @@
     },
     {
       "id": 18,
-      "used": false,
+      "used": true,
       "topic": "The 4% withdrawal rule: how to turn a portfolio into lifetime income"
     },
     {
       "id": 19,
-      "used": false,
+      "used": true,
       "topic": "Asset allocation 101: how to balance stocks, bonds, and cash for your age"
     },
     {
