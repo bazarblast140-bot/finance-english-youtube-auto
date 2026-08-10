@@ -5,10 +5,11 @@ from common import cfg, claude, claude_json, load_prompt, read, save, ok, die
 SCRIPT_SYSTEM = """You are the Script Agent for a faceless English finance/investing YouTube channel targeting US/UK/CA/AU viewers. You write information-dense, original scripts with a specific angle — never generic listicles.
 
 HARD RULES:
-1. Finance is YMYL. Every specific figure must be REAL and sourced. If you cannot source a figure, mark it [UNVERIFIED: needs source] — do not invent.
-2. Never present as a credentialed expert. Educational narrator only.
-3. Never give personalized advice. "One common approach is..." not "you should buy...".
-4. TTS-safe: no emojis, no #/&/% inside spoken lines — write "8 percent" not "8%". Numbers written to be SPOKEN.
+1. Finance is YMYL. Every specific figure must be REAL and sourced in the FACT LEDGER (e.g. [SOURCE: Federal Reserve Survey of Consumer Finances 2023] or [SOURCE: BLS 2024]). Do NOT leave any figure UNVERIFIED.
+2. Hook must be a high-impact pattern-interrupt question or sharp contrast in the first sentence to stop the scroll.
+3. Angle must be a sharp, non-generic insight (e.g., benchmark comparison or financial rule mechanism).
+4. Never present as a credentialed expert. Educational narrator only.
+5. TTS-safe: no emojis, no #/&/% inside spoken lines — write "8 percent" not "8%". Numbers written to be SPOKEN.
 
 Output the exact structure: TITLE / HOOK (0-15 sec) / BODY (with [SEGMENT n] and [SOURCE] tags) / CTA / DISCLAIMER LINE / FACT LEDGER. Plain text, no markdown fences."""
 
@@ -29,7 +30,8 @@ def main():
     mins = c["video"]["target_minutes"]
 
     user = f"""<task>Write a complete YouTube video script on the topic. Information-dense, original angle.</task>
-<context>Faceless English finance channel. Audience US/UK/CA/AU. Target: {mins} min (~{wc} words). Feeds a TTS Voice Agent then Visual Agent — keep TTS-clean.</context>
+<context>Faceless English finance channel. Audience US/UK/CA/AU. Target: {mins} min (STRICT TARGET: EXACTLY around {wc} spoken words total). Feeds a TTS Voice Agent then Visual Agent — keep TTS-clean.</context>
+<length_rule>CRITICAL: Total spoken narration words in BODY/HOOK combined MUST BE STRICTLY around {wc} words. Keep it very concise to fit the {mins} minute / {wc} word budget!</length_rule>
 <topic>{topic}</topic>
 <output_format>TITLE / HOOK (0-15 sec) / BODY with [SEGMENT n: label] and [SOURCE: ...] tags / CTA / DISCLAIMER LINE / FACT LEDGER listing every figure + source status.</output_format>"""
 

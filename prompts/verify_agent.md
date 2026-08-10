@@ -111,6 +111,9 @@ VERDICT: [READY TO PUBLISH] / [NEEDS FIX — X items]
 ✅ Auto-checks pass:
 - Hook ✅ | Facts sourced ✅ | Compliance ✅ | Subtitles ✅ | Length 8:32 ✅ | A/V sync ✅
 
+♻️ Reused-content risk: [LOW / MEDIUM / HIGH]
+- [stock %, voice type, what's original (script + charts), and the one lever to lower it]
+
 ⚠️ Tumhe dekhna hai (judgment calls):
 - Thumbnail: [strong / weak — reason]. AI is not sure this will get clicks.
 - [Any "is this boring?" / taste concern with timestamp]
@@ -121,6 +124,12 @@ VERDICT: [READY TO PUBLISH] / [NEEDS FIX — X items]
 
 FAILS this round (if any): [stage] → [specific issue] → sent back to [agent]
 ```
+
+**Reused-content risk** is the YPP monetization / "Inauthentic Content" concern (Critical Node 2). Score it from `<reused_content_signals>` — never guess:
+- **HIGH:** mostly stock footage (>50%) and/or robotic default TTS with little original transformation.
+- **MEDIUM:** some stock (~25–50%) with robotic Edge TTS, but original script + hand-drawn charts present.
+- **LOW:** mostly original (charts/cards), low stock — or a premium AI voice with original script + charts.
+- Edge TTS (robotic) raises the level by one vs a premium AI voice; if `voice_engine` is `edge`, note that switching to ElevenLabs drops it a level. `script_original` and `original_overlays_always_on` are the mitigating factors — name them.
 
 Keep it tight. Rajesh reads on mobile. Verdict line must be readable in 2 seconds.
 

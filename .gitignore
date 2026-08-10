@@ -14,3 +14,4 @@ assets/sfx/
 # Drop your own TTF here; the renderer falls back to a system font without it
 assets/fonts/*
 !assets/fonts/.gitkeep
+assets.zip

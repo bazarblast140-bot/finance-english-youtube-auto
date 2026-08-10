@@ -1,5 +1,5 @@
 {
-  "_note": "Evergreen, worldwide-safe finance topics. No country-specific tax. pick_topic.py marks 'used': true so nothing repeats. Add your own freely.",
+  "_note": "Evergreen, worldwide-safe finance topics for US/UK/CA/AU audiences. No regional tax traps. pick_topic.py marks 'used': true so nothing repeats.",
   "topics": [
     {
       "id": 1,
@@ -8,58 +8,248 @@
     },
     {
       "id": 2,
-      "used": false,
+      "used": true,
       "topic": "Why money sitting in a savings account quietly loses value to inflation"
     },
     {
       "id": 3,
-      "used": false,
+      "used": true,
       "topic": "Index funds explained simply: what they are and why they beat most stock pickers"
     },
     {
       "id": 4,
-      "used": false,
+      "used": true,
       "topic": "Dollar-cost averaging: the boring strategy that beats trying to time the market"
     },
     {
       "id": 5,
-      "used": false,
+      "used": true,
       "topic": "The difference between saving and investing \u2014 and why you need both"
     },
     {
       "id": 6,
-      "used": false,
+      "used": true,
       "topic": "How fees quietly eat your returns: 1% a year can cost you a fortune"
     },
     {
       "id": 7,
-      "used": false,
+      "used": true,
       "topic": "Emergency fund first: why investing before you have one is a mistake"
     },
     {
       "id": 8,
-      "used": false,
+      "used": true,
       "topic": "The rule of 72: mental math to see how fast your money doubles"
     },
     {
       "id": 9,
-      "used": false,
+      "used": true,
       "topic": "Diversification explained: why you should not put everything in one stock"
     },
     {
       "id": 10,
-      "used": false,
+      "used": true,
       "topic": "Good debt vs bad debt: which debt builds wealth and which destroys it"
     },
     {
       "id": 11,
-      "used": false,
+      "used": true,
       "topic": "Why most people underestimate how much they need to retire"
     },
     {
       "id": 12,
-      "used": false,
+      "used": true,
       "topic": "The psychology of panic selling: why investors buy high and sell low"
+    },
+    {
+      "id": 13,
+      "used": true,
+      "topic": "The 50/30/20 rule: how to budget your paycheck without tracking every penny"
+    },
+    {
+      "id": 14,
+      "used": true,
+      "topic": "High-yield savings accounts: how to make your cash work harder safely"
+    },
+    {
+      "id": 15,
+      "used": true,
+      "topic": "Understanding net worth: the single metric that shows your true financial health"
+    },
+    {
+      "id": 16,
+      "used": true,
+      "topic": "The cost of waiting: how delaying investment by 5 years changes your retirement"
+    },
+    {
+      "id": 17,
+      "used": true,
+      "topic": "Passive income myths vs reality: what actually builds wealth over time"
+    },
+    {
+      "id": 18,
+      "used": false,
+      "topic": "The 4% withdrawal rule: how to turn a portfolio into lifetime income"
+    },
+    {
+      "id": 19,
+      "used": false,
+      "topic": "Asset allocation 101: how to balance stocks, bonds, and cash for your age"
+    },
+    {
+      "id": 20,
+      "used": false,
+      "topic": "Why stock market crashes are historical buying opportunities for long-term investors"
+    },
+    {
+      "id": 21,
+      "used": false,
+      "topic": "The snowball method vs avalanche method: how to crush debt fastest"
+    },
+    {
+      "id": 22,
+      "used": false,
+      "topic": "Dividend investing explained: living off income without selling your shares"
+    },
+    {
+      "id": 23,
+      "used": false,
+      "topic": "Real estate vs index funds: which asset class builds wealth more reliably"
+    },
+    {
+      "id": 24,
+      "used": false,
+      "topic": "The hidden cost of lifestyle creep: why earning more does not mean building wealth"
+    },
+    {
+      "id": 25,
+      "used": false,
+      "topic": "How credit scores work: the 5 factors that dictate your interest rates"
+    },
+    {
+      "id": 26,
+      "used": false,
+      "topic": "The math of loss recovery: why a 50% loss requires a 100% gain to break even"
+    },
+    {
+      "id": 27,
+      "used": false,
+      "topic": "Bonds vs stocks: how fixed income protects capital during market downturns"
+    },
+    {
+      "id": 28,
+      "used": false,
+      "topic": "Why active fund managers fail to beat the S&P 500 over 15-year horizons"
+    },
+    {
+      "id": 29,
+      "used": false,
+      "topic": "The power of rebalancing: taking profits automatically without emotional bias"
+    },
+    {
+      "id": 30,
+      "used": false,
+      "topic": "Inflation-hedged assets: how gold, real estate, and TIPS perform under high inflation"
+    },
+    {
+      "id": 31,
+      "used": false,
+      "topic": "The 3-bucket strategy for retirement income: cash, bonds, and equities"
+    },
+    {
+      "id": 32,
+      "used": false,
+      "topic": "Why market timing fails 99% of retail investors: missing the 10 best days"
+    },
+    {
+      "id": 33,
+      "used": false,
+      "topic": "Tax-advantaged accounts: how tax drag reduces your long-term compounding"
+    },
+    {
+      "id": 34,
+      "used": false,
+      "topic": "The difference between gross income, net income, and cash flow"
+    },
+    {
+      "id": 35,
+      "used": false,
+      "topic": "Automating your wealth: setting up transfers so saving happens without discipline"
+    },
+    {
+      "id": 36,
+      "used": false,
+      "topic": "Understanding interest rates: how central bank rate changes impact your wallet"
+    },
+    {
+      "id": 37,
+      "used": false,
+      "topic": "The tragedy of the commons in investing: why crowd behavior ruins returns"
+    },
+    {
+      "id": 38,
+      "used": false,
+      "topic": "Sequence of returns risk: the danger of market downturns right at retirement"
+    },
+    {
+      "id": 39,
+      "used": false,
+      "topic": "Why buying individual stocks is like playing roulette for 95% of investors"
+    },
+    {
+      "id": 40,
+      "used": false,
+      "topic": "Total expense ratio (TER): the silent drain on international mutual funds"
+    },
+    {
+      "id": 41,
+      "used": false,
+      "topic": "The psychological trap of FOMO: why buying at market tops destroys capital"
+    },
+    {
+      "id": 42,
+      "used": false,
+      "topic": "Mortgage payoff vs investing: when to clear your home loan early"
+    },
+    {
+      "id": 43,
+      "used": false,
+      "topic": "Global diversification: why home-country bias exposes your portfolio to risk"
+    },
+    {
+      "id": 44,
+      "used": false,
+      "topic": "Target-date funds: the hands-off portfolio that adjusts risk as you age"
+    },
+    {
+      "id": 45,
+      "used": false,
+      "topic": "The truth about financial advisors: fee-only vs commission-based planners"
+    },
+    {
+      "id": 46,
+      "used": false,
+      "topic": "How currency risk affects your international investments and purchasing power"
+    },
+    {
+      "id": 47,
+      "used": false,
+      "topic": "The 100 minus age rule: a simple framework for equity allocation"
+    },
+    {
+      "id": 48,
+      "used": false,
+      "topic": "Why cash is not risk-free: understanding real vs nominal returns"
+    },
+    {
+      "id": 49,
+      "used": false,
+      "topic": "Understanding market cap weighting: why the top 10 stocks dominate the index"
+    },
+    {
+      "id": 50,
+      "used": false,
+      "topic": "Building a simple 3-fund portfolio: Boglehead investing explained"
     }
   ]
 }

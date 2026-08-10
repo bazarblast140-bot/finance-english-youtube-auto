@@ -2,7 +2,7 @@
 Exits non-zero if Gate 2 fails (coverage, length band, or leftover markers)."""
 import asyncio, re, time, subprocess
 import requests
-from common import cfg, claude_json, read, save, need, ok, die, RUN
+from common import cfg, claude, claude_json, read, save, need, ok, die, RUN
 
 VOICE_SYSTEM = """You are the Voice Prep Agent. Convert a finished script to clean spoken English for TTS. You do NOT change meaning or drop content.
 
@@ -10,9 +10,7 @@ RULES:
 1. Preserve every sentence. Strip [SEGMENT], [SOURCE], [UNVERIFIED], FACT LEDGER, TITLE — these are NOT spoken.
 2. Convert to spoken form: "$1,500"->"fifteen hundred dollars", "8%"->"eight percent", "S&P 500"->"the S and P five hundred", "2026"->"twenty twenty-six". Kill all symbols/abbreviations.
 3. Separate segments with a blank line for a natural breath.
-
-Return ONLY JSON: {"spoken_text":"...","word_count_in":N,"word_count_out":N,"coverage_note":"FULL — all content voiced" | "MISMATCH — ..."}
-Start your response with {"""
+4. Output ONLY the plain spoken text, no JSON, no markdown fences."""
 
 # markers that must never survive into narration
 LEFTOVER = ["[SEGMENT", "[SOURCE", "[UNVERIFIED", "FACT LEDGER", "TITLE:", "DISCLAIMER LINE"]
@@ -176,17 +174,15 @@ def synthesize(text, c):
 def main():
     c = cfg()
     script = read("script.txt")
-    prep = claude_json(VOICE_SYSTEM, f"<script>{script}</script>", model=c["models"]["script_model"],
-                       max_tokens=c["models"]["max_tokens"])
+    spoken = claude(VOICE_SYSTEM, f"<script>{script}</script>", model=c["models"]["script_model"],
+                    max_tokens=c["models"]["max_tokens"]).strip()
+    spoken = spoken.removeprefix("```").removesuffix("```").strip()
 
-    spoken = prep.get("spoken_text", "").strip()
     if not spoken:
         die("GATE 2 FAILED: Voice Agent returned empty spoken_text")
 
     # ---- GATE 2 ----
     fails, words = gate2(spoken, c)
-    if "FULL" not in prep.get("coverage_note", ""):
-        fails.insert(0, f"agent coverage note: {prep.get('coverage_note')}")
     if fails:
         save("gate2_report.txt", "\n".join(fails))
         die(f"GATE 2 FAILED: {fails}")

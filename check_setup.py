@@ -7,18 +7,24 @@ from common import cfg, ROOT, ok
 
 def main():
     problems, warnings = [], []
+    c = cfg()
 
     # --- secrets ---
-    if not (ROOT / ".env").exists() and not os.environ.get("ANTHROPIC_API_KEY"):
+    llm_provider = c["models"].get("llm_provider", "anthropic")
+    if not (ROOT / ".env").exists() and not os.environ.get(f"{llm_provider.upper()}_API_KEY"):
         problems.append("No .env file. Copy .env.example to .env and fill in your keys.")
-    if not os.environ.get("ANTHROPIC_API_KEY"):
+    if llm_provider == "kimi":
+        if not os.environ.get("KIMI_API_KEY"):
+            problems.append("KIMI_API_KEY not set (.env or environment).")
+        if not os.environ.get("KIMI_BASE_URL"):
+            problems.append("KIMI_BASE_URL not set (.env or environment).")
+    elif not os.environ.get("ANTHROPIC_API_KEY"):
         problems.append("ANTHROPIC_API_KEY not set (.env or environment).")
     for key in ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"):
         if not os.environ.get(key):
             warnings.append(f"{key} not set — report will print to console instead of Telegram.")
 
     # --- config TODOs ---
-    c = cfg()
     if str(c["channel"]["name"]).startswith("TODO"):
         warnings.append("config.json -> channel.name is still TODO.")
 

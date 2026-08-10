@@ -23,6 +23,9 @@ SCOPES = [
     # read-only is not needed to upload; it is here so we can name the channel
     # you just authorised instead of asking you to take it on faith
     "https://www.googleapis.com/auth/youtube.readonly",
+    # full scope: channel_profile.py edits the About page and banner, and
+    # cleanup_videos.py removes videos. Neither is possible with upload alone.
+    "https://www.googleapis.com/auth/youtube",
 ]
 
 

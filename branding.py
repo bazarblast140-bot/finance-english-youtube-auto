@@ -164,6 +164,69 @@ def intro_clip(cfg_dict, fps, x264_args, force=False):
 
 # --------------------------------------------------------------------------
 
+# YouTube scales one banner image for TV, desktop and phone. Only the middle
+# 1546x423 is guaranteed to survive on every device, so the name and tagline go
+# there and everything else is decoration that is allowed to be cropped away.
+BANNER_W, BANNER_H = 2560, 1440
+SAFE_W, SAFE_H = 1546, 423
+
+
+def banner(cfg_dict, path):
+    """The channel banner, in the same hand-drawn language as the intro."""
+    name = str(cfg_dict["channel"].get("name", "")).strip()
+    tagline = str(cfg_dict["channel"].get("tagline", "")).strip()
+    if not name or name.startswith("TODO"):
+        return None
+
+    img = Image.new("RGB", (BANNER_W, BANNER_H), sketch.PAPER)
+    d = ImageDraw.Draw(img)
+
+    sx0, sy0 = (BANNER_W - SAFE_W) / 2, (BANNER_H - SAFE_H) / 2
+    cx, cy = BANNER_W / 2, BANNER_H / 2
+
+    # Decoration lives outside the safe area on purpose — it is cropped away on
+    # phones and that is fine. Two rising arrows, a doubling curve and a bar
+    # ramp: the three shapes this channel is actually about.
+    for x, y, w, seed in [(240, 300, 300, 1), (2100, 980, 260, 2)]:
+        sketch.rough_arrow(d, (x, y + 160), (x + w, y), sketch.COOL, 7, seed, 30)
+    # normalised so the curve always rises by RISE px regardless of the base
+    steps, rise, base = 25, 230.0, cy + 330
+    span = 1.12 ** steps - 1
+    pts = [(70 + i * 30, base - rise * ((1.12 ** i - 1) / span)) for i in range(steps + 1)]
+    for i in range(len(pts) - 1):
+        sketch.rough_line(d, pts[i], pts[i + 1], sketch.GREEN, 6, 40 + i, 1, 1.4)
+    for i, bh in enumerate([60, 96, 150, 232]):
+        x = BANNER_W - 620 + i * 92
+        sketch.rough_rect(d, (x, cy - 300 - bh, x + 58, cy - 300), sketch.HIGHLIGHT, 5, 60 + i)
+
+    # The name, tagline and sub-line are stacked from the top of the safe area
+    # and each one is sized off what the previous one left, so they cannot
+    # collide the way absolute positions eventually do.
+    sub = str(cfg_dict["channel"].get("banner_line", "")).strip()
+    f_name = _fit_width(name.upper(), SAFE_W - 120, int(SAFE_H * 0.46), 80)
+    name_w = d.textlength(name.upper(), font=f_name)
+    nx, ny = cx - name_w / 2, sy0 + 8
+    d.text((nx, ny), name.upper(), font=f_name, fill=sketch.INK)
+
+    y = ny + f_name.size * 1.18
+    sketch.rough_underline(d, nx, nx + name_w, y, sketch.HIGHLIGHT, 11, seed=4)
+    y += 30
+
+    if tagline:
+        f_tag = _fit_width(tagline, SAFE_W - 260, int(SAFE_H * 0.14), 30)
+        d.text((cx - d.textlength(tagline, font=f_tag) / 2, y), tagline,
+               font=f_tag, fill=sketch.COOL)
+        y += f_tag.size * 1.55
+
+    if sub:
+        f_sub = _fit_width(sub, SAFE_W - 300, int(SAFE_H * 0.10), 24)
+        d.text((cx - d.textlength(sub, font=f_sub) / 2, y), sub, font=f_sub,
+               fill=tuple(int(c * 0.62) for c in sketch.INK))
+
+    img.save(path, quality=95)
+    return path
+
+
 def _pick_shot(shots):
     """The thumbnail wants the punchiest frame, not the first one: a short
     headline with a highlight reads at phone size; a full sentence does not."""
@@ -204,6 +267,23 @@ def thumbnail(cfg_dict, shots, path, tw=1280, th=720):
                 img = Image.blend(bg.convert("RGB"), Image.new("RGB", (tw, th), sketch.PAPER), 0.76)
         except (subprocess.CalledProcessError, OSError):
             pass
+
+    # ---- Power Graphic (Arrow) based on emphasis ----
+    emphasis = str(shot.get("emphasis", "neutral")).lower()
+    arrow_d = ImageDraw.Draw(img)
+    arrow_width = 140
+    arrow_x = tw - arrow_width - 80
+    arrow_y_center = th / 2
+    arrow_head = 90
+
+    if emphasis == "positive":
+        p1 = (arrow_x, arrow_y_center + 160)
+        p2 = (arrow_x, arrow_y_center - 160)
+        sketch.rough_arrow(arrow_d, p1, p2, sketch.GREEN, 35, seed=shot["shot_id"], head=arrow_head)
+    elif emphasis == "warning":
+        p1 = (arrow_x, arrow_y_center - 160)
+        p2 = (arrow_x, arrow_y_center + 160)
+        sketch.rough_arrow(arrow_d, p1, p2, sketch.POP, 35, seed=shot["shot_id"], head=arrow_head)
 
     # vignette so the centre carries the eye
     vig = Image.new("RGBA", (tw, th), (0, 0, 0, 0))

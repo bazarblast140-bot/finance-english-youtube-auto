@@ -34,6 +34,8 @@ import sketch
 from common import cfg, read, ok, die, RUN, ROOT
 
 W, H = 1920, 1080
+ASSETS = ROOT / "assets"
+ICONS_DIR = ROOT / "assets" / "icons"
 CAPTION_TOP = 0.72
 SIDE = 150
 CAPTION_WORDS = 6
@@ -134,7 +136,28 @@ def build_overlay(shot, idx, total, path, mode):
     _scrim(layer)
     d = ImageDraw.Draw(layer)
 
-    accent = EMPHASIS.get(str(shot.get("emphasis", "neutral")).lower(), sketch.COOL)
+    emphasis = str(shot.get("emphasis", "neutral")).lower()
+    accent = EMPHASIS.get(emphasis, sketch.COOL)
+
+    # ---- Icon drawing ----
+    icon_name = shot.get("icon")
+    icon_y_offset = 0
+    if icon_name and mode != "chart":
+        icon_path = ICONS_DIR / f"{icon_name}.png"
+        if icon_path.exists():
+            try:
+                with Image.open(icon_path).convert("RGBA") as icon_base:
+                    icon_size = 140
+                    icon_img = icon_base.resize((icon_size, icon_size), Image.Resampling.LANCZOS)
+                    # Tint the icon with the accent color
+                    tint_layer = Image.new("RGBA", icon_img.size, accent + (255,))
+                    icon_img = Image.composite(tint_layer, Image.new("RGBA", icon_img.size), icon_img)
+                    icon_x = (W - icon_size) // 2
+                    icon_y = int(H * 0.20)
+                    layer.alpha_composite(icon_img, (icon_x, icon_y))
+                    icon_y_offset = icon_size + 20  # Space between icon and headline
+            except Exception:
+                pass  # Ignore if icon fails to load/process
 
     headline = str(shot.get("on_screen_text") or "").strip()
     if headline.lower() == "null":
@@ -142,9 +165,11 @@ def build_overlay(shot, idx, total, path, mode):
 
     if headline:
         if mode == "chart":
-            box_top, box_bottom, hi, lo = int(H * 0.145), int(H * 0.265), 78, 40
+            box_top, box_bottom, hi, lo = int(H * 0.145), int(H * 0.265), 82, 40
         else:
-            box_top, box_bottom, hi, lo = int(H * 0.17), int(H * 0.64), 340, 54
+            box_top_start = int(H * 0.20) + icon_y_offset if icon_y_offset else int(H * 0.17)
+            box_bottom, hi, lo = int(H * 0.64), 280, 54
+            box_top = box_top_start
         f, lines, line_h = _fit(d, headline, W - 2 * SIDE, box_bottom - box_top, hi, lo)
         y0 = box_top + ((box_bottom - box_top) - len(lines) * line_h) / 2
 
@@ -361,11 +386,25 @@ def render_shot(idx, shot, dur, fps, overlay, backdrop, still, chrome=None):
         bg = (f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,"
               f"crop={W}:{H},fps={fps},setsar=1[bg]")
 
-    zoom = f"trunc({W}*min(1\\,0.90+0.10*t/{POP_IN})/2)*2"
-    parts = [bg,
-             f"[1:v]format=rgba,fade=t=in:st=0:d={FADE_IN}:alpha=1,"
-             f"scale=w='{zoom}':h=-2:eval=frame[tx]",
-             "[bg][tx]overlay=x='(W-w)/2':y='(H-h)/2':format=auto[s1]"]
+    # ---- Dynamic animation logic ----
+    anim = shot.get("animation_in", "zoom_in")
+    tx_chain = f"[1:v]format=rgba,fade=t=in:st=0:d={FADE_IN}:alpha=1"
+    overlay_chain = ""
+
+    if anim == "fade_in_up":
+        y_pos = f"'(H-h)/2 - 100*(1-min(1,t/{FADE_IN}))'"
+        tx_chain += "[tx]"
+        overlay_chain = f"[bg][tx]overlay=x='(W-w)/2':y={y_pos}:format=auto[s1]"
+    elif anim == "slide_from_left":
+        x_pos = f"'-w+(w+(W-w)/2)*min(1,t/{FADE_IN}*1.2)'"
+        tx_chain += "[tx]"
+        overlay_chain = f"[bg][tx]overlay=x={x_pos}:y='(H-h)/2':format=auto[s1]"
+    else:  # Default to "zoom_in"
+        zoom = f"trunc({W}*min(1\\,0.90+0.10*t/{POP_IN})/2)*2"
+        tx_chain += f",scale=w='{zoom}':h=-2:eval=frame[tx]"
+        overlay_chain = f"[bg][tx]overlay=x='(W-w)/2':y='(H-h)/2':format=auto[s1]"
+
+    parts = [bg, tx_chain, overlay_chain]
     last = "s1"
 
     if idx_chrome is not None:
@@ -462,24 +501,42 @@ def main():
     _run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", "clips.txt",
           "-c", "copy", "silent.mp4"])
 
-    # 6) narration (pushed past the intro) + shot-change clicks
+    # 6) narration (pushed past the intro) + clicks + special SFX
     sfx.click_track(click_times, audio_dur + offset, RUN / "clicks.wav")
+    sfx.sfx_track(shots, audio_dur + offset, offset, RUN / "special_sfx.wav")
     delay = int(offset * 1000)
-    _run(["ffmpeg", "-y", "-i", "voice.mp3", "-i", "clicks.wav",
+    _run(["ffmpeg", "-y", "-i", "voice.mp3", "-i", "clicks.wav", "-i", "special_sfx.wav",
           "-filter_complex",
           f"[0:a]adelay={delay}|{delay}[nar];"
-          f"[nar][1:a]amix=inputs=2:duration=longest:normalize=0[a]",
+          f"[nar][1:a][2:a]amix=inputs=3:duration=longest:normalize=0[a]",
           "-map", "[a]", "-c:a", "aac", "-b:a", "192k", "mixed.m4a"])
 
-    # 6) captions + mux. fps= before ass= or every caption freezes until the next cut.
-    _run(["ffmpeg", "-y", "-i", "silent.mp4", "-i", "mixed.m4a",
+    # 7) mix narration with background music
+    final_audio = "final_audio.m4a"
+    music_file = ASSETS / "music.mp3"
+    use_music = brand.get("background_music", True)
+    if use_music and music_file.exists():
+        ok("mixing in background music")
+        _run(["ffmpeg", "-y", "-i", "mixed.m4a", "-stream_loop", "-1", "-i", str(music_file),
+              "-filter_complex",
+              # mix voice (1.0) with music (0.12), stop when voice ends
+              "[0:a]volume=1.0[v];[1:a]volume=0.12[m];[v][m]amix=inputs=2:duration=first:dropout_transition=2[a]",
+              "-map", "[a]", "-c:a", "aac", "-b:a", "192k", "-shortest", final_audio],
+             cwd=RUN)
+    else:
+        if use_music and not music_file.exists():
+            print("[skip] background music: assets/music.mp3 not found")
+        (RUN / "mixed.m4a").rename(RUN / final_audio)
+
+    # 8) captions + final mux. fps= before ass= or every caption freezes until the next cut.
+    _run(["ffmpeg", "-y", "-i", "silent.mp4", "-i", final_audio,
           "-vf", f"fps={fps},ass=subs.ass",
           "-r", str(fps), "-fps_mode", "cfr", *X264,
           "-c:a", "copy", "-shortest", "final.mp4"])
 
-    ok(f"wrote run/final.mp4 ({(audio_dur + offset)/60:.1f} min)")
+    ok(f"wrote run/final.mp4 ({(audio_dur + offset) / 60:.1f} min)")
 
-    # 8) thumbnail — generated from the punchiest shot, not the first frame
+    # 9) thumbnail — generated from the punchiest shot, not the first frame
     if brand.get("thumbnail", True):
         thumb = branding.thumbnail(c, shots, RUN / "thumbnail.jpg")
         if thumb:
