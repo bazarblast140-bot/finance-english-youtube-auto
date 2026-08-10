@@ -26,8 +26,12 @@ def main():
     if (RUN / "report.md").exists():
         body = read("report.md")
     else:
-        body = (f"Run finished with status: {status}. No report generated — a gate likely "
-                f"failed. Check the console output or the run/ artifacts.")
+        details = []
+        for gf in ("gate1_report.txt", "gate2_report.txt", "gate3_report.txt"):
+            if (RUN / gf).exists():
+                details.append(f"• {gf}:\n" + (RUN / gf).read_text(encoding="utf-8"))
+        diag = "\n\n".join(details) if details else "Check console output logs."
+        body = f"STATUS: {status}\n\n⚠️ Gate Details:\n{diag}"
 
     message = "🎬 Daily Finance Video\n\n" + body
     try:

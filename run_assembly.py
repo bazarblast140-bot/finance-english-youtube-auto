@@ -526,7 +526,7 @@ def main():
     else:
         if use_music and not music_file.exists():
             print("[skip] background music: assets/music.mp3 not found")
-        (RUN / "mixed.m4a").rename(RUN / final_audio)
+        (RUN / "mixed.m4a").replace(RUN / final_audio)
 
     # 8) captions + final mux. fps= before ass= or every caption freezes until the next cut.
     _run(["ffmpeg", "-y", "-i", "silent.mp4", "-i", final_audio,
