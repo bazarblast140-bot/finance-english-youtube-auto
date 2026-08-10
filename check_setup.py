@@ -10,16 +10,11 @@ def main():
     c = cfg()
 
     # --- secrets ---
-    llm_provider = c["models"].get("llm_provider", "anthropic")
-    if not (ROOT / ".env").exists() and not os.environ.get(f"{llm_provider.upper()}_API_KEY"):
-        problems.append("No .env file. Copy .env.example to .env and fill in your keys.")
-    if llm_provider == "kimi":
-        if not os.environ.get("KIMI_API_KEY"):
-            problems.append("KIMI_API_KEY not set (.env or environment).")
-        if not os.environ.get("KIMI_BASE_URL"):
-            problems.append("KIMI_BASE_URL not set (.env or environment).")
-    elif not os.environ.get("ANTHROPIC_API_KEY"):
-        problems.append("ANTHROPIC_API_KEY not set (.env or environment).")
+    has_kimi = bool(os.environ.get("KIMI_API_KEY"))
+    has_anthropic = bool(os.environ.get("ANTHROPIC_API_KEY"))
+    if not (has_kimi or has_anthropic):
+        problems.append("No LLM API Key set in environment. Set KIMI_API_KEY or ANTHROPIC_API_KEY in Repository Secrets.")
+
     for key in ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"):
         if not os.environ.get(key):
             warnings.append(f"{key} not set — report will print to console instead of Telegram.")
@@ -28,19 +23,18 @@ def main():
     if str(c["channel"]["name"]).startswith("TODO"):
         warnings.append("config.json -> channel.name is still TODO.")
 
-    # --- voice engine (only ElevenLabs needs a key) ---
+    # --- voice engine (graceful fallback) ---
     engine = c["voice"].get("engine", "edge").lower()
     if engine == "elevenlabs":
         if not os.environ.get("ELEVENLABS_API_KEY"):
-            problems.append("voice.engine is 'elevenlabs' but ELEVENLABS_API_KEY is not set.")
+            warnings.append("voice.engine is 'elevenlabs' but ELEVENLABS_API_KEY is not set — will fall back to free Edge TTS.")
         if str(c["voice"]["voice_id"]).startswith("TODO"):
-            problems.append("voice.engine is 'elevenlabs' but voice.voice_id is still TODO.")
+            warnings.append("voice.engine is 'elevenlabs' but voice.voice_id is still TODO — will fall back to free Edge TTS.")
     elif engine == "edge":
         try:
             __import__("edge_tts")
         except ImportError:
-            problems.append("voice.engine is 'edge' but edge-tts is not installed. "
-                            "Run: pip install -r requirements.txt")
+            problems.append("voice.engine is 'edge' but edge-tts is not installed. Run: pip install -r requirements.txt")
     else:
         problems.append(f"config.json -> voice.engine '{engine}' unknown (use 'edge' or 'elevenlabs').")
 

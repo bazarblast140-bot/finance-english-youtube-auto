@@ -141,9 +141,13 @@ def synthesize(text, c):
 
     key = None
     if engine == "elevenlabs":
-        key = need("ELEVENLABS_API_KEY")
-        if str(c["voice"]["voice_id"]).startswith("TODO"):
-            die("voice.engine is 'elevenlabs' but voice_id is still TODO in config.json")
+        key = os.environ.get("ELEVENLABS_API_KEY")
+        if not key:
+            print("[warn] ELEVENLABS_API_KEY not set in environment — falling back to free Edge TTS engine.")
+            engine = "edge"
+        elif str(c["voice"]["voice_id"]).startswith("TODO"):
+            print("[warn] ElevenLabs voice_id is TODO — falling back to free Edge TTS engine.")
+            engine = "edge"
 
     parts = chunk(text)
     ok(f"narration: {engine} engine, {len(parts)} chunk(s)")
