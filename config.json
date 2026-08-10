@@ -28,9 +28,9 @@
     "background_music": false
   },
   "video": {
-    "target_minutes": 8,
+    "target_minutes": 5,
     "words_per_minute": 150,
-    "target_word_count": 1200,
+    "target_word_count": 750,
     "resolution": "1920x1080",
     "fps": 30
   },
