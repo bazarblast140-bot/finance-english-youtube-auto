@@ -56,11 +56,14 @@ def claude(system, user, model=None, max_tokens=4000, retries=3):
     provider = c["models"].get("llm_provider", "anthropic")
     model = model or c["models"]["script_model"]
 
-    if provider == "kimi":
-        client = openai.OpenAI(api_key=need("KIMI_API_KEY"), base_url=need("KIMI_BASE_URL"))
+    kimi_key = os.environ.get("KIMI_API_KEY")
+    anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
+
+    if (provider == "kimi" and kimi_key) or (kimi_key and not anthropic_key):
+        base_url = os.environ.get("KIMI_BASE_URL") or "https://api.moonshot.ai/v1"
+        client = openai.OpenAI(api_key=kimi_key, base_url=base_url)
         messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
         last = None
-        # kimi models only accept temperature=1
         temp = 1.0 if model.startswith("kimi-") else 0.1
         for attempt in range(retries):
             try:
@@ -83,8 +86,10 @@ def claude(system, user, model=None, max_tokens=4000, retries=3):
                 continue
         die(f"Kimi call failed after {retries} attempts: {last}")
 
-    # --- Default: Anthropic implementation ---
-    return _claude_anthropic(system, user, model, max_tokens, retries)
+    if anthropic_key:
+        return _claude_anthropic(system, user, model, max_tokens, retries)
+
+    die("Neither KIMI_API_KEY nor ANTHROPIC_API_KEY is set in GitHub Secrets. Set KIMI_API_KEY or ANTHROPIC_API_KEY in Repository Secrets.")
 
 
 def _claude_anthropic(system, user, model, max_tokens, retries):

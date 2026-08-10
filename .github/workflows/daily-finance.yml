@@ -30,38 +30,16 @@ jobs:
       - name: Install deps
         run: pip install -r requirements.txt
 
-      - name: 1. Pick today's topic
-        run: python pick_topic.py
-
-      - name: 2. Script Agent + Gate 1
+      - name: Run Pipeline
         env:
           KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
           KIMI_BASE_URL: ${{ secrets.KIMI_BASE_URL }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: python run_script.py
-
-      - name: 3. Voice Agent + Gate 2
-        env:
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
-        run: python run_voice.py
-
-      - name: 4. Visual Agent + Gate 3
-        env:
-          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
-          KIMI_BASE_URL: ${{ secrets.KIMI_BASE_URL }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
-        run: python run_visuals.py
-
-      - name: 5. Assembly (FFmpeg)
-        run: python run_assembly.py
-
-      - name: 6. Final Verify Gate → report
-        env:
-          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
-          KIMI_BASE_URL: ${{ secrets.KIMI_BASE_URL }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: python run_verify.py
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python run_pipeline.py
 
       - name: Upload video + report as artifact
         if: always()
@@ -73,10 +51,3 @@ jobs:
             run/report.md
             run/script.txt
           retention-days: 7
-
-      - name: Notify (Telegram)
-        if: always()
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python notify.py --status "${{ job.status }}"
