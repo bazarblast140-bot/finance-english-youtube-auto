@@ -41,7 +41,7 @@
     "verify_model": "kimi-k2.7-code-highspeed",
     "visual_model": "kimi-k2.7-code-highspeed",
     "max_tokens": 16000,
-    "script_max_tokens": 4000,
+    "script_max_tokens": 12000,
     "visual_max_tokens": 16000
   },
   "voice": {
