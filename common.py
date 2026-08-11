@@ -61,14 +61,18 @@ def claude(system, user, model=None, max_tokens=16000, retries=3):
 
     if (provider == "kimi" and kimi_key) or (kimi_key and not anthropic_key):
         base_url = os.environ.get("KIMI_BASE_URL") or "https://api.moonshot.ai/v1"
-        client = openai.OpenAI(api_key=kimi_key, base_url=base_url)
+        client = openai.OpenAI(api_key=kimi_key, base_url=base_url, timeout=120)
         messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
         last = None
-        temp = 1.0 if model.startswith("kimi-") else 0.1
+        # All current Kimi models (k2.6, k2.7, k3) reject temperature != 1
+        # but some return empty content with explicit temperature=1.
+        # Safest: omit temperature entirely, let API use its own default.
+        kwargs = dict(model=model, messages=messages, max_tokens=max_tokens)
+        if not model.startswith("kimi-"):
+            kwargs["temperature"] = 0.1
         for attempt in range(retries):
             try:
-                completion = client.chat.completions.create(
-                    model=model, messages=messages, max_tokens=max_tokens, temperature=temp)
+                completion = client.chat.completions.create(**kwargs)
                 content = completion.choices[0].message.content or ""
                 if completion.choices[0].finish_reason == "length":
                     print(f"[warn] Response reached {max_tokens}-token limit; proceeding with generated text.")

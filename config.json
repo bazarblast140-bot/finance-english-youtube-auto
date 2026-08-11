@@ -35,10 +35,10 @@
     "fps": 30
   },
   "models": {
-    "_note": "llm_provider: 'kimi'. script_model and verify_model use kimi-k3 (general-purpose, better creative writing). visual_model uses code-highspeed for structured JSON output.",
+    "_note": "kimi-k2.7-code-highspeed is fastest (1.1s) and returns content. kimi-k2.6 returns EMPTY (broken). kimi-k3 too slow (5+ min). Gate 1 is now local check so code model works fine.",
     "llm_provider": "kimi",
-    "script_model": "kimi-k3",
-    "verify_model": "kimi-k3",
+    "script_model": "kimi-k2.7-code-highspeed",
+    "verify_model": "kimi-k2.7-code-highspeed",
     "visual_model": "kimi-k2.7-code-highspeed",
     "max_tokens": 16000,
     "script_max_tokens": 4000,
