@@ -46,7 +46,7 @@
   },
   "voice": {
     "_note": "engine: 'edge' = free Microsoft neural TTS, no API key. 'elevenlabs' = better prosody, needs ELEVENLABS_API_KEY + voice_id.",
-    "engine": "elevenlabs",
+    "engine": "edge",
     "edge_voice": "en-US-GuyNeural",
     "edge_rate": "+8%",
     "edge_pitch": "+0Hz",
