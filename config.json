@@ -1,67 +1,40 @@
 {
   "channel": {
-    "name": "The Money Rule",
-    "tagline": "One rule. Every video.",
+    "name": "Finance English",
     "niche": "finance/investing",
     "audience": "US/UK/CA/AU beginner-to-intermediate",
-    "language": "English",
-    "_tags_note": "Channel-level YouTube tags. publish.py appends distinctive words from the video title to these.",
-    "tags": ["personal finance", "investing for beginners", "compound interest",
-             "money management", "financial literacy", "the money rule"],
-    "_profile_note": "Used by channel_profile.py for the About page and banner. country is where the channel is registered, not who it targets.",
-    "banner_line": "Compound interest · Investing · Debt · Inflation",
-    "country": "IN",
-    "default_language": "en",
-    "description": [
-      "One rule per video, explained in plain English.",
-      "Compound interest, index funds, debt, inflation, taxes — the mechanics behind money, broken down with real numbers you can check and sources you can look up.",
-      "No hype. No stock tips. No get-rich promises. Just the rule, why it works, and where it stops working.",
-      "Everything here is educational content, not financial advice. For your own situation, speak to a qualified professional."
-    ]
-  },
-  "branding": {
-    "_note": "The intro is generated once and cached in assets/. It rebuilds automatically when the name or tagline changes.",
-    "intro_seconds": 4.0,
-    "watermark": true,
-    "typewriter": true,
-    "thumbnail": true,
-    "background_music": false
+    "language": "English"
   },
   "video": {
-    "target_minutes": 5,
+    "target_minutes": 8,
     "words_per_minute": 150,
-    "target_word_count": 750,
+    "target_word_count": 1200,
     "resolution": "1920x1080",
     "fps": 30
   },
   "models": {
-    "_note": "kimi-k2.7-code-highspeed is fastest (1.1s) and returns content. kimi-k2.6 returns EMPTY (broken). kimi-k3 too slow (5+ min). Gate 1 is now local check so code model works fine.",
-    "llm_provider": "kimi",
-    "script_model": "kimi-k2.7-code-highspeed",
-    "verify_model": "kimi-k2.7-code-highspeed",
-    "visual_model": "kimi-k2.7-code-highspeed",
-    "max_tokens": 16000,
-    "script_max_tokens": 12000,
-    "visual_max_tokens": 16000
+    "script_model": "claude-3-5-sonnet-20241022",
+    "verify_model": "claude-3-5-sonnet-20241022",
+    "visual_model": "claude-3-5-sonnet-20241022",
+    "max_tokens": 4096,
+    "visual_max_tokens": 48000
   },
   "voice": {
-    "_note": "engine: 'edge' = free Microsoft neural TTS, no API key. 'elevenlabs' = better prosody, needs ELEVENLABS_API_KEY + voice_id.",
     "engine": "elevenlabs",
-    "edge_voice": "en-US-GuyNeural",
-    "edge_rate": "+8%",
-    "edge_pitch": "+0Hz",
-    "voice_id": "pNInz6obpgDQGcFmaJgB",
-    "model": "eleven_multilingual_v2",
+    "voice_id": "tCgAUbeV0tdD1S2yFoCx",
+    "model": "eleven_turbo_v2_5",
     "stability": 0.5,
-    "style": 0.3
+    "style": 0.0,
+    "edge_voice": "en-US-ChristopherNeural",
+    "edge_rate": "+0%",
+    "edge_pitch": "+0Hz"
   },
   "pipeline": {
-    "auto_publish": false,
+    "auto_publish": true,
     "publish_visibility": "private",
     "stop_on_gate_fail": true,
-    "word_count_tolerance": 0.4,
-    "_max_stock_ratio_note": "Reused-content guardrail: max share of shots allowed to be raw Pexels stock. Above this, GATE 3 fails and the video must lean more on original charts/cards.",
-    "max_stock_ratio": 0.55
+    "max_stock_ratio": 0.55,
+    "word_count_tolerance": 0.4
   },
   "notify": {
     "channel": "telegram"
