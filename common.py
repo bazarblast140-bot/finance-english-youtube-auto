@@ -76,6 +76,15 @@ def claude(system, user, model=None, max_tokens=16000, retries=3):
                 content = completion.choices[0].message.content or ""
                 if completion.choices[0].finish_reason == "length":
                     print(f"[warn] Response reached {max_tokens}-token limit; proceeding with generated text.")
+                if not content.strip():
+                    finish = completion.choices[0].finish_reason
+                    last = RuntimeError(f"Kimi returned empty content (finish_reason={finish})")
+                    if attempt < retries - 1:
+                        wait = 5 * (2 ** attempt)
+                        print(f"[retry] Kimi returned empty content; retrying in {wait}s")
+                        time.sleep(wait)
+                        continue
+                    die(f"Kimi returned empty content after {retries} attempts. Check model/base URL or switch provider.")
                 return content
             except (openai.APIStatusError, openai.APIConnectionError) as e:
                 status = getattr(e, "status_code", None)
