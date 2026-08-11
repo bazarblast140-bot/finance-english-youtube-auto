@@ -91,7 +91,7 @@ def tts_request(text, c, key, prev=None, nxt=None, retries=3):
             print(f"[retry] ElevenLabs {r.status_code}; retrying in {wait}s")
             time.sleep(wait)
             continue
-        die(f"ElevenLabs error {r.status_code}: {r.text[:300]}")
+        raise RuntimeError(f"ElevenLabs error {r.status_code}: {r.text[:300]}")
 
 
 def edge_request(text, c, path):
@@ -149,30 +149,39 @@ def synthesize(text, c):
             print("[warn] ElevenLabs voice_id is TODO — falling back to free Edge TTS engine.")
             engine = "edge"
 
-    parts = chunk(text)
-    ok(f"narration: {engine} engine, {len(parts)} chunk(s)")
+    def render_all(active_engine):
+        parts = chunk(text)
+        ok(f"narration: {active_engine} engine, {len(parts)} chunk(s)")
 
-    def render(part, path, i):
-        if engine == "edge":
-            edge_request(part, c, path)
-        else:
-            prev = parts[i - 1] if i else None
-            nxt = parts[i + 1] if i + 1 < len(parts) else None
-            path.write_bytes(tts_request(part, c, key, prev, nxt))
+        def render(part, path, i):
+            if active_engine == "edge":
+                edge_request(part, c, path)
+            else:
+                prev = parts[i - 1] if i else None
+                nxt = parts[i + 1] if i + 1 < len(parts) else None
+                path.write_bytes(tts_request(part, c, key, prev, nxt))
 
-    if len(parts) == 1:
-        render(parts[0], RUN / "voice.mp3", 0)
+        if len(parts) == 1:
+            render(parts[0], RUN / "voice.mp3", 0)
+            ok("wrote run/voice.mp3")
+            return
+
+        files = []
+        for i, part in enumerate(parts):
+            p = RUN / f"voice_{i:02d}.mp3"
+            render(part, p, i)
+            files.append(p)
+            print(f"  chunk {i+1}/{len(parts)} done ({len(part)} chars)")
+        _stitch(files)
         ok("wrote run/voice.mp3")
-        return
 
-    files = []
-    for i, part in enumerate(parts):
-        p = RUN / f"voice_{i:02d}.mp3"
-        render(part, p, i)
-        files.append(p)
-        print(f"  chunk {i+1}/{len(parts)} done ({len(part)} chars)")
-    _stitch(files)
-    ok("wrote run/voice.mp3")
+    try:
+        render_all(engine)
+    except RuntimeError as e:
+        if engine != "elevenlabs":
+            die(str(e))
+        print(f"[warn] ElevenLabs failed ({e}); falling back to free Edge TTS engine.")
+        render_all("edge")
 
 
 def main():
