@@ -10,10 +10,17 @@ def main():
     c = cfg()
 
     # --- secrets ---
+    provider = c["models"].get("llm_provider", "anthropic").lower()
     has_kimi = bool(os.environ.get("KIMI_API_KEY"))
     has_anthropic = bool(os.environ.get("ANTHROPIC_API_KEY"))
-    if not (has_kimi or has_anthropic):
-        problems.append("No LLM API Key set in environment. Set KIMI_API_KEY or ANTHROPIC_API_KEY in Repository Secrets.")
+    if provider == "kimi":
+        if not has_kimi:
+            problems.append("config.json selects Kimi, but KIMI_API_KEY is missing. Add KIMI_API_KEY in GitHub Repository Secrets.")
+    elif provider == "anthropic":
+        if not has_anthropic:
+            problems.append("config.json selects Anthropic, but ANTHROPIC_API_KEY is missing. Add ANTHROPIC_API_KEY in GitHub Repository Secrets.")
+    elif not (has_kimi or has_anthropic):
+        problems.append("No LLM API key set. Set KIMI_API_KEY or ANTHROPIC_API_KEY in GitHub Repository Secrets.")
 
     for key in ("TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"):
         if not os.environ.get(key):

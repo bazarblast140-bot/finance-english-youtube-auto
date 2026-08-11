@@ -59,7 +59,13 @@ def claude(system, user, model=None, max_tokens=16000, retries=3):
     kimi_key = os.environ.get("KIMI_API_KEY")
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
 
-    if (provider == "kimi" and kimi_key) or (kimi_key and not anthropic_key):
+    if provider == "kimi" and not kimi_key:
+        die("config.json selects Kimi, but KIMI_API_KEY is missing. Add it in GitHub Repository Secrets.")
+
+    if provider == "anthropic" and not anthropic_key:
+        die("config.json selects Anthropic, but ANTHROPIC_API_KEY is missing. Add it in GitHub Repository Secrets.")
+
+    if provider == "kimi" or (kimi_key and not anthropic_key):
         base_url = os.environ.get("KIMI_BASE_URL") or "https://api.moonshot.ai/v1"
         client = openai.OpenAI(api_key=kimi_key, base_url=base_url, timeout=120)
         messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
