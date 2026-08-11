@@ -30,29 +30,6 @@ jobs:
       - name: Install deps
         run: pip install -r requirements.txt
 
-      - name: Debug - verify config and API
-        env:
-          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
-          KIMI_BASE_URL: ${{ secrets.KIMI_BASE_URL }}
-        run: |
-          echo "=== Config check ==="
-          python -c "import json; c=json.load(open('config.json')); print('script_model:', c['models']['script_model']); print('script_max_tokens:', c['models'].get('script_max_tokens')); print('provider:', c['models']['llm_provider'])"
-          echo "=== API key check ==="
-          python -c "import os; k=os.environ.get('KIMI_API_KEY',''); print(f'KIMI_API_KEY: {k[:8]}...{k[-4:]}' if len(k)>12 else f'KIMI_API_KEY: MISSING or too short ({len(k)} chars)')"
-          python -c "import os; print('KIMI_BASE_URL:', os.environ.get('KIMI_BASE_URL', 'NOT SET'))"
-          echo "=== Quick API test ==="
-          python -c "
-import os, openai
-key = os.environ.get('KIMI_API_KEY')
-base = os.environ.get('KIMI_BASE_URL', 'https://api.moonshot.ai/v1')
-client = openai.OpenAI(api_key=key, base_url=base, timeout=30)
-try:
-    r = client.chat.completions.create(model='kimi-k2.7-code-highspeed', messages=[{'role':'user','content':'Say OK'}], max_tokens=10)
-    print('API test:', repr(r.choices[0].message.content), '| finish:', r.choices[0].finish_reason)
-except Exception as e:
-    print('API test FAILED:', type(e).__name__, str(e)[:200])
-"
-
       - name: Run Pipeline
         env:
           KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
@@ -65,7 +42,7 @@ except Exception as e:
         run: python run_pipeline.py
 
       - name: Upload video + report as artifact
-        if: always()
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: daily-video-${{ github.run_number }}

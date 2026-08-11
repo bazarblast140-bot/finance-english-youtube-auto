@@ -40,5 +40,11 @@ def main():
     print("\n=== Notify ===")
     run("notify.py", "--status", status)
 
+    # Propagate stage failures to CI (and cron callers).  Previously the
+    # notification step ran and the process exited 0 even when a stage had
+    # failed, making GitHub Actions report a misleading success.
+    if status != "success":
+        sys.exit(1)
+
 if __name__ == "__main__":
     main()
