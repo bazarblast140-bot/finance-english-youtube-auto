@@ -62,59 +62,74 @@ def _fit_width(text, target, hi, lo=40):
 
 
 def _intro_frame(i, total, name, tagline, fps):
-    """One intro frame. Timeline over `total` frames:
-        0.10-1.60s  name types in, cursor leads
-        1.70-2.30s  accent rule draws under it
-        2.20-3.10s  tagline fades up
-        last 0.35s  everything fades to black for the cut
+    """Pro permanent intro — same every video, cached by name+tagline hash.
+
+    Timeline:
+        0.00-0.40s  amber brand pip + thin top rule fade in
+        0.15-1.55s  channel name types in with amber cursor
+        1.60-2.20s  amber underline draws under the name
+        2.10-3.00s  tagline fades up
+        last 0.40s  fade to black into the hook
     """
     t = i / fps
     img = Image.new("RGB", (W, H), sketch.PAPER)
     d = ImageDraw.Draw(img)
 
-    f_name = _fit_width(name, W - 460, 190, 70)
-    name_w = d.textlength(name, font=f_name)
-    nx, ny = (W - name_w) / 2, H * 0.34
+    # subtle top rule + brand pip (channel identity, always present after 0.1s)
+    if t >= 0.08:
+        a = _ease(min(1.0, (t - 0.08) / 0.35))
+        rule_c = tuple(int(sketch.PAPER[c] + (40 - sketch.PAPER[c]) * a) for c in range(3))
+        d.rectangle([W * 0.28, 72, W * 0.72, 74], fill=rule_c)
+        pip_a = int(230 * a)
+        cx = W // 2
+        d.ellipse([cx - 7, 58, cx + 7, 72], fill=sketch.HIGHLIGHT + (pip_a,) if False else sketch.HIGHLIGHT)
 
-    # type the name
-    type_start, type_len = 0.10, 1.50
+    f_name = _fit_width(name, W - 420, 200, 72)
+    name_w = d.textlength(name, font=f_name)
+    nx, ny = (W - name_w) / 2, H * 0.36
+
+    # type the channel name
+    type_start, type_len = 0.15, 1.40
     shown = name
     if t < type_start:
         shown = ""
     elif t < type_start + type_len:
-        frac = (t - type_start) / type_len
+        frac = _ease((t - type_start) / type_len)
         shown = name[:max(0, int(len(name) * frac))]
     if shown:
+        # soft shadow for depth
+        d.text((nx + 3, ny + 3), shown, font=f_name, fill=(0, 0, 0))
         d.text((nx, ny), shown, font=f_name, fill=sketch.INK)
 
-    # cursor leads the text while typing, then blinks twice and leaves
-    if type_start <= t < type_start + type_len + 0.5:
-        cx = nx + d.textlength(shown, font=f_name) + 8
+    # amber cursor while typing
+    if type_start <= t < type_start + type_len + 0.45:
+        cx = nx + d.textlength(shown, font=f_name) + 10
         blink = t >= type_start + type_len and int((t - type_start) * 6) % 2 == 1
         if not blink:
             bbox = f_name.getbbox("H")
-            d.rectangle([cx, ny + bbox[1], cx + 10, ny + bbox[3]], fill=sketch.HIGHLIGHT)
+            d.rectangle([cx, ny + bbox[1], cx + 12, ny + bbox[3]], fill=sketch.HIGHLIGHT)
 
-    # hand-drawn rule under the name
-    if t >= 1.70:
-        grow = _ease((t - 1.70) / 0.60)
+    # amber underline under the full name
+    if t >= 1.60:
+        grow = _ease((t - 1.60) / 0.55)
         if grow > 0.02:
-            y = ny + f_name.size * 1.30
-            sketch.rough_underline(d, nx, nx + name_w * grow, y, sketch.HIGHLIGHT, 9, seed=4)
+            y = ny + f_name.size * 1.28
+            sketch.rough_underline(d, nx, nx + name_w * grow, y, sketch.HIGHLIGHT, 10, seed=4)
 
-    # tagline fades up into place
-    if tagline and t >= 2.20:
-        a = _ease((t - 2.20) / 0.85)
-        f_tag = _fit_width(tagline, W - 560, 62, 30)
+    # tagline
+    if tagline and t >= 2.10:
+        a = _ease((t - 2.10) / 0.80)
+        f_tag = _fit_width(tagline, W - 520, 56, 28)
         tw = d.textlength(tagline, font=f_tag)
-        lift = int(24 * (1 - a))
-        shade = tuple(int(sketch.PAPER[c] + (sketch.COOL[c] - sketch.PAPER[c]) * a) for c in range(3))
-        d.text(((W - tw) / 2, ny + f_name.size * 1.75 + lift), tagline, font=f_tag, fill=shade)
+        lift = int(20 * (1 - a))
+        # blend paper -> soft cool white
+        shade = tuple(int(sketch.PAPER[c] + (200 - sketch.PAPER[c]) * a) for c in range(3))
+        d.text(((W - tw) / 2, ny + f_name.size * 1.72 + lift), tagline, font=f_tag, fill=shade)
 
-    # fade out so the cut into the hook is not abrupt
+    # fade out into the hook
     total_s = total / fps
-    if t > total_s - 0.35:
-        k = min(1.0, (t - (total_s - 0.35)) / 0.35)
+    if t > total_s - 0.40:
+        k = min(1.0, (t - (total_s - 0.40)) / 0.40)
         img = Image.blend(img, Image.new("RGB", (W, H), (0, 0, 0)), k)
     return img
 

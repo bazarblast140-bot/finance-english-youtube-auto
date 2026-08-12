@@ -20,14 +20,21 @@ HARD RULES:
 7. Every segment that mentions a specific number MUST have a [SOURCE: ...] tag.
 
 QUALITY BAR (your script must pass ALL of these or it will be rejected):
-- TITLE line present
-- HOOK section present (first 15 seconds) with a genuine pattern-interrupt
-- BODY with at least 3 [SEGMENT] tags
+- TITLE line present — specific, searchable, not vague ("Debt Snowball vs Avalanche: The Method That Actually Gets You to Zero" not "Debt Tips")
+- HOOK section present (first 15 seconds) with a genuine pattern-interrupt — open with tension, contradiction, or a number that makes the viewer stop
+- BODY with at least 3 [SEGMENT] tags — each segment advances ONE clear idea; no filler restating the hook
 - At least 3 [SOURCE: ...] tags in the body
-- CTA section present
+- CTA section present — one line, specific, not "like and subscribe for more"
 - DISCLAIMER LINE present
 - FACT LEDGER section present listing every sourced figure
 - Total spoken words between 450 and 1050
+
+PRO CONTENT RULES (non-negotiable):
+- Write like a sharp documentary narrator, not a listicle blogger.
+- Every paragraph must earn its place: a mechanism, a comparison, a number, or a consequence. Cut anything that only "sounds finance-y".
+- Prefer one precise example over three vague ones.
+- Never say "in today's video" / "without further ado" / "let's dive in" / "game changer".
+- The viewer should leave with ONE rule they can act on, not a cloud of tips.
 
 Output the exact structure: TITLE / HOOK (0-15 sec) / BODY (with [SEGMENT n: label] and [SOURCE: ...] tags) / CTA / DISCLAIMER LINE / FACT LEDGER. Plain text, no markdown fences."""
 

@@ -212,9 +212,11 @@ KICK_FONT = 38
 
 
 def build_chrome(shot, idx, total, path, channel):
-    """Static layer: the heading's underline, the channel watermark, the progress
-    bar. Static on purpose — a watermark that zooms along with the headline stops
-    reading as a channel mark."""
+    """Static layer: section underline, pro channel watermark, progress bar.
+
+    Watermark is top-right, static, high-legibility but not loud — reads as a
+    real channel mark on every frame without competing with the headline.
+    """
     layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
 
@@ -225,9 +227,20 @@ def build_chrome(shot, idx, total, path, channel):
         sketch.rough_underline(d, SIDE, SIDE + w, KICK_Y + 58, accent, 5, seed=idx * 13 + 1)
 
     if channel:
-        f = _font(30)
-        d.text((W - SIDE - d.textlength(channel.upper(), font=f), KICK_Y + 6),
-               channel.upper(), font=f, fill=(210, 214, 222, 150))
+        # Pro watermark: small amber pip + uppercase name, soft shadow for legibility
+        label = channel.upper().strip()
+        f = _font(28)
+        tw = d.textlength(label, font=f)
+        x = W - SIDE - tw
+        y = KICK_Y + 4
+        # soft dark plate behind text so it survives bright footage
+        pad_x, pad_y = 14, 8
+        d.rounded_rectangle(
+            [x - pad_x - 18, y - pad_y, x + tw + pad_x, y + 28 + pad_y],
+            radius=6, fill=(10, 12, 16, 140))
+        # amber accent pip (channel identity colour)
+        d.ellipse([x - pad_x - 10, y + 6, x - pad_x + 4, y + 20], fill=sketch.HIGHLIGHT + (230,))
+        d.text((x, y), label, font=f, fill=(236, 238, 242, 220))
 
     frac = (idx + 1) / max(total, 1)
     d.rectangle([0, H - 8, int(W * frac), H], fill=sketch.HIGHLIGHT + (255,))
