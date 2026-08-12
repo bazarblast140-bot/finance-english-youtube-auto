@@ -10,6 +10,9 @@ concurrency:
   group: daily-finance
   cancel-in-progress: false
 
+permissions:
+  contents: write
+
 jobs:
   build-video:
     runs-on: ubuntu-latest
@@ -42,12 +45,11 @@ jobs:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-        # --publish = opt-in upload; publish.py still only uploads if final verdict == READY
-        # and visibility is private (from config.json)
+        # --publish = upload only if final verdict == READY; visibility = private (config)
         run: python run_pipeline.py --publish
 
       - name: Commit topic_bank (prevent topic repeats)
-        if: always()
+        if: success()
         run: |
           if git diff --quiet topic_bank.json; then
             echo "No topic_bank changes"

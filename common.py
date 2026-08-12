@@ -76,7 +76,9 @@ def claude(system, user, model=None, max_tokens=16000, retries=3):
         kwargs = dict(model=model, messages=messages, max_tokens=max_tokens)
         if not model.startswith("kimi-"):
             kwargs["temperature"] = 0.1
-        for attempt in range(retries):
+        # Overload (429) is common on free/shared Kimi capacity — wait longer.
+        effective_retries = max(retries, 6)
+        for attempt in range(effective_retries):
             try:
                 completion = client.chat.completions.create(**kwargs)
                 content = completion.choices[0].message.content or ""
@@ -85,24 +87,25 @@ def claude(system, user, model=None, max_tokens=16000, retries=3):
                 if not content.strip():
                     finish = completion.choices[0].finish_reason
                     last = RuntimeError(f"Kimi returned empty content (finish_reason={finish})")
-                    if attempt < retries - 1:
-                        wait = 5 * (2 ** attempt)
+                    if attempt < effective_retries - 1:
+                        wait = min(90, 10 * (2 ** attempt))
                         print(f"[retry] Kimi returned empty content; retrying in {wait}s")
                         time.sleep(wait)
                         continue
-                    die(f"Kimi returned empty content after {retries} attempts. Check model/base URL or switch provider.")
+                    die(f"Kimi returned empty content after {effective_retries} attempts. Check model/base URL or switch provider.")
                 return content
             except (openai.APIStatusError, openai.APIConnectionError) as e:
                 status = getattr(e, "status_code", None)
                 if status is not None and status not in (429, 500, 502, 503, 529):
                     die(f"Kimi API error {status}: {e}")
                 last = e
-                if attempt < retries - 1:
-                    wait = 5 * (2 ** attempt)
-                    print(f"[retry] Kimi call failed ({status or type(e).__name__}); retrying in {wait}s")
+                if attempt < effective_retries - 1:
+                    # 429 overloaded: 15s, 30s, 60s, 90s, 90s...
+                    wait = min(90, 15 * (2 ** attempt))
+                    print(f"[retry] Kimi call failed ({status or type(e).__name__}); retrying in {wait}s (attempt {attempt+1}/{effective_retries})")
                     time.sleep(wait)
                 continue
-        die(f"Kimi call failed after {retries} attempts: {last}")
+        die(f"Kimi call failed after {effective_retries} attempts: {last}")
 
     if anthropic_key:
         return _claude_anthropic(system, user, model, max_tokens, retries)
