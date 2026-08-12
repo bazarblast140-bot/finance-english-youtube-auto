@@ -1,32 +1,27 @@
 {
   "channel": {
-    "name": "The Money Rule",
+    "name": "Finance English",
     "tagline": "One rule. Every video.",
+    "format": "One Rule Board",
     "niche": "finance/investing",
     "audience": "US/UK/CA/AU beginner-to-intermediate",
     "language": "English",
     "tags": [
-      "the money rule",
       "personal finance",
       "investing for beginners",
-      "compound interest explained",
-      "debt payoff",
-      "snowball vs avalanche",
-      "index funds for beginners",
-      "money management tips",
+      "compound interest",
+      "money management",
       "financial literacy",
-      "how to get out of debt",
-      "wealth building",
-      "emergency fund"
+      "finance english"
     ],
-    "banner_line": "Compound interest · Debt · Investing · Inflation",
+    "banner_line": "Compound interest · Investing · Debt · Inflation",
     "country": "IN",
     "default_language": "en",
     "description": [
-      "One rule per video. Explained in plain English.",
-      "Compound interest, index funds, debt, inflation — the mechanics behind money, with real numbers and sources you can check.",
-      "No hype. No stock tips. No get-rich promises.",
-      "Educational only — not financial advice. For your situation, talk to a qualified professional."
+      "One rule per video, explained in plain English.",
+      "Compound interest, index funds, debt, inflation, taxes — the mechanics behind money, broken down with real numbers you can check and sources you can look up.",
+      "No hype. No stock tips. No get-rich promises. Just the rule, why it works, and where it stops working.",
+      "Everything here is educational content, not financial advice. For your own situation, speak to a qualified professional."
     ]
   },
   "branding": {
@@ -44,6 +39,7 @@
     "fps": 30
   },
   "models": {
+    "_note": "kimi-k2.7-code-highspeed is used for fast and structured responses via Moonshot API.",
     "llm_provider": "kimi",
     "script_model": "kimi-k2.7-code-highspeed",
     "verify_model": "kimi-k2.7-code-highspeed",
@@ -56,8 +52,8 @@
     "engine": "elevenlabs",
     "voice_id": "tCgAUbeV0tdD1S2yFoCx",
     "model": "eleven_turbo_v2_5",
-    "stability": 0.5,
-    "style": 0.0,
+    "stability": 0.65,
+    "style": 0.1,
     "edge_voice": "en-US-ChristopherNeural",
     "edge_rate": "+0%",
     "edge_pitch": "+0Hz"
@@ -66,8 +62,8 @@
     "auto_publish": true,
     "publish_visibility": "private",
     "stop_on_gate_fail": true,
-    "max_stock_ratio": 0.30,
-    "word_count_tolerance": 0.4
+    "max_stock_ratio": 0.20,
+    "word_count_tolerance": 0.3
   },
   "notify": {
     "channel": "telegram"
