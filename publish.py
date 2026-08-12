@@ -101,46 +101,53 @@ def build_description(sec, c):
 
 
 def build_tags(title, c):
-    """SEO tags: channel keywords first, then title phrases, then single words.
+    """YouTube-safe SEO tags.
 
-    YouTube treats multi-word tags as stronger relevance signals than single words.
+    Rules that trigger invalidTags:
+    - empty / too short / too long (>100)
+    - characters other than letters, numbers, spaces, hyphens
+    - total length over ~500
     """
     stop = {"the", "that", "your", "when", "what", "how", "why", "and", "for",
             "with", "you", "old", "year", "shows", "it", "a", "of", "in", "to",
-            "from", "this", "that", "into", "than", "also", "just", "more"}
-    tags = []
-    seen = set()
+            "from", "this", "into", "than", "also", "just", "more", "never",
+            "requires", "triple", "hidden", "cost", "living", "off"}
+    tags, seen = [], set()
 
     def add(t):
-        t = re.sub(r"\s+", " ", str(t)).strip()
-        if not t or t.lower() in seen or t.lower() in stop:
+        t = re.sub(r"[^A-Za-z0-9 \-]", "", str(t))
+        t = re.sub(r"\s+", " ", t).strip()
+        if not t or len(t) < 3 or len(t) > 60:
             return
-        if len(t) < 3:
+        key = t.lower()
+        if key in seen or key in stop:
             return
-        seen.add(t.lower())
+        seen.add(key)
         tags.append(t)
 
     for t in c["channel"].get("tags", []):
         add(t)
 
-    # multi-word chunks from title (bigrams)
-    words = re.findall(r"[A-Za-z0-9]{3,}", title)
+    words = re.findall(r"[A-Za-z0-9]{3,}", title or "")
     for i in range(len(words) - 1):
         add(f"{words[i]} {words[i+1]}")
     for w in words:
         if not w.isdigit():
-            add(w.lower())
+            add(w)
 
     add("the money rule")
-    add("personal finance education")
+    add("personal finance")
+    add("dividend investing")
 
     kept, total = [], 0
     for t in tags:
-        if total + len(t) + 1 > MAX_TAGS_CHARS:
+        if len(kept) >= 15:
+            break
+        if total + len(t) + 1 > 400:
             break
         kept.append(t)
         total += len(t) + 1
-    return kept
+    return kept or ["personal finance", "investing", "the money rule"]
 
 
 def set_thumbnail(yt, video_id):
@@ -209,16 +216,29 @@ def main():
         "status": {"privacyStatus": visibility,  # 'private' by default
                    "selfDeclaredMadeForKids": False},
     }
-    media = MediaFileUpload(str(RUN / "final.mp4"), chunksize=8 * 1024 * 1024, resumable=True)
-    req = yt.videos().insert(part="snippet,status", body=body, media_body=media)
+    from googleapiclient.errors import HttpError, ResumableUploadError
 
-    # A 23 MB upload on a slow line is minutes of silence otherwise, and silence
-    # is indistinguishable from a hang.
-    resp = None
-    while resp is None:
-        status, resp = req.next_chunk()
-        if status:
-            print(f"  uploading… {int(status.progress() * 100)}%")
+    def _do_upload(tag_list):
+        body["snippet"]["tags"] = tag_list
+        media = MediaFileUpload(str(RUN / "final.mp4"), chunksize=8 * 1024 * 1024, resumable=True)
+        req = yt.videos().insert(part="snippet,status", body=body, media_body=media)
+        resp = None
+        while resp is None:
+            status, resp = req.next_chunk()
+            if status:
+                print(f"  uploading… {int(status.progress() * 100)}%")
+        return resp
+
+    try:
+        resp = _do_upload(tags)
+    except (HttpError, ResumableUploadError) as e:
+        msg = str(e)
+        if "invalidTags" in msg or "invalid video keywords" in msg:
+            print("[warn] YouTube rejected tags; retrying with safe minimal tags")
+            safe = ["personal finance", "investing for beginners", "the money rule", "dividends"]
+            resp = _do_upload(safe)
+        else:
+            raise
 
     video_id = resp["id"]
     ok(f"Uploaded as {visibility}: https://youtu.be/{video_id}")
