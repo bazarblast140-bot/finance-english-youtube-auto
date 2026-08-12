@@ -1,23 +1,45 @@
 {
   "channel": {
     "name": "Finance English",
+    "tagline": "One rule. Every video.",
     "niche": "finance/investing",
     "audience": "US/UK/CA/AU beginner-to-intermediate",
-    "language": "English"
+    "language": "English",
+    "tags": ["personal finance", "investing for beginners", "compound interest",
+             "money management", "financial literacy", "finance english"],
+    "banner_line": "Compound interest · Investing · Debt · Inflation",
+    "country": "IN",
+    "default_language": "en",
+    "description": [
+      "One rule per video, explained in plain English.",
+      "Compound interest, index funds, debt, inflation, taxes — the mechanics behind money, broken down with real numbers you can check and sources you can look up.",
+      "No hype. No stock tips. No get-rich promises. Just the rule, why it works, and where it stops working.",
+      "Everything here is educational content, not financial advice. For your own situation, speak to a qualified professional."
+    ]
+  },
+  "branding": {
+    "intro_seconds": 4.0,
+    "watermark": true,
+    "typewriter": true,
+    "thumbnail": true,
+    "background_music": false
   },
   "video": {
-    "target_minutes": 8,
+    "target_minutes": 5,
     "words_per_minute": 150,
-    "target_word_count": 1200,
+    "target_word_count": 750,
     "resolution": "1920x1080",
     "fps": 30
   },
   "models": {
-    "script_model": "claude-3-5-sonnet-20241022",
-    "verify_model": "claude-3-5-sonnet-20241022",
-    "visual_model": "claude-3-5-sonnet-20241022",
-    "max_tokens": 4096,
-    "visual_max_tokens": 48000
+    "_note": "kimi-k2.7-code-highspeed is fastest and returns content. kimi-k2.6 returns EMPTY (broken). kimi-k3 too slow. Gate 1 is local check so code model works fine. Anthropic credits depleted — using Kimi.",
+    "llm_provider": "kimi",
+    "script_model": "kimi-k2.7-code-highspeed",
+    "verify_model": "kimi-k2.7-code-highspeed",
+    "visual_model": "kimi-k2.7-code-highspeed",
+    "max_tokens": 16000,
+    "script_max_tokens": 12000,
+    "visual_max_tokens": 16000
   },
   "voice": {
     "engine": "elevenlabs",
