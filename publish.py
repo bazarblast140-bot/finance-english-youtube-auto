@@ -49,51 +49,90 @@ def build_title(sec):
 
 
 def build_description(sec, c):
-    """Hook first (it is the search snippet), then the disclaimer, then the
-    sourced facts. The fact ledger is the channel's credibility — putting it on
-    the page means a viewer can check the claims without watching again."""
+    """SEO-first description: hook (search snippet) → value → sources → CTA → tags.
+
+    First 100-150 chars are what YouTube shows in search — must be the hook.
+    """
     parts = []
 
     hook = sec.get("HOOK", "").strip()
     if hook:
-        parts.append(hook)
+        # collapse to a tight search snippet
+        hook_one = re.sub(r"\s+", " ", hook).strip()
+        parts.append(hook_one)
+
+    title = (sec.get("TITLE") or "").strip().splitlines()
+    title = title[0].strip() if title else ""
+    if title:
+        parts.append(f"In this video: {title}")
 
     disclaimer = sec.get("DISCLAIMER LINE", "").strip()
     parts.append(disclaimer or "This video is for education only and is not financial advice.")
 
     ledger = sec.get("FACT LEDGER", "").strip()
     if ledger:
-        # drop the VERIFIED bookkeeping — that is for the verify stage, not viewers
         lines = []
         for line in ledger.splitlines():
             line = line.strip()
             if not line:
                 continue
             line = re.sub(r"\s*—\s*(VERIFIED|no source required)\b.*$", "", line, flags=re.I)
-            lines.append(line)
+            lines.append(line if line.startswith("•") or line.startswith("-") else f"• {line}")
         if lines:
-            parts.append("SOURCES & NOTES\n" + "\n".join(lines))
+            parts.append("SOURCES & NOTES\n" + "\n".join(lines[:12]))
 
+    name = c["channel"].get("name", "The Money Rule").strip()
     tagline = c["channel"].get("tagline", "").strip()
-    if tagline:
-        parts.append(f"{c['channel']['name']} — {tagline}")
+    parts.append(f"{name} — {tagline}" if tagline else name)
+    parts.append("New video every day. One rule. Clear numbers. No hype.")
+
+    # SEO hashtags (YouTube indexes the first few)
+    tags = c["channel"].get("tags") or []
+    hash_tags = []
+    for t in tags[:8]:
+        h = "#" + re.sub(r"[^A-Za-z0-9]", "", t.title().replace(" ", ""))
+        if len(h) > 2 and h not in hash_tags:
+            hash_tags.append(h)
+    if hash_tags:
+        parts.append(" ".join(hash_tags))
 
     desc = "\n\n".join(parts)
     return desc[:MAX_DESC]
 
 
 def build_tags(title, c):
-    """Channel tags from config, then distinctive words from the title. Generic
-    stopwords would just dilute the set, so they are dropped."""
+    """SEO tags: channel keywords first, then title phrases, then single words.
+
+    YouTube treats multi-word tags as stronger relevance signals than single words.
+    """
     stop = {"the", "that", "your", "when", "what", "how", "why", "and", "for",
-            "with", "you", "old", "year", "shows", "it", "a", "of", "in", "to"}
-    tags = list(c["channel"].get("tags", []))
-    for word in re.findall(r"[A-Za-z0-9]{3,}", title):
-        w = word.lower()
-        if w.isdigit():  # "500" out of "500-Year-Old" is not a search term
-            continue
-        if w not in stop and w not in {t.lower() for t in tags}:
-            tags.append(w)
+            "with", "you", "old", "year", "shows", "it", "a", "of", "in", "to",
+            "from", "this", "that", "into", "than", "also", "just", "more"}
+    tags = []
+    seen = set()
+
+    def add(t):
+        t = re.sub(r"\s+", " ", str(t)).strip()
+        if not t or t.lower() in seen or t.lower() in stop:
+            return
+        if len(t) < 3:
+            return
+        seen.add(t.lower())
+        tags.append(t)
+
+    for t in c["channel"].get("tags", []):
+        add(t)
+
+    # multi-word chunks from title (bigrams)
+    words = re.findall(r"[A-Za-z0-9]{3,}", title)
+    for i in range(len(words) - 1):
+        add(f"{words[i]} {words[i+1]}")
+    for w in words:
+        if not w.isdigit():
+            add(w.lower())
+
+    add("the money rule")
+    add("personal finance education")
 
     kept, total = [], 0
     for t in tags:

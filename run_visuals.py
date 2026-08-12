@@ -3,13 +3,20 @@ Exits non-zero on Gate 3 fail."""
 import json
 from common import cfg, claude_json, read, save, ok, die, RUN
 
-VISUAL_SYSTEM = """You are the Visual Planner Agent for a faceless finance YouTube channel. Create a concise visual shot list for the provided script text.
+VISUAL_SYSTEM = """You are the Visual Planner Agent for The Money Rule — a faceless finance YouTube channel that must stay monetization-safe and look ORIGINAL (Excalidraw / hand-drawn style).
 
-RULES:
-1. Dynamic pacing: 4-7 second shots.
-2. If numbers are mentioned in the text, put them in on_screen_text.
-3. Keep on_screen_text under 5 words.
-4. Keep source_asset_query under 5 words.
+HARD RULES (YouTube reuse / monetization):
+1. Prefer ORIGINAL visuals. Target: at most 30% of shots may be stock_footage.
+2. When the script has numbers, comparisons, timelines, or percentages → visual_type MUST be "chart" and chart_data MUST be filled with the REAL numbers from the script.
+3. When explaining a rule/concept without a clean numeric series → visual_type "card" (plain branded card + on_screen_text). chart_data null.
+4. stock_footage is only for emotional B-roll (person stressed about bills, empty wallet vibe) — never for explaining the rule itself.
+5. Dynamic pacing: 4-7 second shots.
+6. on_screen_text under 6 words. Put the KEY number or phrase on screen.
+7. source_asset_query under 5 words (only used if visual_type is stock_footage).
+
+chart_data format when visual_type is "chart":
+  {"type": "bar" or "line", "labels": ["A","B","C"], "values": [10, 25, 40]}
+  Labels and values must match and come from the script numbers.
 
 JSON FORMAT (Output ONLY this JSON object):
 {
@@ -18,13 +25,13 @@ JSON FORMAT (Output ONLY this JSON object):
       "shot_id": 1,
       "start_sec": 0,
       "end_sec": 5,
-      "visual_type": "stock_footage",
-      "on_screen_text": "GOOD DEBT VS BAD DEBT",
-      "highlight": "GOOD DEBT",
-      "section": "INTRODUCTION",
-      "emphasis": "positive",
-      "chart_data": null,
-      "source_asset_query": "financial growth chart stock market"
+      "visual_type": "chart",
+      "on_screen_text": "22.76% CARD APR",
+      "highlight": "22.76%",
+      "section": "THE COST",
+      "emphasis": "warning",
+      "chart_data": {"type": "bar", "labels": ["Minimum", "Snowball", "Avalanche"], "values": [48, 36, 29]},
+      "source_asset_query": null
     }
   ]
 }
@@ -80,10 +87,39 @@ def main():
     plan = generate_plan(spoken, c)
 
     shots = plan.get("shots") or []
-    stock = sum(1 for s in shots if str(s.get("visual_type", "")).lower() == "stock_footage")
-    ratio = stock / len(shots) if shots else 0.0
+    if not shots:
+        die("GATE 3 FAILED: Visual Agent returned zero shots.")
 
-    ok(f"GATE 3 PASSED ({len(shots)} shots, {ratio*100:.0f}% stock)")
+    stock = sum(1 for s in shots if str(s.get("visual_type", "")).lower() == "stock_footage")
+    chart = sum(1 for s in shots if str(s.get("visual_type", "")).lower() == "chart")
+    ratio = stock / len(shots)
+    max_ratio = float(c["pipeline"].get("max_stock_ratio", 0.30))
+
+    # charts with numbers are original (Excalidraw-style) — good for monetization
+    missing_chart_data = [
+        s.get("shot_id") for s in shots
+        if str(s.get("visual_type", "")).lower() == "chart"
+        and not (isinstance(s.get("chart_data"), dict)
+                 and s["chart_data"].get("labels")
+                 and s["chart_data"].get("values"))
+    ]
+
+    fails = []
+    if ratio > max_ratio + 1e-9:
+        fails.append(
+            f"Too much stock footage: {ratio*100:.0f}% (max {max_ratio*100:.0f}%). "
+            f"Rewrite shots to use chart/card so the channel stays original and monetizable."
+        )
+    if missing_chart_data:
+        fails.append(f"chart shots missing chart_data: {missing_chart_data}")
+    if chart == 0 and len(shots) >= 6:
+        fails.append("No chart shots — at least one number-driven Excalidraw chart is required for a 6+ shot video.")
+
+    if fails:
+        save("gate3_report.txt", "\n".join(fails))
+        die("GATE 3 FAILED: " + " | ".join(fails))
+
+    ok(f"GATE 3 PASSED ({len(shots)} shots, {ratio*100:.0f}% stock, {chart} charts)")
     save("shots.json", json.dumps(plan, indent=2))
 
 if __name__ == "__main__":

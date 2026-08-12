@@ -1,26 +1,32 @@
 {
   "channel": {
-    "name": "Finance English",
+    "name": "The Money Rule",
     "tagline": "One rule. Every video.",
     "niche": "finance/investing",
     "audience": "US/UK/CA/AU beginner-to-intermediate",
     "language": "English",
     "tags": [
+      "the money rule",
       "personal finance",
       "investing for beginners",
-      "compound interest",
-      "money management",
+      "compound interest explained",
+      "debt payoff",
+      "snowball vs avalanche",
+      "index funds for beginners",
+      "money management tips",
       "financial literacy",
-      "finance english"
+      "how to get out of debt",
+      "wealth building",
+      "emergency fund"
     ],
-    "banner_line": "Compound interest \u00b7 Investing \u00b7 Debt \u00b7 Inflation",
+    "banner_line": "Compound interest · Debt · Investing · Inflation",
     "country": "IN",
     "default_language": "en",
     "description": [
-      "One rule per video, explained in plain English.",
-      "Compound interest, index funds, debt, inflation, taxes \u2014 the mechanics behind money, broken down with real numbers you can check and sources you can look up.",
-      "No hype. No stock tips. No get-rich promises. Just the rule, why it works, and where it stops working.",
-      "Everything here is educational content, not financial advice. For your own situation, speak to a qualified professional."
+      "One rule per video. Explained in plain English.",
+      "Compound interest, index funds, debt, inflation — the mechanics behind money, with real numbers and sources you can check.",
+      "No hype. No stock tips. No get-rich promises.",
+      "Educational only — not financial advice. For your situation, talk to a qualified professional."
     ]
   },
   "branding": {
@@ -38,7 +44,6 @@
     "fps": 30
   },
   "models": {
-    "_note": "kimi-k2.7-code-highspeed is fastest and returns content. kimi-k2.6 returns EMPTY (broken). kimi-k3 too slow. Gate 1 is local check so code model works fine. Anthropic credits depleted \u2014 using Kimi.",
     "llm_provider": "kimi",
     "script_model": "kimi-k2.7-code-highspeed",
     "verify_model": "kimi-k2.7-code-highspeed",
@@ -61,7 +66,7 @@
     "auto_publish": true,
     "publish_visibility": "private",
     "stop_on_gate_fail": true,
-    "max_stock_ratio": 0.55,
+    "max_stock_ratio": 0.30,
     "word_count_tolerance": 0.4
   },
   "notify": {
