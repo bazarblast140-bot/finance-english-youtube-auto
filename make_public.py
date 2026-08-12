@@ -1,7 +1,12 @@
-"""One-shot: set the most recent channel upload to public.
-Usage: python make_public.py
-"""
-from common import need, ok, die
+"""One-shot: set the most recent channel upload to public."""
+import os, sys
+
+def need(key):
+    v = os.environ.get(key)
+    if not v:
+        print(f"[FAIL] Missing env var {key}", file=sys.stderr)
+        sys.exit(1)
+    return v
 
 def main():
     from google.oauth2.credentials import Credentials
@@ -19,7 +24,8 @@ def main():
     ch = yt.channels().list(part="contentDetails", mine=True).execute()
     items = ch.get("items") or []
     if not items:
-        die("No channel found for this OAuth token.")
+        print("[FAIL] No channel found for this OAuth token.", file=sys.stderr)
+        sys.exit(1)
     uploads = items[0]["contentDetails"]["relatedPlaylists"]["uploads"]
 
     pl = yt.playlistItems().list(
@@ -27,7 +33,8 @@ def main():
     ).execute()
     vids = pl.get("items") or []
     if not vids:
-        die("No uploaded videos found.")
+        print("[FAIL] No uploaded videos found.", file=sys.stderr)
+        sys.exit(1)
 
     video_id = vids[0]["contentDetails"]["videoId"]
     title = vids[0]["snippet"]["title"]
@@ -38,7 +45,7 @@ def main():
     print(f"[info] Current privacy: {st.get('privacyStatus')}")
 
     if st.get("privacyStatus") == "public":
-        ok("Already public — nothing to do.")
+        print("[OK] Already public — nothing to do.")
         return
 
     yt.videos().update(
@@ -51,7 +58,7 @@ def main():
             },
         },
     ).execute()
-    ok(f"Set PUBLIC: https://youtu.be/{video_id}")
+    print(f"[OK] Set PUBLIC: https://youtu.be/{video_id}")
     print(f"Title: {title}")
 
 if __name__ == "__main__":
