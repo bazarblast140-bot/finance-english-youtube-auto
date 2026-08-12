@@ -13,7 +13,7 @@ concurrency:
 jobs:
   build-video:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       - name: Checkout repo
@@ -30,7 +30,7 @@ jobs:
       - name: Install deps
         run: pip install -r requirements.txt
 
-      - name: Run Pipeline
+      - name: Run Pipeline (+ publish if READY)
         env:
           KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
           KIMI_BASE_URL: ${{ secrets.KIMI_BASE_URL }}
@@ -39,7 +39,12 @@ jobs:
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: python run_pipeline.py
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        # --publish = opt-in upload; publish.py still only uploads if final verdict == READY
+        # and visibility is private (from config.json)
+        run: python run_pipeline.py --publish
 
       - name: Commit topic_bank (prevent topic repeats)
         if: always()
