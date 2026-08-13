@@ -40,7 +40,8 @@ CAPTION_TOP = 0.72
 SIDE = 150
 CAPTION_WORDS = 6
 POP_IN = 0.32          # seconds of headline zoom-in
-FADE_IN = 0.28
+FADE_IN = 0.35
+FADE_OUT = 0.30
 
 EMPHASIS = {"positive": sketch.GREEN, "warning": sketch.POP, "neutral": sketch.COOL}
 
@@ -423,6 +424,11 @@ def render_shot(idx, shot, dur, fps, overlay, backdrop, still, chrome=None):
     if idx_chrome is not None:
         parts.append(f"[{last}][{idx_chrome}:v]overlay=x=0:y=0:format=auto[s2]")
         last = "s2"
+
+    # Soft edge: fade out last 0.3s so hard cuts between shots feel calmer
+    fade_st = max(0.0, float(dur) - FADE_OUT)
+    parts.append(f"[{last}]fade=t=out:st={fade_st:.3f}:d={FADE_OUT:.3f}[vout]")
+    last = "vout"
 
     args += ["-filter_complex", ";".join(parts), "-map", f"[{last}]", "-an",
              "-t", f"{dur:.3f}", "-r", str(fps), "-fps_mode", "cfr", *X264, out]

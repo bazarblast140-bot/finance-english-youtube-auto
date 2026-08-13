@@ -3,39 +3,43 @@ Exits non-zero on Gate 3 fail."""
 import json
 from common import cfg, claude_json, read, save, ok, die, RUN
 
-VISUAL_SYSTEM = """You are the Visual Planner Agent for The Money Rule — a faceless finance YouTube channel that must stay monetization-safe and look ORIGINAL (Excalidraw / hand-drawn style).
+VISUAL_SYSTEM = """You are the Visual Planner for The Money Rule (One Rule Board style).
 
-HARD RULES (YouTube reuse / monetization):
-1. Prefer ORIGINAL visuals. Target: at most 30% of shots may be stock_footage.
-2. When the script has numbers, comparisons, timelines, or percentages → visual_type MUST be "chart" and chart_data MUST be filled with the REAL numbers from the script.
-3. When explaining a rule/concept without a clean numeric series → visual_type "card" (plain branded card + on_screen_text). chart_data null.
-4. stock_footage is only for emotional B-roll (person stressed about bills, empty wallet vibe) — never for explaining the rule itself.
-5. Dynamic pacing: 4-7 second shots.
-6. on_screen_text under 6 words. Put the KEY number or phrase on screen.
-7. source_asset_query under 5 words (only used if visual_type is stock_footage).
+GOAL: viewer should SEE the explanation, not just read a wall of text. Prefer hand-drawn / pen-board / chart over stock.
 
-chart_data format when visual_type is "chart":
-  {"type": "bar" or "line", "labels": ["A","B","C"], "values": [10, 25, 40]}
-  Labels and values must match and come from the script numbers.
+HARD RULES:
+1. Max 15% of shots may be stock_footage (emotion only — never the explanation).
+2. Numbers, comparisons, timelines → visual_type "chart" with real script numbers in chart_data.
+3. Concepts / rules / actions → visual_type "card" (pen-board style headline, short on_screen_text).
+4. on_screen_text: max 5 words. The KEY phrase or number only — not a sentence.
+5. section labels: short board headers like RULE, MYTH, MATH, ACTION (not long sentences).
+6. Shot length 5–8 seconds. Fewer, clearer shots beat many noisy ones.
+7. animation_in: prefer "fade_in_up" for calm tone (not aggressive zoom every shot).
+8. source_asset_query only if stock_footage; under 5 words; must match the spoken moment.
 
-JSON FORMAT (Output ONLY this JSON object):
+chart_data when visual_type is chart:
+  {"type": "bar" or "line", "labels": ["A","B"], "values": [10, 25]}
+  Values MUST come from the script.
+
+JSON ONLY:
 {
   "shots": [
     {
       "shot_id": 1,
       "start_sec": 0,
-      "end_sec": 5,
-      "visual_type": "chart",
-      "on_screen_text": "22.76% CARD APR",
-      "highlight": "22.76%",
-      "section": "THE COST",
-      "emphasis": "warning",
-      "chart_data": {"type": "bar", "labels": ["Minimum", "Snowball", "Avalanche"], "values": [48, 36, 29]},
+      "end_sec": 6,
+      "visual_type": "card",
+      "on_screen_text": "ONE RULE",
+      "highlight": "ONE RULE",
+      "section": "BOARD",
+      "emphasis": "neutral",
+      "animation_in": "fade_in_up",
+      "chart_data": null,
       "source_asset_query": null
     }
   ]
 }
-Start your response with {"""
+Start with {"""
 
 
 def generate_plan(spoken, c):
@@ -93,7 +97,7 @@ def main():
     stock = sum(1 for s in shots if str(s.get("visual_type", "")).lower() == "stock_footage")
     chart = sum(1 for s in shots if str(s.get("visual_type", "")).lower() == "chart")
     ratio = stock / len(shots)
-    max_ratio = float(c["pipeline"].get("max_stock_ratio", 0.30))
+    max_ratio = float(c["pipeline"].get("max_stock_ratio", 0.15))
 
     # charts with numbers are original (Excalidraw-style) — good for monetization
     missing_chart_data = [

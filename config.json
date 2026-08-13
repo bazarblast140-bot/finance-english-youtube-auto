@@ -14,12 +14,12 @@
       "financial literacy",
       "the money rule"
     ],
-    "banner_line": "Compound interest · Investing · Debt · Inflation",
+    "banner_line": "Compound interest \u00b7 Investing \u00b7 Debt \u00b7 Inflation",
     "country": "IN",
     "default_language": "en",
     "description": [
       "One rule per video, explained in plain English.",
-      "Compound interest, index funds, debt, inflation, taxes — the mechanics behind money, broken down with real numbers you can check and sources you can look up.",
+      "Compound interest, index funds, debt, inflation, taxes \u2014 the mechanics behind money, broken down with real numbers you can check and sources you can look up.",
       "No hype. No stock tips. No get-rich promises. Just the rule, why it works, and where it stops working.",
       "Everything here is educational content, not financial advice. For your own situation, speak to a qualified professional."
     ]
@@ -32,9 +32,9 @@
     "background_music": false
   },
   "video": {
-    "target_minutes": 5,
+    "target_minutes": 4.5,
     "words_per_minute": 150,
-    "target_word_count": 750,
+    "target_word_count": 650,
     "resolution": "1920x1080",
     "fps": 30
   },
@@ -52,18 +52,18 @@
     "engine": "elevenlabs",
     "voice_id": "tCgAUbeV0tdD1S2yFoCx",
     "model": "eleven_turbo_v2_5",
-    "stability": 0.65,
-    "style": 0.1,
+    "stability": 0.75,
+    "style": 0.05,
     "edge_voice": "en-US-ChristopherNeural",
-    "edge_rate": "+0%",
+    "edge_rate": "-5%",
     "edge_pitch": "+0Hz"
   },
   "pipeline": {
     "auto_publish": true,
     "publish_visibility": "private",
     "stop_on_gate_fail": true,
-    "max_stock_ratio": 0.20,
-    "word_count_tolerance": 0.3
+    "max_stock_ratio": 0.15,
+    "word_count_tolerance": 0.25
   },
   "notify": {
     "channel": "telegram"
