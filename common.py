@@ -73,36 +73,57 @@ def claude(system, user, model=None, max_tokens=16000, retries=3):
         # All current Kimi models (k2.6, k2.7, k3) reject temperature != 1
         # but some return empty content with explicit temperature=1.
         # Safest: omit temperature entirely, let API use its own default.
-        kwargs = dict(model=model, messages=messages, max_tokens=max_tokens)
-        if not model.startswith("kimi-"):
-            kwargs["temperature"] = 0.1
-        # Overload (429) is common on free/shared Kimi capacity — wait longer.
-        effective_retries = max(retries, 6)
+        # Fallback chain when primary model is overloaded (429)
+        fallback_models = []
+        for m in (
+            model,
+            c["models"].get("script_model"),
+            "kimi-k2.7-code-highspeed",
+            "kimi-k2.5",
+            "moonshot-v1-32k",
+            "moonshot-v1-8k",
+        ):
+            if m and m not in fallback_models:
+                fallback_models.append(m)
+
+        effective_retries = max(retries, 8)
         for attempt in range(effective_retries):
+            use_model = fallback_models[min(attempt // 2, len(fallback_models) - 1)]
+            kwargs = dict(model=use_model, messages=messages, max_tokens=max_tokens)
+            if not str(use_model).startswith("kimi-"):
+                kwargs["temperature"] = 0.1
             try:
+                if attempt > 0 and use_model != model:
+                    print(f"[info] Trying fallback model: {use_model}")
                 completion = client.chat.completions.create(**kwargs)
                 content = completion.choices[0].message.content or ""
                 if completion.choices[0].finish_reason == "length":
                     print(f"[warn] Response reached {max_tokens}-token limit; proceeding with generated text.")
                 if not content.strip():
                     finish = completion.choices[0].finish_reason
-                    last = RuntimeError(f"Kimi returned empty content (finish_reason={finish})")
+                    last = RuntimeError(f"Kimi returned empty content (finish_reason={finish}, model={use_model})")
                     if attempt < effective_retries - 1:
-                        wait = min(90, 10 * (2 ** attempt))
-                        print(f"[retry] Kimi returned empty content; retrying in {wait}s")
+                        wait = min(120, 20 * (2 ** min(attempt, 3)))
+                        print(f"[retry] empty content from {use_model}; wait {wait}s")
                         time.sleep(wait)
                         continue
-                    die(f"Kimi returned empty content after {effective_retries} attempts. Check model/base URL or switch provider.")
+                    die(f"Kimi returned empty content after {effective_retries} attempts.")
                 return content
             except (openai.APIStatusError, openai.APIConnectionError) as e:
                 status = getattr(e, "status_code", None)
                 if status is not None and status not in (429, 500, 502, 503, 529):
+                    # model not found → try next fallback without dying
+                    if status in (400, 404) and attempt < effective_retries - 1:
+                        print(f"[warn] model {use_model} rejected ({status}); switching fallback")
+                        last = e
+                        time.sleep(2)
+                        continue
                     die(f"Kimi API error {status}: {e}")
                 last = e
                 if attempt < effective_retries - 1:
-                    # 429 overloaded: 15s, 30s, 60s, 90s, 90s...
-                    wait = min(90, 15 * (2 ** attempt))
-                    print(f"[retry] Kimi call failed ({status or type(e).__name__}); retrying in {wait}s (attempt {attempt+1}/{effective_retries})")
+                    wait = min(120, 20 * (2 ** min(attempt, 3)))  # 20, 40, 80, 120...
+                    print(f"[retry] Kimi {status or type(e).__name__} on {use_model}; wait {wait}s "
+                          f"(attempt {attempt+1}/{effective_retries})")
                     time.sleep(wait)
                 continue
         die(f"Kimi call failed after {effective_retries} attempts: {last}")
