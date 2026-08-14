@@ -1,9 +1,10 @@
 name: Daily Finance Video
 
+# PAUSED — content/visual quality work pending. No daily schedule.
+# Resume: restore the cron below, or run manually via workflow_dispatch.
 on:
-  schedule:
-    # 13:00 UTC = 9:00 AM EST (US Peak) / 2:00 PM GMT (UK) / 6:30 PM IST daily
-    - cron: "0 13 * * *"
+  # schedule:
+  #   - cron: "0 13 * * *"   # paused
   workflow_dispatch: {}
 
 concurrency:
@@ -47,7 +48,6 @@ jobs:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-        # --publish = upload only if final verdict == READY; visibility = private (config)
         run: python run_pipeline.py --publish
 
       - name: Commit topic_bank (prevent topic repeats)
