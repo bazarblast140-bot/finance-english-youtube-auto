@@ -58,6 +58,10 @@ def claude(system, user, model=None, max_tokens=16000, retries=3):
 
     kimi_key = os.environ.get("KIMI_API_KEY")
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
+    deepseek_key = os.environ.get("DEEPSEEK_API_KEY")
+
+    if provider == "deepseek" and not deepseek_key:
+        die("config.json selects DeepSeek, but DEEPSEEK_API_KEY is missing. Add it in GitHub Repository Secrets.")
 
     if provider == "kimi" and not kimi_key:
         die("config.json selects Kimi, but KIMI_API_KEY is missing. Add it in GitHub Repository Secrets.")
@@ -65,7 +69,49 @@ def claude(system, user, model=None, max_tokens=16000, retries=3):
     if provider == "anthropic" and not anthropic_key:
         die("config.json selects Anthropic, but ANTHROPIC_API_KEY is missing. Add it in GitHub Repository Secrets.")
 
-    if provider == "kimi" or (kimi_key and not anthropic_key):
+    # ---- DeepSeek V4 Pro (OpenAI-compatible) ----
+    if provider == "deepseek":
+        base_url = os.environ.get("DEEPSEEK_BASE_URL") or "https://api.deepseek.com"
+        client = openai.OpenAI(api_key=deepseek_key, base_url=base_url, timeout=180)
+        messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
+        # Prefer non-thinking for structured script/JSON speed; can enable via env
+        thinking = os.environ.get("DEEPSEEK_THINKING", "disabled").lower()
+        kwargs = dict(
+            model=model or "deepseek-v4-pro",
+            messages=messages,
+            max_tokens=max_tokens,
+        )
+        # DeepSeek V4 supports optional thinking mode via extra body on some SDKs;
+        # keep request simple OpenAI-compatible for reliability.
+        last = None
+        effective_retries = max(retries, 5)
+        for attempt in range(effective_retries):
+            try:
+                completion = client.chat.completions.create(**kwargs)
+                content = completion.choices[0].message.content or ""
+                if not content.strip():
+                    last = RuntimeError("DeepSeek returned empty content")
+                    if attempt < effective_retries - 1:
+                        wait = min(60, 10 * (2 ** attempt))
+                        print(f"[retry] DeepSeek empty; wait {wait}s")
+                        time.sleep(wait)
+                        continue
+                    die(str(last))
+                return content
+            except (openai.APIStatusError, openai.APIConnectionError) as e:
+                status = getattr(e, "status_code", None)
+                if status is not None and status not in (429, 500, 502, 503, 529):
+                    die(f"DeepSeek API error {status}: {e}")
+                last = e
+                if attempt < effective_retries - 1:
+                    wait = min(90, 15 * (2 ** attempt))
+                    print(f"[retry] DeepSeek {status or type(e).__name__}; wait {wait}s "
+                          f"({attempt+1}/{effective_retries})")
+                    time.sleep(wait)
+                continue
+        die(f"DeepSeek call failed after {effective_retries} attempts: {last}")
+
+    if provider == "kimi" or (kimi_key and not anthropic_key and provider != "deepseek"):
         base_url = os.environ.get("KIMI_BASE_URL") or "https://api.moonshot.ai/v1"
         client = openai.OpenAI(api_key=kimi_key, base_url=base_url, timeout=120)
         messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
