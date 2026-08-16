@@ -57,7 +57,7 @@
     },
     {
       "id": 30,
-      "used": false,
+      "used": true,
       "topic": "The 1% Asset Rebalancing Rule: Maintaining portfolio risk"
     }
   ]
