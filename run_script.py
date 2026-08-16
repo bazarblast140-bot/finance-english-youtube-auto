@@ -46,13 +46,14 @@ FACT LEDGER:
 <- each figure → source>
 
 HARD RULES:
-1. YMYL: every specific number needs [SOURCE: ...] in body AND FACT LEDGER.
-2. TTS-safe: write "eight percent" not "8%"; no emojis, no #/& inside spoken lines.
-3. Spoken length: 550–750 words total (about 4–5 minutes). Dense, not padded.
-4. Forbidden filler: "in this video", "without further ado", "let's dive in", "game changer", "in today's video", "so basically".
-5. Narrator = calm teacher (like a lab expert explaining), not hype. Short sentences. One idea per sentence.
-6. Prefer one vivid example over three vague tips.
-7. Write so each segment can be a clean icon or chart beat — avoid long abstract paragraphs.
+1. YMYL: put at least THREE [SOURCE: ...] tags in the BODY (not only in FACT LEDGER). Example: [SOURCE: Federal Reserve 2024].
+2. FACT LEDGER must list every figure with its source line.
+3. Must include sections exactly named: CTA:  and  DISCLAIMER LINE:  and  FACT LEDGER:
+4. TTS-safe: write "eight percent" not "8%"; no emojis, no #/& inside spoken lines.
+5. Spoken length: 550–750 words total (about 4–5 minutes). Dense, not padded.
+6. Forbidden filler: "in this video", "without further ado", "let's dive in", "game changer", "in today's video", "so basically".
+7. Narrator = calm teacher (lab expert), not hype. Short sentences. One idea per sentence.
+8. Prefer one vivid example over three vague tips.
 
 Output plain text only — no markdown fences."""
 
@@ -116,6 +117,12 @@ def main():
     prompt = f"""<task>Write a One Rule Board script: one rule, clear mechanism, one action. Explain — do not pad.</task>
 <context>Channel: The Money Rule. Audience US/UK/CA/AU beginners. Target ~{mins} min ({wc} spoken words ±25%). Calm teacher voice. TTS-clean. No filler phrases.</context>
 <topic>{topic}</topic>
+<must_include>
+- At least 3 separate [SOURCE: ...] tags inside the spoken BODY
+- Sections: CTA: / DISCLAIMER LINE: / FACT LEDGER:
+- At least 3 [SEGMENT n: ...] blocks
+- Spoken body at least {int(wc*0.75)} words before FACT LEDGER
+</must_include>
 <output_format>TITLE / HOOK (0-12 sec) / BODY with [SEGMENT 1-5] as defined in system / CTA / DISCLAIMER LINE / FACT LEDGER</output_format>"""
 
     last_fails = []
@@ -123,12 +130,12 @@ def main():
     max_tok = c["models"].get("script_max_tokens", 4000)
     print(f"[info] Script Agent: model={model}, max_tokens={max_tok}, topic='{topic}'")
 
-    for attempt in range(2):  # max 2 attempts (was 3)
+    for attempt in range(3):  # max 3 attempts
         user = prompt
         if last_fails:
             user += f"\n\n<previous_attempt_issues>\nThe previous script was rejected by automated checks due to these structural issues:\n- " + "\n- ".join(last_fails) + "\n\nYou MUST fix every listed issue in this rewrite.\n</previous_attempt_issues>"
 
-        print(f"[info] Attempt {attempt+1}/2: calling LLM...")
+        print(f"[info] Attempt {attempt+1}/3: calling LLM...")
         script = claude(SCRIPT_SYSTEM, user, model=model, max_tokens=max_tok)
         save("script.txt", script)
         print(f"[info] Script generated: {len(script)} chars, ~{len(script.split())} words")
@@ -140,11 +147,11 @@ def main():
             return
 
         last_fails = fails
-        print(f"[retry] Gate 1 local check attempt {attempt+1}/2 failed: {fails}")
+        print(f"[retry] Gate 1 local check attempt {attempt+1}/3 failed: {fails}")
 
     # All attempts exhausted — STOP the pipeline (don't waste credits downstream)
     save("gate1_report.txt", "\n".join(last_fails))
-    die(f"GATE 1 FAILED after 2 attempts. Issues: {last_fails}")
+    die(f"GATE 1 FAILED after 3 attempts. Issues: {last_fails}")
 
 if __name__ == "__main__":
     main()
