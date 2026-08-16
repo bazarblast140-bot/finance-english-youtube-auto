@@ -430,22 +430,11 @@ def render_shot(idx, shot, dur, fps, overlay, backdrop, still, chrome=None):
               f"crop={W}:{H},fps={fps},setsar=1[bg]")
 
     # ---- Dynamic animation logic ----
-    anim = shot.get("animation_in", "zoom_in")
-    tx_chain = f"[1:v]format=rgba,fade=t=in:st=0:d={FADE_IN}:alpha=1"
-    overlay_chain = ""
-
-    if anim == "fade_in_up":
-        y_pos = f"'(H-h)/2 - 100*(1-min(1,t/{FADE_IN}))'"
-        tx_chain += "[tx]"
-        overlay_chain = f"[bg][tx]overlay=x='(W-w)/2':y={y_pos}:format=auto[s1]"
-    elif anim == "slide_from_left":
-        x_pos = f"'-w+(w+(W-w)/2)*min(1,t/{FADE_IN}*1.2)'"
-        tx_chain += "[tx]"
-        overlay_chain = f"[bg][tx]overlay=x={x_pos}:y='(H-h)/2':format=auto[s1]"
-    else:  # Default to "zoom_in"
-        zoom = f"trunc({W}*min(1\\,0.90+0.10*t/{POP_IN})/2)*2"
-        tx_chain += f",scale=w='{zoom}':h=-2:eval=frame[tx]"
-        overlay_chain = f"[bg][tx]overlay=x='(W-w)/2':y='(H-h)/2':format=auto[s1]"
+    # Host is painted ON the overlay — never y-shift or zoom the overlay
+    # (old fade_in_up used y=-100 which clipped the character head).
+    anim = shot.get("animation_in", "fade_in")
+    tx_chain = f"[1:v]format=rgba,fade=t=in:st=0:d={FADE_IN}:alpha=1[tx]"
+    overlay_chain = "[bg][tx]overlay=x=0:y=0:format=auto[s1]"
 
     parts = [bg, tx_chain, overlay_chain]
     last = "s1"
