@@ -161,12 +161,15 @@ def build_overlay(shot, idx, total, path, mode):
             # Allow explicit override from visual plan
             if shot.get("pose"):
                 pose = str(shot.get("pose")).lower().strip()
-            # Keep full head visible: max 62% of frame height, feet near bottom
-            host_h = int(H * 0.62)
+            # Full head always visible — stay well inside frame
+            host_h = int(H * 0.52)  # ~560px on 1080p
             host = sketch.load_host_pose(pose, height=host_h)
-            hx = int(W * 0.02)
-            # bottom margin ~4%; never let top of head go above y=40
-            hy = max(40, H - host.height - int(H * 0.04))
+            hx = int(W * 0.03)
+            # feet near bottom, head has >= 90px clearance from top edge
+            hy = max(90, H - host.height - int(H * 0.05))
+            # safety: if still would clip top, shrink further
+            if hy < 90:
+                hy = 90
             layer.alpha_composite(host, (hx, hy))
             host_w = host.width + hx
         except Exception as e:
@@ -182,7 +185,7 @@ def build_overlay(shot, idx, total, path, mode):
                 icon_img = Image.open(icon_path).convert("RGBA")
             else:
                 icon_img = sketch.draw_icon(icon_name, 200)
-            icon_size = 160
+            icon_size = 280
             icon_img = icon_img.resize((icon_size, icon_size), Image.Resampling.LANCZOS)
             # place upper-right of content area
             icon_x = host_w + int((W - host_w - icon_size) / 2) if host_w else (W - icon_size) // 2
@@ -240,6 +243,29 @@ def build_overlay(shot, idx, total, path, mode):
                 span = line[hl_pos:hl_pos + len(hl)]
                 d.text((lx + d.textlength(line[:hl_pos], font=f), y), span, font=f,
                        fill=sketch.PAPER)
+
+
+        # Supporting line under headline (fills empty board)
+        sub = str(shot.get("sub_text") or "").strip()
+        if sub and sub.lower() != "null" and mode == "card":
+            sf = _font(42)
+            words = sub.split()
+            slines, cur = [], ""
+            for w in words:
+                trial = (cur + " " + w).strip()
+                if d.textlength(trial, font=sf) <= content_w * 0.92:
+                    cur = trial
+                else:
+                    if cur: slines.append(cur)
+                    cur = w
+            if cur: slines.append(cur)
+            sy = y0 + len(lines) * line_h + 18
+            for sl in slines[:2]:
+                stw = d.textlength(sl, font=sf)
+                sx = content_left + max(0, (content_w - stw) / 2)
+                cool = getattr(sketch, "COOL", (80, 90, 110))
+                d.text((sx, sy), sl, font=sf, fill=cool if isinstance(cool, tuple) else (80, 90, 110))
+                sy += 50
 
     layer.save(path)
     return path

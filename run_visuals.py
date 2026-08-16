@@ -17,7 +17,8 @@ HARD RULES:
 2. Numbers, comparisons, timelines → visual_type "chart" with chart_data.
    chart_data MUST have 2–5 labels/values (never a single bar). Compare two things when possible.
 3. Concepts / rules / traps / actions → visual_type "card" with short on_screen_text + icon.
-4. on_screen_text: max 4 words. Prefer NUMBER or trap name ("$4,334", "THE CAR TRAP").
+4. on_screen_text: max 5 words. Prefer NUMBER or trap/rule name. NEVER vague alone ("SEEMS LIKE NOTHING") — pair with number/noun.
+   Optional sub_text (3-8 words) under headline. BAN empty boards: every card = icon + headline (+ sub_text preferred).
 5. Every card shot MUST include "icon": one of car, cash, calendar, loan, loop, arrow_down, arrow_up, money, debt, savings.
 6. section labels: TRAP, RULE, MATH, LOOP, ACTION (short).
 7. Shot length 5–8 seconds. animation_in: "fade_in_up".
