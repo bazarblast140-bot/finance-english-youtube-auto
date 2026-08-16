@@ -52,13 +52,13 @@
     "visual_max_tokens": 16000
   },
   "voice": {
-    "engine": "elevenlabs",
+    "engine": "edge",
     "voice_id": "tCgAUbeV0tdD1S2yFoCx",
     "model": "eleven_turbo_v2_5",
     "stability": 0.75,
     "style": 0.05,
-    "edge_voice": "en-US-ChristopherNeural",
-    "edge_rate": "-5%",
+    "edge_voice": "hi-IN-MadhurNeural",
+    "edge_rate": "+0%",
     "edge_pitch": "+0Hz"
   },
   "pipeline": {
