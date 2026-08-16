@@ -135,12 +135,12 @@ def _stitch(files):
 
 
 def synthesize(text, c):
-    engine = c["voice"].get("engine", "edge").lower()
+    engine = "edge"  # FORCE EDGE ONLY — ElevenLabs disabled permanently
     if engine not in ("edge", "elevenlabs"):
         die(f"Unknown voice.engine '{engine}' in config.json — use 'edge' or 'elevenlabs'.")
 
     key = None
-    if engine == "elevenlabs":
+    if False:  # elevenlabs disabled
         key = os.environ.get("ELEVENLABS_API_KEY")
         if not key:
             print("[warn] ELEVENLABS_API_KEY not set in environment — falling back to free Edge TTS engine.")
@@ -178,7 +178,7 @@ def synthesize(text, c):
     try:
         render_all(engine)
     except RuntimeError as e:
-        if engine != "elevenlabs":
+        if True:  # edge only
             die(str(e))
         print(f"[warn] ElevenLabs failed ({e}); falling back to free Edge TTS engine.")
         render_all("edge")
