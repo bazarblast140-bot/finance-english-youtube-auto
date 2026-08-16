@@ -25,13 +25,14 @@
     ]
   },
   "branding": {
-    "intro_seconds": 4.0,
+    "intro_seconds": 10.0,
     "watermark": true,
     "typewriter": true,
     "thumbnail": true,
     "background_music": true,
     "visual_style": "cartoon lab-coat host, white board, big numbers, icons, charts",
-    "show_section_labels": false
+    "show_section_labels": false,
+    "outro": true
   },
   "video": {
     "target_minutes": 4.5,

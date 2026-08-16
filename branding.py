@@ -134,16 +134,38 @@ def _intro_frame(i, total, name, tagline, fps):
     return img
 
 
+def _reencode_brand_clip(src, dest, fps, x264_args, max_seconds=None):
+    """Normalize brand video to match shot encode (concat -c copy safe)."""
+    import subprocess
+    vf = f"scale={W}:{H}:force_original_aspect_ratio=decrease,pad={W}:{H}:(ow-iw)/2:(oh-ih)/2,fps={fps},setsar=1"
+    cmd = ["ffmpeg", "-y", "-i", str(src)]
+    if max_seconds:
+        cmd += ["-t", str(max_seconds)]
+    cmd += ["-vf", vf, "-an", "-r", str(fps), "-fps_mode", "cfr", *x264_args, str(dest)]
+    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    return dest
+
+
 def intro_clip(cfg_dict, fps, x264_args, force=False):
-    """Render (or reuse) the permanent intro. Returns a Path, or None if disabled.
+    """Permanent intro. Prefers assets/brand/intro.mp4 (pro pack), else PIL typewriter.
 
     x264_args must match the shot clips exactly — the clips are joined with
     `concat -c copy`, which refuses streams whose encoder parameters differ.
     """
     brand = cfg_dict.get("branding", {})
     seconds = float(brand.get("intro_seconds", 0) or 0)
-    if seconds <= 0:
+    if seconds <= 0 and not (ASSETS / "brand" / "intro.mp4").exists():
         return None
+
+    # --- Pro brand pack (user-supplied) ---
+    pack = ASSETS / "brand" / "intro.mp4"
+    if pack.exists():
+        dest = ASSETS / "brand" / "intro_norm.mp4"
+        if force or not dest.exists() or dest.stat().st_mtime < pack.stat().st_mtime:
+            # keep natural length of pro intro (usually ~8–12s)
+            _reencode_brand_clip(pack, dest, fps, x264_args)
+            ok(f"brand intro normalized -> {dest.name}")
+        return dest
 
     name = str(cfg_dict["channel"].get("name", "")).strip()
     tagline = str(cfg_dict["channel"].get("tagline", "")).strip()
@@ -184,6 +206,19 @@ def intro_clip(cfg_dict, fps, x264_args, force=False):
 # there and everything else is decoration that is allowed to be cropped away.
 BANNER_W, BANNER_H = 2560, 1440
 SAFE_W, SAFE_H = 1546, 423
+
+
+def outro_clip(cfg_dict, fps, x264_args, force=False):
+    """Optional end card from assets/brand/outro.mp4."""
+    pack = ASSETS / "brand" / "outro.mp4"
+    if not pack.exists():
+        return None
+    dest = ASSETS / "brand" / "outro_norm.mp4"
+    if force or not dest.exists() or dest.stat().st_mtime < pack.stat().st_mtime:
+        _reencode_brand_clip(pack, dest, fps, x264_args)
+        ok(f"brand outro normalized -> {dest.name}")
+    return dest
+
 
 
 def banner(cfg_dict, path):

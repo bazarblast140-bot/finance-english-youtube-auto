@@ -513,6 +513,13 @@ def main():
         print(f"  [{i+1}/{len(shots)}] {dur:4.1f}s  {mode:<7} "
               f"{str(shot.get('on_screen_text'))[:44]}")
 
+    # permanent outro (brand pack)
+    outro = branding.outro_clip(c, fps, X264)
+    if outro:
+        shutil.copyfile(outro, RUN / "outro.mp4")
+        clips.append("outro.mp4")
+        ok(f"outro {_seconds(outro):.1f}s appended")
+
     (RUN / "clips.txt").write_text("\n".join(f"file '{c_}'" for c_ in clips), encoding="utf-8")
     (RUN / "subs.ass").write_text(ASS_HEADER + "\n".join(events) + "\n", encoding="utf-8")
     ok(f"built {len(clips)} clips + {len(events)} caption cues")
