@@ -548,8 +548,7 @@ def main():
               "-filter_complex",
               # mix voice (1.0) with music (0.12), stop when voice ends
               "[0:a]volume=1.0[v];[1:a]volume=0.12[m];[v][m]amix=inputs=2:duration=first:dropout_transition=2[a]",
-              "-map", "[a]", "-c:a", "aac", "-b:a", "192k", "-shortest", final_audio],
-             cwd=RUN)
+              "-map", "[a]", "-c:a", "aac", "-b:a", "192k", "-shortest", final_audio])
     else:
         if use_music and not music_file.exists():
             print("[skip] background music: assets/music.mp3 not found")
