@@ -14,17 +14,19 @@ TARGET LOOK (Wealth Logic style):
 
 HARD RULES:
 1. Max 8% of shots may be stock_footage (emotion only — never the explanation). Prefer zero stock.
-2. Numbers, comparisons, timelines → visual_type "chart" with real script numbers in chart_data.
-3. Concepts / rules / traps / actions → visual_type "card" with short on_screen_text (key phrase or $ number).
-4. on_screen_text: max 5 words. Prefer a NUMBER or trap name ("$4,334", "THE CAR TRAP").
-5. section labels: TRAP, RULE, MATH, LOOP, ACTION (short).
-6. Shot length 5–8 seconds. Calm animation_in: "fade_in_up".
-7. First shot should be a TITLE CARD style card when the script names a trap/rule.
-8. source_asset_query only if stock_footage; under 5 words.
+2. Numbers, comparisons, timelines → visual_type "chart" with chart_data.
+   chart_data MUST have 2–5 labels/values (never a single bar). Compare two things when possible.
+3. Concepts / rules / traps / actions → visual_type "card" with short on_screen_text + icon.
+4. on_screen_text: max 4 words. Prefer NUMBER or trap name ("$4,334", "THE CAR TRAP").
+5. Every card shot MUST include "icon": one of car, cash, calendar, loan, loop, arrow_down, arrow_up, money, debt, savings.
+6. section labels: TRAP, RULE, MATH, LOOP, ACTION (short).
+7. Shot length 5–8 seconds. animation_in: "fade_in_up".
+8. First shot = TITLE CARD card when the script names a trap/rule.
+9. source_asset_query only if stock_footage; under 5 words.
 
 chart_data when visual_type is chart:
-  {"type": "bar" or "line", "labels": ["A","B"], "values": [10, 25]}
-  Values MUST come from the script.
+  {"type": "bar" or "line", "labels": ["Cash","Stocks"], "values": [24, 4]}
+  At least 2 values. Values MUST come from the script.
 
 JSON ONLY:
 {
@@ -37,6 +39,7 @@ JSON ONLY:
       "on_screen_text": "THE CAR TRAP",
       "highlight": "TRAP",
       "section": "TRAP",
+      "icon": "car",
       "emphasis": "neutral",
       "animation_in": "fade_in_up",
       "chart_data": null,

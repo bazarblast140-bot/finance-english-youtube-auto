@@ -92,14 +92,13 @@ def rough_arrow(d, p1, p2, color, width=6, seed=0, head=26):
 
 
 def chart_png(chart, path, size=(1920, 1080)):
-    """Hand-drawn chart via matplotlib's xkcd mode — the Excalidraw look, but
-    plotting the script's real numbers. Returns False if the data is unusable."""
+    """Hand-drawn chart via matplotlib xkcd — light board, multi-bar preferred."""
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    labels = chart.get("labels") or []
-    values = chart.get("values") or []
+    labels = list(chart.get("labels") or [])
+    values = list(chart.get("values") or [])
     if not labels or not values or len(labels) != len(values):
         return False
     try:
@@ -107,41 +106,137 @@ def chart_png(chart, path, size=(1920, 1080)):
     except (TypeError, ValueError):
         return False
 
-    ink = "#ECECEC"
+    # Single-bar charts look empty — expand to a simple before/after style pair
+    if len(values) == 1:
+        labels = [str(labels[0])[:18], "context"]
+        values = [values[0], max(values[0] * 0.35, 1.0)]
+
+    ink = "#1C1C20"
     accent = "#F5C542"
+    accent2 = "#DC3C32"
+    paper = "#FAFAFC"
     w, h = size
-    with plt.xkcd(scale=1.1, length=110, randomness=2):
+    colors = [accent if i % 2 == 0 else accent2 for i in range(len(values))]
+    if len(values) >= 3:
+        colors = [accent, "#2880C8", accent2][:len(values)]
+        while len(colors) < len(values):
+            colors.append(accent)
+
+    with plt.xkcd(scale=1.0, length=100, randomness=2):
         fig, ax = plt.subplots(figsize=(w / 100, h / 100), dpi=100)
-        fig.patch.set_facecolor("#101319")
-        # xkcd mode draws a sketchy dashed frame around the figure — kill it
+        fig.patch.set_facecolor(paper)
         fig.patch.set_linewidth(0)
-        fig.patch.set_edgecolor("#101319")
-        ax.set_facecolor("#101319")
-        ax.patch.set_edgecolor("none")
+        ax.set_facecolor(paper)
 
         kind = str(chart.get("type", "bar")).lower()
         if kind == "line":
             ax.plot(range(len(values)), values, color=accent, linewidth=4, marker="o",
-                    markersize=12, markerfacecolor=accent, markeredgecolor=accent)
+                    markersize=12, markerfacecolor=accent, markeredgecolor=ink)
         else:
-            ax.bar(range(len(values)), values, color=accent, width=0.55)
+            ax.bar(range(len(values)), values, color=colors[:len(values)], width=0.55,
+                   edgecolor=ink, linewidth=1.5)
 
         for i, v in enumerate(values):
-            ax.annotate(f"{v:g}", (i, v), textcoords="offset points", xytext=(0, 14),
-                        ha="center", color=ink, fontsize=22)
+            ax.annotate(f"{v:g}", (i, v), textcoords="offset points", xytext=(0, 12),
+                        ha="center", color=ink, fontsize=22, fontweight="bold")
 
         ax.set_xticks(range(len(labels)))
-        ax.set_xticklabels(labels, color=ink, fontsize=22)
-        ax.tick_params(colors=ink, labelsize=20)
+        ax.set_xticklabels([str(x)[:16] for x in labels], color=ink, fontsize=20)
+        ax.tick_params(colors=ink, labelsize=18)
         for spine in ("top", "right"):
             ax.spines[spine].set_visible(False)
-            ax.spines[spine].set_color("none")
         for spine in ("bottom", "left"):
             ax.spines[spine].set_color(ink)
-            ax.spines[spine].set_linewidth(2.5)
-        ax.set_ylim(0, max(values) * 1.28)
-        # clear of the title band above and the caption zone below
-        fig.subplots_adjust(left=0.10, right=0.95, top=0.72, bottom=0.34)
-        fig.savefig(path, facecolor="#101319")
+            ax.spines[spine].set_linewidth(2.0)
+        ax.set_ylim(0, max(values) * 1.32 if max(values) > 0 else 1)
+        fig.subplots_adjust(left=0.10, right=0.95, top=0.70, bottom=0.32)
+        fig.savefig(path, facecolor=paper)
         plt.close(fig)
     return True
+
+
+def draw_host(size=520):
+    """Simple consistent lab-coat host (Wealth-Logic energy), RGBA."""
+    from PIL import Image, ImageDraw
+    s = size
+    img = Image.new("RGBA", (s, int(s * 1.35)), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    # scale helpers
+    def xy(a, b):
+        return (int(a * s), int(b * s))
+
+    # head
+    d.ellipse([xy(0.28, 0.02), xy(0.72, 0.38)], fill=(255, 214, 186, 255), outline=(30, 30, 34, 255), width=4)
+    # hair
+    d.ellipse([xy(0.28, 0.02), xy(0.72, 0.22)], fill=(30, 30, 34, 255))
+    d.rectangle([xy(0.28, 0.14), xy(0.72, 0.22)], fill=(255, 214, 186, 255))
+    # eyes
+    d.ellipse([xy(0.40, 0.16), xy(0.46, 0.21)], fill=(30, 30, 34, 255))
+    d.ellipse([xy(0.54, 0.16), xy(0.60, 0.21)], fill=(30, 30, 34, 255))
+    # smile
+    d.arc([xy(0.40, 0.20), xy(0.60, 0.32)], 20, 160, fill=(30, 30, 34, 255), width=3)
+    # neck
+    d.rectangle([xy(0.44, 0.36), xy(0.56, 0.44)], fill=(255, 214, 186, 255))
+    # lab coat body
+    d.polygon([
+        xy(0.18, 0.44), xy(0.82, 0.44), xy(0.90, 1.20), xy(0.10, 1.20)
+    ], fill=(250, 250, 252, 255), outline=(30, 30, 34, 255))
+    # coat outline
+    d.line([xy(0.18, 0.44), xy(0.10, 1.20)], fill=(30, 30, 34, 255), width=4)
+    d.line([xy(0.82, 0.44), xy(0.90, 1.20)], fill=(30, 30, 34, 255), width=4)
+    # tie
+    d.polygon([xy(0.48, 0.44), xy(0.52, 0.44), xy(0.54, 0.70), xy(0.50, 0.74), xy(0.46, 0.70)],
+              fill=(30, 30, 34, 255))
+    # coat buttons
+    for by in (0.58, 0.70, 0.82):
+        d.ellipse([xy(0.48, by), xy(0.52, by + 0.04)], fill=(30, 30, 34, 255))
+    # pointing arm (right)
+    d.line([xy(0.78, 0.55), xy(1.05, 0.48)], fill=(255, 214, 186, 255), width=18)
+    d.ellipse([xy(1.00, 0.44), xy(1.10, 0.54)], fill=(255, 214, 186, 255), outline=(30, 30, 34, 255), width=3)
+    # left arm
+    d.line([xy(0.22, 0.55), xy(0.08, 0.75)], fill=(255, 214, 186, 255), width=16)
+    return img
+
+
+def draw_icon(name, size=200):
+    """Minimal flat icons when asset PNG missing."""
+    from PIL import Image, ImageDraw
+    name = (name or "").lower().strip()
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    ink = (28, 28, 32, 255)
+    accent = (245, 197, 66, 255)
+    red = (220, 60, 50, 255)
+    m = size * 0.1
+    if name in ("car", "vehicle"):
+        d.rounded_rectangle([m, size*0.4, size-m, size*0.7], radius=12, fill=red, outline=ink, width=3)
+        d.ellipse([size*0.2, size*0.62, size*0.38, size*0.8], fill=ink)
+        d.ellipse([size*0.62, size*0.62, size*0.8, size*0.8], fill=ink)
+    elif name in ("cash", "money", "savings"):
+        d.rounded_rectangle([m, m*2, size-m, size-m*2], radius=10, fill=(86, 211, 140, 255), outline=ink, width=3)
+        d.ellipse([size*0.35, size*0.35, size*0.65, size*0.65], outline=ink, width=4)
+    elif name in ("calendar", "month", "time"):
+        d.rounded_rectangle([m, m*2, size-m, size-m], radius=10, fill=(250, 250, 252, 255), outline=ink, width=3)
+        d.rectangle([m, m*2, size-m, size*0.35], fill=red)
+        d.text((size*0.35, size*0.5), "31", fill=ink)
+    elif name in ("loan", "paper", "debt"):
+        d.rounded_rectangle([m*1.5, m, size-m*1.5, size-m], radius=6, fill=(250, 250, 252, 255), outline=ink, width=3)
+        for i in range(4):
+            y = size*0.35 + i * size*0.12
+            d.line([size*0.28, y, size*0.72, y], fill=ink, width=3)
+    elif name in ("loop", "cycle", "again"):
+        d.arc([m, m, size-m, size-m], 30, 300, fill=ink, width=10)
+        d.polygon([size*0.75, size*0.2, size*0.95, size*0.35, size*0.7, size*0.4], fill=ink)
+    elif name in ("arrow_down", "down", "loss"):
+        d.polygon([size*0.45, m, size*0.55, m, size*0.55, size*0.55,
+                   size*0.75, size*0.55, size*0.5, size*0.9, size*0.25, size*0.55,
+                   size*0.45, size*0.55], fill=red, outline=ink)
+    elif name in ("arrow_up", "up", "gain"):
+        d.polygon([size*0.5, m, size*0.75, size*0.45, size*0.55, size*0.45,
+                   size*0.55, size*0.9, size*0.45, size*0.9, size*0.45, size*0.45,
+                   size*0.25, size*0.45], fill=(34, 160, 90, 255), outline=ink)
+    else:
+        # default: amber circle badge
+        d.ellipse([m, m, size-m, size-m], fill=accent, outline=ink, width=4)
+    return img
+

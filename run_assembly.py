@@ -140,25 +140,40 @@ def build_overlay(shot, idx, total, path, mode):
     emphasis = str(shot.get("emphasis", "neutral")).lower()
     accent = EMPHASIS.get(emphasis, sketch.COOL)
 
-    # ---- Icon drawing ----
+    # ---- Host character (card scenes) + icon ----
+    # Wealth-Logic layout: host on left, message/icon on right
+    host_w = 0
+    if mode == "card":
+        try:
+            host = sketch.draw_host(480)
+            host_h = int(H * 0.72)
+            host = host.resize((int(host.width * host_h / host.height), host_h),
+                               Image.Resampling.LANCZOS)
+            hx = int(W * 0.04)
+            hy = H - host.height - int(H * 0.08)
+            layer.alpha_composite(host, (hx, hy))
+            host_w = host.width + hx
+        except Exception:
+            host_w = 0
+
     icon_name = shot.get("icon")
     icon_y_offset = 0
     if icon_name and mode != "chart":
-        icon_path = ICONS_DIR / f"{icon_name}.png"
-        if icon_path.exists():
-            try:
-                with Image.open(icon_path).convert("RGBA") as icon_base:
-                    icon_size = 140
-                    icon_img = icon_base.resize((icon_size, icon_size), Image.Resampling.LANCZOS)
-                    # Tint the icon with the accent color
-                    tint_layer = Image.new("RGBA", icon_img.size, accent + (255,))
-                    icon_img = Image.composite(tint_layer, Image.new("RGBA", icon_img.size), icon_img)
-                    icon_x = (W - icon_size) // 2
-                    icon_y = int(H * 0.20)
-                    layer.alpha_composite(icon_img, (icon_x, icon_y))
-                    icon_y_offset = icon_size + 20  # Space between icon and headline
-            except Exception:
-                pass  # Ignore if icon fails to load/process
+        try:
+            icon_path = ICONS_DIR / f"{icon_name}.png"
+            if icon_path.exists():
+                icon_img = Image.open(icon_path).convert("RGBA")
+            else:
+                icon_img = sketch.draw_icon(icon_name, 200)
+            icon_size = 160
+            icon_img = icon_img.resize((icon_size, icon_size), Image.Resampling.LANCZOS)
+            # place upper-right of content area
+            icon_x = host_w + int((W - host_w - icon_size) / 2) if host_w else (W - icon_size) // 2
+            icon_y = int(H * 0.18)
+            layer.alpha_composite(icon_img, (icon_x, icon_y))
+            icon_y_offset = icon_size + 16
+        except Exception:
+            pass
 
     headline = str(shot.get("on_screen_text") or "").strip()
     if headline.lower() == "null":
@@ -168,10 +183,11 @@ def build_overlay(shot, idx, total, path, mode):
         if mode == "chart":
             box_top, box_bottom, hi, lo = int(H * 0.145), int(H * 0.265), 82, 40
         else:
-            box_top_start = int(H * 0.20) + icon_y_offset if icon_y_offset else int(H * 0.17)
-            box_bottom, hi, lo = int(H * 0.64), 280, 54
+            box_top_start = int(H * 0.18) + icon_y_offset if icon_y_offset else int(H * 0.22)
+            box_bottom, hi, lo = int(H * 0.62), 220, 48
             box_top = box_top_start
-        f, lines, line_h = _fit(d, headline, W - 2 * SIDE, box_bottom - box_top, hi, lo)
+        fit_w = (W - host_w - 2 * SIDE) if host_w else (W - 2 * SIDE)
+        f, lines, line_h = _fit(d, headline, fit_w, box_bottom - box_top, hi, lo)
         y0 = box_top + ((box_bottom - box_top) - len(lines) * line_h) / 2
 
         # locate the highlighted span with real glyph metrics — line_h fractions
@@ -194,8 +210,12 @@ def build_overlay(shot, idx, total, path, mode):
                                                           seed=idx * 13 + 5))
             d = ImageDraw.Draw(layer)
 
+        # Keep text in the right content zone when host stands on the left
+        content_left = host_w + 20 if host_w else 0
+        content_w = W - content_left - SIDE
         for i, line in enumerate(lines):
-            lx = (W - d.textlength(line, font=f)) / 2
+            tw = d.textlength(line, font=f)
+            lx = content_left + max(0, (content_w - tw) / 2)
             y = y0 + i * line_h
             d.text((lx, y), line, font=f, fill=sketch.INK)
             if i == hl_i:
