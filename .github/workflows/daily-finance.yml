@@ -1,10 +1,9 @@
 name: Daily Finance Video
 
-# PAUSED — content/visual quality work pending. No daily schedule.
-# Resume: restore the cron below, or run manually via workflow_dispatch.
+# Daily 1 video — 08:30 IST (03:00 UTC)
 on:
-  # schedule:
-  #   - cron: "0 13 * * *"   # paused
+  schedule:
+    - cron: "0 3 * * *"
   workflow_dispatch: {}
 
 concurrency:
