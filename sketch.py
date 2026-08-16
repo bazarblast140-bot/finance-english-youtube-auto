@@ -219,6 +219,42 @@ def draw_host(size=520):
     return img
 
 
+
+def load_host_pose(pose="neutral", height=720):
+    """Load character PNG from assets/character/, else draw_host fallback.
+
+    pose: neutral | point | point_up | think | warn | ok
+    """
+    from pathlib import Path
+    from PIL import Image
+    root = Path(__file__).resolve().parent
+    name = {
+        "neutral": "neutral.png",
+        "point": "point.png",
+        "point_up": "point_up.png",
+        "think": "think.png",
+        "warn": "warn.png",
+        "warning": "warn.png",
+        "ok": "ok.png",
+        "positive": "ok.png",
+    }.get(str(pose).lower().strip(), "neutral.png")
+    path = root / "assets" / "character" / name
+    # fallback chain
+    for candidate in (path, root / "assets" / "character" / "neutral.png", root / "assets" / "character" / "point.png"):
+        if candidate.exists():
+            img = Image.open(candidate).convert("RGBA")
+            if height and img.height != height:
+                w = int(img.width * height / img.height)
+                img = img.resize((w, height), Image.Resampling.LANCZOS)
+            return img
+    # procedural fallback
+    host = draw_host(int(height * 0.72))
+    if host.height != height:
+        w = int(host.width * height / host.height)
+        host = host.resize((w, height), Image.Resampling.LANCZOS)
+    return host
+
+
 def draw_icon(name, size=200):
     """Minimal flat icons when asset PNG missing."""
     from PIL import Image, ImageDraw

@@ -40,6 +40,7 @@ JSON ONLY:
       "highlight": "TRAP",
       "section": "TRAP",
       "icon": "car",
+      "pose": "point",
       "emphasis": "neutral",
       "animation_in": "fade_in_up",
       "chart_data": null,

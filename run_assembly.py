@@ -145,15 +145,30 @@ def build_overlay(shot, idx, total, path, mode):
     host_w = 0
     if mode == "card":
         try:
-            host = sketch.draw_host(480)
-            host_h = int(H * 0.72)
-            host = host.resize((int(host.width * host_h / host.height), host_h),
-                               Image.Resampling.LANCZOS)
-            hx = int(W * 0.04)
-            hy = H - host.height - int(H * 0.08)
+            # Map emphasis → character pose
+            emp = str(shot.get("emphasis", "neutral")).lower()
+            section = str(shot.get("section") or "").lower()
+            if emp in ("warning",) or "trap" in section:
+                pose = "warn"
+            elif emp in ("positive",):
+                pose = "ok"
+            elif "action" in section:
+                pose = "point"
+            elif "math" in section or "rule" in section:
+                pose = "point"
+            else:
+                pose = "think" if "myth" in section else "neutral"
+            # Allow explicit override from visual plan
+            if shot.get("pose"):
+                pose = str(shot.get("pose")).lower().strip()
+            host_h = int(H * 0.78)
+            host = sketch.load_host_pose(pose, height=host_h)
+            hx = int(W * 0.03)
+            hy = H - host.height - int(H * 0.06)
             layer.alpha_composite(host, (hx, hy))
             host_w = host.width + hx
-        except Exception:
+        except Exception as e:
+            print(f"[warn] host pose failed: {e}")
             host_w = 0
 
     icon_name = shot.get("icon")
