@@ -12,13 +12,13 @@ import math, random
 
 from PIL import Image, ImageDraw, ImageFilter
 
-# Excalidraw-ish palette on a near-black canvas
-INK = (236, 236, 236)
+# Wealth-Logic-style light board (white canvas, dark ink)
+INK = (28, 28, 32)
 HIGHLIGHT = (245, 197, 66)      # amber marker
-POP = (255, 107, 94)            # coral, for the "against you" beats
-COOL = (94, 200, 255)           # sky, for neutral/technical
-GREEN = (86, 211, 140)
-PAPER = (16, 19, 25)
+POP = (220, 60, 50)             # red for "against you" / down arrows
+COOL = (40, 120, 200)           # calm blue
+GREEN = (34, 160, 90)
+PAPER = (250, 250, 252)         # near-white background
 
 
 def _rng(seed):

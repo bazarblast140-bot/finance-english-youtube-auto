@@ -3,19 +3,24 @@ Exits non-zero on Gate 3 fail."""
 import json
 from common import cfg, claude_json, read, save, ok, die, RUN
 
-VISUAL_SYSTEM = """You are the Visual Planner for The Money Rule (One Rule Board style).
+VISUAL_SYSTEM = """You are the Visual Planner for The Money Rule.
 
-GOAL: viewer should SEE the explanation, not just read a wall of text. Prefer hand-drawn / pen-board / chart over stock.
+TARGET LOOK (Wealth Logic style):
+- Clean LIGHT / white background feel (not busy stock montage).
+- Fixed host energy: cartoon expert in white lab coat pointing at icons and numbers.
+- Huge numbers on screen. Simple icons (car, phone, calendar, loan paper, arrows, loops).
+- Title cards like THE _____ TRAP / THE _____ RULE.
+- One claim → one visual. No walls of text.
 
 HARD RULES:
-1. Max 15% of shots may be stock_footage (emotion only — never the explanation).
+1. Max 8% of shots may be stock_footage (emotion only — never the explanation). Prefer zero stock.
 2. Numbers, comparisons, timelines → visual_type "chart" with real script numbers in chart_data.
-3. Concepts / rules / actions → visual_type "card" (pen-board style headline, short on_screen_text).
-4. on_screen_text: max 5 words. The KEY phrase or number only — not a sentence.
-5. section labels: short board headers like RULE, MYTH, MATH, ACTION (not long sentences).
-6. Shot length 5–8 seconds. Fewer, clearer shots beat many noisy ones.
-7. animation_in: prefer "fade_in_up" for calm tone (not aggressive zoom every shot).
-8. source_asset_query only if stock_footage; under 5 words; must match the spoken moment.
+3. Concepts / rules / traps / actions → visual_type "card" with short on_screen_text (key phrase or $ number).
+4. on_screen_text: max 5 words. Prefer a NUMBER or trap name ("$4,334", "THE CAR TRAP").
+5. section labels: TRAP, RULE, MATH, LOOP, ACTION (short).
+6. Shot length 5–8 seconds. Calm animation_in: "fade_in_up".
+7. First shot should be a TITLE CARD style card when the script names a trap/rule.
+8. source_asset_query only if stock_footage; under 5 words.
 
 chart_data when visual_type is chart:
   {"type": "bar" or "line", "labels": ["A","B"], "values": [10, 25]}
@@ -29,9 +34,9 @@ JSON ONLY:
       "start_sec": 0,
       "end_sec": 6,
       "visual_type": "card",
-      "on_screen_text": "ONE RULE",
-      "highlight": "ONE RULE",
-      "section": "BOARD",
+      "on_screen_text": "THE CAR TRAP",
+      "highlight": "TRAP",
+      "section": "TRAP",
       "emphasis": "neutral",
       "animation_in": "fade_in_up",
       "chart_data": null,

@@ -2,7 +2,7 @@
   "channel": {
     "name": "The Money Rule",
     "tagline": "One rule. Every video.",
-    "format": "One Rule Board",
+    "format": "One Rule / Trap Board (Wealth-Logic visual style)",
     "niche": "finance/investing",
     "audience": "US/UK/CA/AU beginner-to-intermediate",
     "language": "English",
@@ -29,7 +29,8 @@
     "watermark": true,
     "typewriter": true,
     "thumbnail": true,
-    "background_music": false
+    "background_music": false,
+    "visual_style": "cartoon lab-coat host, white board, big numbers, icons, charts"
   },
   "video": {
     "target_minutes": 4.5,
@@ -62,7 +63,7 @@
     "auto_publish": true,
     "publish_visibility": "private",
     "stop_on_gate_fail": true,
-    "max_stock_ratio": 0.15,
+    "max_stock_ratio": 0.08,
     "word_count_tolerance": 0.25
   },
   "notify": {

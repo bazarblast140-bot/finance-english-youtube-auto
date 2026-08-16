@@ -238,10 +238,10 @@ def build_chrome(shot, idx, total, path, channel):
         pad_x, pad_y = 14, 8
         d.rounded_rectangle(
             [x - pad_x - 18, y - pad_y, x + tw + pad_x, y + 28 + pad_y],
-            radius=6, fill=(10, 12, 16, 140))
+            radius=6, fill=(255, 255, 255, 200))
         # amber accent pip (channel identity colour)
         d.ellipse([x - pad_x - 10, y + 6, x - pad_x + 4, y + 20], fill=sketch.HIGHLIGHT + (230,))
-        d.text((x, y), label, font=f, fill=(236, 238, 242, 220))
+        d.text((x, y), label, font=f, fill=(*sketch.INK, 240))
 
     frac = (idx + 1) / max(total, 1)
     d.rectangle([0, H - 8, int(W * frac), H], fill=sketch.HIGHLIGHT + (255,))
@@ -378,7 +378,7 @@ def render_shot(idx, shot, dur, fps, overlay, backdrop, still, chrome=None):
         args += ["-stream_loop", "-1", "-t", f"{dur:.3f}", "-i", str(backdrop)]
     else:
         args += ["-f", "lavfi", "-t", f"{dur:.3f}",
-                 "-i", f"color=c=0x101319:s={W}x{H}:r={fps}"]
+                 "-i", f"color=c=0xfafafc:s={W}x{H}:r={fps}"]
     args += ["-loop", "1", "-t", f"{dur:.3f}", "-i", str(overlay)]
 
     idx_chrome = None
