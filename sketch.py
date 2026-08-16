@@ -156,45 +156,66 @@ def chart_png(chart, path, size=(1920, 1080)):
 
 
 def draw_host(size=520):
-    """Simple consistent lab-coat host (Wealth-Logic energy), RGBA."""
-    from PIL import Image, ImageDraw
+    """Cleaner cartoon lab-coat host — rounded proportions, less stick-figure."""
+    from PIL import Image, ImageDraw, ImageFilter
     s = size
-    img = Image.new("RGBA", (s, int(s * 1.35)), (0, 0, 0, 0))
+    H = int(s * 1.45)
+    img = Image.new("RGBA", (int(s * 1.15), H), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    # scale helpers
+    ink = (25, 28, 35, 255)
+    skin = (255, 214, 186, 255)
+    coat = (255, 255, 255, 255)
+    hair = (32, 32, 38, 255)
+    tie = (30, 30, 40, 255)
+
     def xy(a, b):
         return (int(a * s), int(b * s))
 
-    # head
-    d.ellipse([xy(0.28, 0.02), xy(0.72, 0.38)], fill=(255, 214, 186, 255), outline=(30, 30, 34, 255), width=4)
-    # hair
-    d.ellipse([xy(0.28, 0.02), xy(0.72, 0.22)], fill=(30, 30, 34, 255))
-    d.rectangle([xy(0.28, 0.14), xy(0.72, 0.22)], fill=(255, 214, 186, 255))
-    # eyes
-    d.ellipse([xy(0.40, 0.16), xy(0.46, 0.21)], fill=(30, 30, 34, 255))
-    d.ellipse([xy(0.54, 0.16), xy(0.60, 0.21)], fill=(30, 30, 34, 255))
-    # smile
-    d.arc([xy(0.40, 0.20), xy(0.60, 0.32)], 20, 160, fill=(30, 30, 34, 255), width=3)
-    # neck
-    d.rectangle([xy(0.44, 0.36), xy(0.56, 0.44)], fill=(255, 214, 186, 255))
-    # lab coat body
-    d.polygon([
-        xy(0.18, 0.44), xy(0.82, 0.44), xy(0.90, 1.20), xy(0.10, 1.20)
-    ], fill=(250, 250, 252, 255), outline=(30, 30, 34, 255))
-    # coat outline
-    d.line([xy(0.18, 0.44), xy(0.10, 1.20)], fill=(30, 30, 34, 255), width=4)
-    d.line([xy(0.82, 0.44), xy(0.90, 1.20)], fill=(30, 30, 34, 255), width=4)
+    # legs / trousers hint
+    d.rounded_rectangle([xy(0.32, 1.05), xy(0.48, 1.38)], radius=10, fill=(40, 50, 70, 255))
+    d.rounded_rectangle([xy(0.52, 1.05), xy(0.68, 1.38)], radius=10, fill=(40, 50, 70, 255))
+    # shoes
+    d.ellipse([xy(0.28, 1.32), xy(0.50, 1.42)], fill=ink)
+    d.ellipse([xy(0.50, 1.32), xy(0.72, 1.42)], fill=ink)
+
+    # coat body (rounded)
+    d.rounded_rectangle([xy(0.18, 0.42), xy(0.82, 1.12)], radius=28, fill=coat, outline=ink, width=4)
+    # inner shirt
+    d.polygon([xy(0.42, 0.44), xy(0.58, 0.44), xy(0.55, 1.05), xy(0.45, 1.05)], fill=(240, 244, 250, 255))
     # tie
-    d.polygon([xy(0.48, 0.44), xy(0.52, 0.44), xy(0.54, 0.70), xy(0.50, 0.74), xy(0.46, 0.70)],
-              fill=(30, 30, 34, 255))
-    # coat buttons
-    for by in (0.58, 0.70, 0.82):
-        d.ellipse([xy(0.48, by), xy(0.52, by + 0.04)], fill=(30, 30, 34, 255))
-    # pointing arm (right)
-    d.line([xy(0.78, 0.55), xy(1.05, 0.48)], fill=(255, 214, 186, 255), width=18)
-    d.ellipse([xy(1.00, 0.44), xy(1.10, 0.54)], fill=(255, 214, 186, 255), outline=(30, 30, 34, 255), width=3)
-    # left arm
-    d.line([xy(0.22, 0.55), xy(0.08, 0.75)], fill=(255, 214, 186, 255), width=16)
+    d.polygon([xy(0.47, 0.45), xy(0.53, 0.45), xy(0.55, 0.72), xy(0.50, 0.78), xy(0.45, 0.72)], fill=tie)
+    # buttons
+    for by in (0.58, 0.70, 0.82, 0.94):
+        d.ellipse([xy(0.485, by), xy(0.515, by + 0.03)], fill=ink)
+
+    # left arm (down)
+    d.line([xy(0.22, 0.55), xy(0.10, 0.85)], fill=skin, width=22)
+    d.ellipse([xy(0.04, 0.80), xy(0.16, 0.92)], fill=skin, outline=ink, width=3)
+    # right arm pointing
+    d.line([xy(0.78, 0.55), xy(1.00, 0.42)], fill=skin, width=22)
+    d.ellipse([xy(0.95, 0.35), xy(1.10, 0.50)], fill=skin, outline=ink, width=3)
+    # coat sleeve cuffs
+    d.ellipse([xy(0.14, 0.50), xy(0.28, 0.62)], outline=ink, width=3)
+    d.ellipse([xy(0.72, 0.50), xy(0.86, 0.62)], outline=ink, width=3)
+
+    # neck
+    d.rectangle([xy(0.43, 0.36), xy(0.57, 0.46)], fill=skin)
+    # head
+    d.ellipse([xy(0.28, 0.02), xy(0.72, 0.40)], fill=skin, outline=ink, width=4)
+    # hair (side-part)
+    d.chord([xy(0.28, 0.00), xy(0.72, 0.28)], 180, 0, fill=hair)
+    d.ellipse([xy(0.28, 0.08), xy(0.42, 0.28)], fill=hair)
+    # eyes (friendly)
+    d.ellipse([xy(0.40, 0.16), xy(0.47, 0.22)], fill=ink)
+    d.ellipse([xy(0.53, 0.16), xy(0.60, 0.22)], fill=ink)
+    d.ellipse([xy(0.415, 0.17), xy(0.44, 0.195)], fill=(255, 255, 255, 220))
+    d.ellipse([xy(0.545, 0.17), xy(0.57, 0.195)], fill=(255, 255, 255, 220))
+    # brows
+    d.arc([xy(0.38, 0.12), xy(0.48, 0.18)], 200, 340, fill=ink, width=3)
+    d.arc([xy(0.52, 0.12), xy(0.62, 0.18)], 200, 340, fill=ink, width=3)
+    # smile
+    d.arc([xy(0.40, 0.22), xy(0.60, 0.34)], 15, 165, fill=ink, width=3)
+
     return img
 
 

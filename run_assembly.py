@@ -241,12 +241,7 @@ def build_chrome(shot, idx, total, path, channel):
     layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
 
-    section = str(shot.get("section") or "").strip().upper()
-    if section:
-        accent = EMPHASIS.get(str(shot.get("emphasis", "neutral")).lower(), sketch.COOL)
-        w = d.textlength(section, font=_font(KICK_FONT))
-        sketch.rough_underline(d, SIDE, SIDE + w, KICK_Y + 58, accent, 5, seed=idx * 13 + 1)
-
+    # Section labels (TRAP/RULE/MATH) disabled — clean pro frames only
     if channel:
         # Pro watermark: small amber pip + uppercase name, soft shadow for legibility
         label = channel.upper().strip()
@@ -275,37 +270,8 @@ def _ass_colour(rgb):
 
 
 def kicker_events(shot, start, end, typewriter=True):
-    """Type the section heading in, as ASS events.
-
-    ffmpeg's crop filter evaluates w only at configuration time — there is no
-    per-frame option — so a growing-width reveal is not expressible as a filter.
-    Doing it in the subtitle track costs nothing: the ass pass already runs, and
-    it needs no extra input, no alpha-capable intermediate codec, no re-encode.
-    """
-    section = str(shot.get("section") or "").strip().upper()
-    if not section:
-        return []
-    colour = _ass_colour(EMPHASIS.get(str(shot.get("emphasis", "neutral")).lower(), sketch.COOL))
-    out = []
-    typed_until = start
-
-    if typewriter:
-        step = TYPE_LEN / max(1, len(section))
-        for k in range(1, len(section) + 1):
-            t0 = start + TYPE_START + (k - 1) * step
-            t1 = min(end, t0 + step)
-            if t1 <= t0:
-                break
-            caret = "|" if k < len(section) else ""
-            out.append(f"Dialogue: 0,{_ass_time(t0)},{_ass_time(t1)},Kick,,0,0,0,,"
-                       f"{{\\c{colour}}}{_ass_escape(section[:k])}{caret}")
-        typed_until = min(end, start + TYPE_START + TYPE_LEN)
-
-    if typed_until < end:
-        out.append(f"Dialogue: 0,{_ass_time(typed_until)},{_ass_time(end)},Kick,,0,0,0,,"
-                   f"{{\\c{colour}}}{_ass_escape(section)}")
-    return out
-
+    """Section kickers (TRAP/RULE/MATH) disabled — clean pro frames."""
+    return []
 
 def _ass_time(sec):
     sec = max(0.0, float(sec))

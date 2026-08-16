@@ -29,8 +29,9 @@
     "watermark": true,
     "typewriter": true,
     "thumbnail": true,
-    "background_music": false,
-    "visual_style": "cartoon lab-coat host, white board, big numbers, icons, charts"
+    "background_music": true,
+    "visual_style": "cartoon lab-coat host, white board, big numbers, icons, charts",
+    "show_section_labels": false
   },
   "video": {
     "target_minutes": 4.5,
