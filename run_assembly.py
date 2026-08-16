@@ -161,10 +161,12 @@ def build_overlay(shot, idx, total, path, mode):
             # Allow explicit override from visual plan
             if shot.get("pose"):
                 pose = str(shot.get("pose")).lower().strip()
-            host_h = int(H * 0.78)
+            # Keep full head visible: max 62% of frame height, feet near bottom
+            host_h = int(H * 0.62)
             host = sketch.load_host_pose(pose, height=host_h)
-            hx = int(W * 0.03)
-            hy = H - host.height - int(H * 0.06)
+            hx = int(W * 0.02)
+            # bottom margin ~4%; never let top of head go above y=40
+            hy = max(40, H - host.height - int(H * 0.04))
             layer.alpha_composite(host, (hx, hy))
             host_w = host.width + hx
         except Exception as e:

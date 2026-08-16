@@ -246,7 +246,12 @@ def load_host_pose(pose="neutral", height=720):
             if height and img.height != height:
                 w = int(img.width * height / img.height)
                 img = img.resize((w, height), Image.Resampling.LANCZOS)
-            return img
+            # tiny transparent top pad so head never sits on frame edge
+            from PIL import Image as _Image
+            pad = max(8, img.height // 40)
+            canvas = _Image.new("RGBA", (img.width, img.height + pad), (0, 0, 0, 0))
+            canvas.paste(img, (0, pad), img)
+            return canvas
     # procedural fallback
     host = draw_host(int(height * 0.72))
     if host.height != height:
