@@ -77,7 +77,7 @@ def claude(system, user, model=None, max_tokens=16000, retries=3):
         # Prefer non-thinking for structured script/JSON speed; can enable via env
         thinking = os.environ.get("DEEPSEEK_THINKING", "disabled").lower()
         kwargs = dict(
-            model=model or "deepseek-v4-pro",
+            model=model or "deepseek-v4-flash",
             messages=messages,
             max_tokens=max_tokens,
         )
