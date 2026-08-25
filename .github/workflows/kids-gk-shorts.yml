@@ -58,11 +58,15 @@ jobs:
             echo "privacy=public" >> $GITHUB_OUTPUT
           fi
 
-      - name: System deps (ffmpeg + Devanagari fonts)
+      - name: System deps (ffmpeg + Devanagari + emoji fonts)
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg fonts-noto-core fonts-indic libraqm0
+          sudo apt-get install -y -qq ffmpeg fonts-noto-core fonts-indic libraqm0 \
+            fonts-noto-color-emoji
           fc-cache -f
+          # Emoji font chup-chaap gayab ho jaaye to option icons bina bataye
+          # hat jaate hain — isliye yahin check kar lete hain.
+          fc-list | grep -qi emoji && echo "emoji font OK" || echo "::warning::emoji font missing - option icons nahi dikhenge"
 
       - uses: actions/setup-python@v5
         with:

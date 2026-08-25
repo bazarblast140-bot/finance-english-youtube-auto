@@ -15,6 +15,67 @@ import config as C
 
 LABELS = ["A", "B", "C", "D"]
 
+# ---------------------------------------------------------------- emoji icons
+# NotoColorEmoji CBDT bitmap font hai — Pillow use SIRF 109px pe khol sakta hai
+# ("invalid pixel size" warna). Isliye 109 pe render karke neeche scale karte hain.
+EMOJI_NATIVE = 109
+_emoji_font = None
+_emoji_cache = {}
+
+ICONS = {}
+_icons_path = C.DATA / "icons.json"
+if _icons_path.exists():
+    import json as _json
+    ICONS = {k: v for k, v in
+             _json.loads(_icons_path.read_text(encoding="utf-8")).items()
+             if not k.startswith("_")}
+
+
+def _emoji_ft():
+    global _emoji_font
+    if _emoji_font is None:
+        import glob
+        for f in glob.glob("/usr/share/fonts/**/*Emoji*.ttf", recursive=True):
+            try:
+                _emoji_font = ImageFont.truetype(f, EMOJI_NATIVE)
+                break
+            except Exception:
+                continue
+        if _emoji_font is None:
+            _emoji_font = False        # dobara mat dhoondo
+    return _emoji_font or None
+
+
+def emoji_tile(ch, size):
+    """Ek emoji ka RGBA tile. None agar emoji font hi na ho — us case me
+    layout bina icon ke chal jaata hai, crash nahi hota."""
+    key = (ch, size)
+    if key in _emoji_cache:
+        return _emoji_cache[key]
+    ft = _emoji_ft()
+    if ft is None:
+        return None
+    tile = Image.new("RGBA", (EMOJI_NATIVE + 40, EMOJI_NATIVE + 40), (0, 0, 0, 0))
+    ImageDraw.Draw(tile).text((10, 10), ch, font=ft, embedded_color=True)
+    bb = tile.getbbox()
+    if not bb:
+        _emoji_cache[key] = None
+        return None
+    tile = tile.crop(bb).resize((size, size), Image.LANCZOS)
+    _emoji_cache[key] = tile
+    return tile
+
+
+def icons_for(q):
+    """All-or-nothing: chaaron option ka icon ho tabhi dikhao. Aadha set
+    bhadda lagta hai aur reading bhi slow karta hai."""
+    if not ICONS:
+        return None
+    got = [ICONS.get(o) for o in q["opts"]]
+    if not all(got):
+        return None
+    return got
+
 
 # ---------------------------------------------------------------- fonts
 def _has_devanagari(path) -> bool:
@@ -243,6 +304,8 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False):
     centered(d, lines, f, lh, C.W // 2, top, C.COLORS["q_text"])
 
     opt_top = card_box[3] + OPT_PAD
+    icons = icons_for(q)
+    text_x = 296 if icons else 206
     for i, opt in enumerate(q["opts"]):
         y = opt_top + i * (OPT_H + OPT_GAP)
         box = [70, y, C.W - 70, y + OPT_H]
@@ -265,12 +328,21 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False):
         d.text((cx - (lb[2] - lb[0]) // 2 - lb[0], y + OPT_H // 2 - (lb[3] + lb[1]) // 2),
                LABELS[i], font=lf, fill=lab)
 
+        if icons:
+            tile = emoji_tile(icons[i], 72)
+            if tile is not None:
+                if dim_others and not is_hit:
+                    faded_tile = tile.copy()
+                    faded_tile.putalpha(tile.getchannel("A").point(lambda a: a // 3))
+                    tile = faded_tile
+                img.paste(tile, (200, y + (OPT_H - 72) // 2), tile)
+
         of = F(56)
-        max_w = C.W - 140 - 200 - 100
+        max_w = C.W - text_x - 150
         while text_w(d, opt, of) > max_w and of.size > 34:
             of = F(of.size - 2)
         ob = d.textbbox((0, 0), opt, font=of)
-        d.text((206, y + OPT_H // 2 - (ob[3] + ob[1]) // 2), opt, font=of, fill=fg)
+        d.text((text_x, y + OPT_H // 2 - (ob[3] + ob[1]) // 2), opt, font=of, fill=fg)
 
         if is_hit:
             # Poppins me U+2713 glyph nahi hai (tofu box aata hai) -> haath se draw

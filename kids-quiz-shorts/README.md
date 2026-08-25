@@ -101,6 +101,27 @@ Sab kuch `src/config.py` me hai:
 ```
 
 `sub` sirf ye chaar ho sakte hain: `GK`, `Science`, `Maths`, `English`.
+
+### Option ke aage icon
+
+`data/icons.json` me option text -> emoji ka map hai. Rule **all-or-nothing**
+hai: sawaal ke **chaaron** option ka icon map me mile tabhi icons dikhte hain,
+warna sirf text. Aadha-adhura icon set bhadda lagta hai.
+
+Isi wajah se Maths (गिनती) aur English grammar wale sawaal apne aap icon se
+bahar reh jaate hain — wahan icon ka koi matlab bhi nahi. Abhi **38/91** sawaal
+ko icon milta hai.
+
+Naya icon jodna ho to bas map me line add kar do — sawaal chhune ki zaroorat
+nahi, wo apne aap utha lega:
+
+```json
+"शुतुरमुर्ग": "🦤"
+```
+
+CI pe `fonts-noto-color-emoji` chahiye (workflow me already hai). Wo na ho to
+icons chup-chaap gayab ho jaate hain, isliye workflow me ek warning check bhi
+lagaya hai.
 `why` mandatory hai — chhota rakho (60-70 char), warna video 60s cross kar jaayega.
 
 `ans` = 0-based index. `data/used.json` khud maintain hoti hai — wahi sawaal
