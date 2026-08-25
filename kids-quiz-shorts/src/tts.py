@@ -17,6 +17,10 @@ import config as C
 CACHE = C.OUT / "voice_cache"
 CACHE.mkdir(exist_ok=True, parents=True)
 
+# Auth ek baar fail ho gaya to har line pe dobara try karne ka koi matlab nahi —
+# ek hi run me 7 identical error aate the. Ab pehli baar pe hi haar maan lete hain.
+_eleven_dead = False
+
 
 # ---------------------------------------------------------------- helpers
 def audio_duration(path) -> float:
@@ -49,7 +53,17 @@ def clean_for_tts(text: str) -> str:
 
 # ---------------------------------------------------------------- engines
 def _eleven(text: str, out_wav: Path) -> bool:
+    global _eleven_dead
+    if _eleven_dead:
+        return False
     if not (C.ELEVEN_API_KEY and C.ELEVEN_VOICE_ID):
+        return False
+    if not C.ELEVEN_API_KEY.startswith("sk_"):
+        # Sabse common galti: dashboard se key ka *ID* copy kar lena. Asli key
+        # sirf banate/rotate karte waqt ek baar dikhti hai aur 'sk_' se shuru hoti hai.
+        print("[tts] ElevenLabs key 'sk_' se shuru nahi hoti — lagta hai key ID "
+              "copy ho gaya hai, asli API key nahi. Free voice pe chal rahe hain.")
+        _eleven_dead = True
         return False
     try:
         import requests
@@ -78,6 +92,8 @@ def _eleven(text: str, out_wav: Path) -> bool:
             r = requests.post(url, headers=headers, json=payload(False), timeout=90)
         if r.status_code != 200:
             print(f"[tts] ElevenLabs FAIL {r.status_code}: {r.text[:300]}")
+            if r.status_code in (400, 401, 403):     # auth/quota — retry bekaar
+                _eleven_dead = True
             return False
         mp3 = out_wav.with_suffix(".mp3")
         mp3.write_bytes(r.content)

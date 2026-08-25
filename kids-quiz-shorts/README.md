@@ -62,11 +62,17 @@ zaroori hai):
 | `KIDS_YT_CLIENT_ID` | Kids channel ka OAuth client |
 | `KIDS_YT_CLIENT_SECRET` | ,, |
 | `KIDS_YT_REFRESH_TOKEN` | Kids channel se login karke banaya |
-| `ELEVENLABS_API_KEY` | Female Hindi voice |
+| `ELEVENLABS_API_KEY` | Female Hindi voice — **`sk_` se shuru hona chahiye** |
 | `ELEVENLABS_VOICE_ID` | ,, |
 
 `ELEVENLABS_*` na daalo to script `hi-IN-SwaraNeural` (edge-tts, free) pe fall
 back kar jaati hai — video phir bhi banega, bas voice alag hogi.
+
+⚠️ **Sabse common galti:** ElevenLabs dashboard me jo value list me dikhti hai
+wo key ka **ID** hai, asli API key nahi. Asli key **`sk_` se shuru** hoti hai
+aur sirf banate/rotate karte waqt **ek baar** dikhti hai. ID daal doge to
+`400 api_key_id_used_as_api_key` aayega aur voice chup-chaap free wali chalegi.
+Script ab `sk_` check karke pehle hi warning de deti hai.
 
 ---
 
