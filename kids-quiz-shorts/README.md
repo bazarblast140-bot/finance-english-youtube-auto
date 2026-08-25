@@ -1,11 +1,16 @@
-# QUIZ PATHSHALA — Hindi Quiz Shorts (Class 1-5)
+# Bacchon Ka GK — Hindi Quiz Shorts (Class 1-5)
 
 > Ye `finance-english-youtube-auto` repo ke andar ek alag subfolder hai.
 > Root ka finance long-form pipeline (`run_pipeline.py`) isse bilkul untouched hai.
 
-Channel: **QUIZ PATHSHALA** (@QuizPathshalaIndia). Roz **subah aur shaam** ek-ek YouTube Short apne aap banta hai aur upload ho jaata hai.
-Har video me **2 sawaal**, har sawaal pe **4 option**, **8 second ka tik-tik timer**,
-phir **sahi jawab reveal** — aur voice **ElevenLabs ki female Hindi** hai.
+Roz **subah aur shaam** ek-ek YouTube Short apne aap banta hai aur upload ho jaata hai.
+Har video me **2 sawaal** (do alag subject se), har sawaal pe **4 option**,
+**8 second ka tik-tik timer**, phir **sahi jawab + ek line "क्यों"** — sirf ratna
+nahi, samajhna. Voice **ElevenLabs female Hindi** hai; fail ho to apne aap
+free `hi-IN-SwaraNeural` pe chali jaati hai.
+
+**Chaar subject:** GK · Science · Maths · English. Har din slot ke hisaab se
+rotate hote hain, taaki hafte bhar me chaaron barabar aayein.
 
 Video: 1080x1920, 30fps, ~45-52 second (Shorts shelf ki 60s limit ke andar).
 
@@ -28,18 +33,22 @@ python src/build.py --slot morning --dry-run
 
 Output `out/YYYYMMDD_morning/` me milega — MP4 + `metadata.json`.
 
-### YouTube auth
+### YouTube auth (ek baar, laptop pe — CI me nahi hoga)
 
-Already done — repo ke `YOUTUBE_*` secrets isi channel ke hain. Sirf tab
-dobara banana padega agar tum naya alag channel kholo:
-`python src/upload.py --auth` (laptop pe, CI me interactive login nahi hota).
+1. Google Cloud Console → naya project → **YouTube Data API v3** enable karo
+2. OAuth client banao, type **Desktop app** → `client_secret.json` download
+3. `python src/upload.py --auth` chalao, browser me channel se login karo
+4. Terminal pe jo 3 values print hongi, unhe GitHub repo → Settings → Secrets me daalo:
+   `YT_CLIENT_ID`, `YT_CLIENT_SECRET`, `YT_REFRESH_TOKEN`
 
-YouTube ke `YOUTUBE_CLIENT_ID` / `YOUTUBE_CLIENT_SECRET` /
-`YOUTUBE_REFRESH_TOKEN` secrets is repo me **pehle se set hain** — kuch
-karne ki zaroorat nahi. Sirf ye do naye daalne hain:
+Secrets me ye naam use karo (finance channel wale `YOUTUBE_*` se alag rakhna
+zaroori hai):
 
 | Secret | Kyun |
 |---|---|
+| `KIDS_YT_CLIENT_ID` | Kids channel ka OAuth client |
+| `KIDS_YT_CLIENT_SECRET` | ,, |
+| `KIDS_YT_REFRESH_TOKEN` | Kids channel se login karke banaya |
 | `ELEVENLABS_API_KEY` | Female Hindi voice |
 | `ELEVENLABS_VOICE_ID` | ,, |
 
@@ -81,15 +90,20 @@ Sab kuch `src/config.py` me hai:
 **Naye sawaal** `data/questions.json` me add karo:
 
 ```json
-{"id": "ani16", "cat": "जानवर", "q": "सवाल?", "opts": ["A","B","C","D"], "ans": 2}
+{"id": "sc23", "sub": "Science", "q": "सवाल?",
+ "opts": ["A","B","C","D"], "ans": 2,
+ "why": "एक line me reason — ye reveal screen pe dikhta hai aur bola bhi jaata hai."}
 ```
+
+`sub` sirf ye chaar ho sakte hain: `GK`, `Science`, `Maths`, `English`.
+`why` mandatory hai — chhota rakho (60-70 char), warna video 60s cross kar jaayega.
 
 `ans` = 0-based index. `data/used.json` khud maintain hoti hai — wahi sawaal
 dobara nahi aayega jab tak poora bank khatam na ho jaye.
 
-**Bank abhi chhota hai:** 70 sawaal ÷ 4 sawaal roz (2 per video × 2 video) =
-**sirf 17 din**. Uske baad cycle reset hoke purane sawaal repeat hone lagenge.
-Do hafte ke andar bank ko 200+ tak le jaao, warna audience ko repeat dikhega.
+**Bank abhi chhota hai:** 91 sawaal ÷ 4 roz = **~22 din**. Uske baad cycle reset
+hoke purane sawaal repeat honge. English aur Maths sabse pehle khatam honge
+(21-21 hain). Teen hafte ke andar har subject ko 60+ tak le jaao.
 
 ---
 
@@ -103,22 +117,18 @@ hai. **Channel Settings → Audience me bhi "No, it's not made for kids" hi
 rakhna** — warna channel-level setting video-level ko override kar degi aur
 comments phir bhi band ho jaayenge.
 
-**1b. Channel.** Wahi channel jo pehle *The Money Rule* tha — rename karke kids
-GK bana diya gaya hai. Isliye repo ke maujuda `YOUTUBE_CLIENT_ID` /
-`YOUTUBE_CLIENT_SECRET` / `YOUTUBE_REFRESH_TOKEN` secrets hi use ho rahe hain,
-kuch naya nahi banana.
+**1b. Wrong-channel guard.** Is repo ke `YOUTUBE_*` secrets *The Money Rule*
+(finance English) channel ke hain. Kids short unse upload hua to galat channel
+pe chala jaayega. Isliye workflow sirf `KIDS_YT_CLIENT_ID` /
+`KIDS_YT_CLIENT_SECRET` / `KIDS_YT_REFRESH_TOKEN` use karta hai. Ye set nahi
+honge to upload skip ho jaata hai aur video Actions artifact me milta hai —
+kuch galat jagah nahi jaayega.
 
-**1c. Purane finance videos.** Channel ka naam badal gaya, par purane English
-finance videos wahin hain. YouTube ka algorithm mixed signal padhta hai
-(English finance viewers ko Hindi kids GK recommend karega — dono fail).
-Purane videos ko **private** kar do (delete mat karna — analytics chali
-jaayegi). `daily-finance.yml` ka cron already paused hai, to naye finance
-videos ab nahi banenge.
-
-**2. Voice fail ho to upload nahi hoga.** Workflow me ek check hai jo video ka
-mean volume dekhta hai. ElevenLabs quota khatam ho jaye to script silent
-fallback pe chali jaati hai — us silent video ko check pakad ke upload rok deta hai.
-Log me `SILENT fallback used` dikhega.
+**2. Voice fallback.** Order: ElevenLabs → `hi-IN-SwaraNeural` (edge-tts, free)
+→ silent. ElevenLabs ka quota/key fail ho to build rukta nahi, apne aap free
+voice pe chal jaata hai — log me `voice: edge` dikhega aur build ke ant me
+saaf likha aata hai ki ElevenLabs fail hua. Sirf teeno fail hone pe silent
+video banta hai, aur us case me workflow ka volume-check upload rok deta hai.
 
 **3. YouTube quota.** Har upload ~1600 units. Daily quota 10,000 = ~6 upload/din.
 Tumhein 2 chahiye, so theek hai — par upload script me retry max 2 rakha hai

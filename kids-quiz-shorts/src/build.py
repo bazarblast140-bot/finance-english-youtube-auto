@@ -53,6 +53,9 @@ def mix(track, clip, at_sample, gain=1.0):
 
 
 # ---------------------------------------------------------------- plan
+ENGINES = []
+
+
 def plan_segments(questions):
     """Segments ki list banata hai: (kind, frames, payload, audio_events).
     audio_events = [(offset_seconds, wav_path_or_array, gain)]"""
@@ -60,6 +63,7 @@ def plan_segments(questions):
     n = len(questions)
 
     v, d, eng = tts.say(tts.intro_script(), "intro")
+    ENGINES.append(eng)
     print(f"[voice] intro {d:.2f}s via {eng}")
     segs.append(dict(kind="intro", dur=d + C.READ_PAD_SECONDS,
                      audio=[(0.0, v, C.VOICE_VOLUME)],
@@ -67,6 +71,7 @@ def plan_segments(questions):
 
     for i, q in enumerate(questions):
         v, d, eng = tts.say(tts.question_script(q, i, n), f"q{i}_{q['id']}")
+        ENGINES.append(eng)
         print(f"[voice] Q{i+1} {d:.2f}s via {eng}")
         segs.append(dict(kind="read", dur=d + C.READ_PAD_SECONDS,
                          audio=[(0.0, v, C.VOICE_VOLUME)],
@@ -77,12 +82,14 @@ def plan_segments(questions):
                          payload=(q, i + 1, n)))
 
         v, d, eng = tts.say(tts.reveal_script(q), f"a{i}_{q['id']}")
+        ENGINES.append(eng)
         segs.append(dict(kind="reveal",
                          dur=max(C.REVEAL_SECONDS, d + 0.9),
                          audio=[(0.0, "DING", 0.8), (0.45, v, C.VOICE_VOLUME)],
                          payload=(q, i + 1, n)))
 
     v, d, eng = tts.say(tts.outro_script(), "outro")
+    ENGINES.append(eng)
     segs.append(dict(kind="outro", dur=max(C.OUTRO_SECONDS, d + 0.6),
                      audio=[(0.0, v, C.VOICE_VOLUME)],
                      payload=None))
@@ -93,7 +100,7 @@ def plan_segments(questions):
 
 
 # ---------------------------------------------------------------- render
-def render_video(segs, frames_dir: Path):
+def render_video(segs, frames_dir: Path, intro_title="आज के सवाल"):
     if frames_dir.exists():
         shutil.rmtree(frames_dir)
     frames_dir.mkdir(parents=True)
@@ -102,7 +109,7 @@ def render_video(segs, frames_dir: Path):
         kind, payload, nf = s["kind"], s["payload"], s["frames"]
 
         if kind == "intro":
-            base = render.title_panel("आज का GK सवाल", "कक्षा 1 से 5 के बच्चों के लिए")
+            base = render.title_panel(intro_title, "कक्षा 1 से 5 के बच्चों के लिए")
         elif kind == "outro":
             base = render.title_panel("कितने सही हुए?",
                                       "कमेंट में लिखो • रोज़ सुबह-शाम नया सवाल")
@@ -188,18 +195,39 @@ def main():
     outdir = C.OUT / slug
     outdir.mkdir(parents=True, exist_ok=True)
 
-    questions = pick(C.QUESTIONS_PER_VIDEO, dry_run=args.dry_run, seed=args.seed)
-    print("[pick] " + " || ".join(f"{q['id']}: {q['q']}" for q in questions))
+    questions = pick(C.QUESTIONS_PER_VIDEO, dry_run=args.dry_run,
+                     seed=args.seed, slot=args.slot)
+    print("[pick] " + " || ".join(f"{q['sub']}/{q['id']}: {q['q']}" for q in questions))
 
     segs = plan_segments(questions)
     total_dur = sum(s["frames"] for s in segs) / C.FPS
     print(f"[plan] {len(segs)} segments, {total_dur:.2f}s total")
+    # Reasoning add hone se video lamba ho gaya hai. 60s cross karte hi YouTube
+    # ise Short nahi maanta — isliye yahan apne aap intro/outro se time chhinte
+    # hain. Timer aur reveal ko haath nahi lagate, wo content hai.
+    if total_dur > 58.0:
+        need = total_dur - 58.0
+        for kind, floor in (("outro", 2.5), ("intro", 1.6)):
+            if need <= 0:
+                break
+            for sg in segs:
+                if sg["kind"] != kind:
+                    continue
+                cur = sg["frames"] / C.FPS
+                cut = min(need, max(0.0, cur - floor))
+                if cut > 0:
+                    sg["frames"] = max(1, round((cur - cut) / (1 / C.FPS)))
+                    need -= cut
+        total_dur = sum(s["frames"] for s in segs) / C.FPS
+        print(f"[plan] trimmed to {total_dur:.2f}s (60s Shorts limit)")
     if total_dur > 59.0:
-        print("[warn] 59s se lamba hai — Shorts shelf se bahar ho sakta hai. "
-              "TIMER_SECONDS ya QUESTIONS_PER_VIDEO kam karo.")
+        print("[warn] abhi bhi 59s+ — TIMER_SECONDS ya reasoning chhota karo.")
 
+    from seo import SUB_HI
+    subs = " + ".join(dict.fromkeys(SUB_HI.get(q.get("sub", "GK"), "जीके")
+                                    for q in questions))
     frames_dir = outdir / "frames"
-    total_frames = render_video(segs, frames_dir)
+    total_frames = render_video(segs, frames_dir, f"आज: {subs}")
     track = render_audio(segs, total_frames)
     wav = sfx.write_wav(outdir / "audio.wav", track)
 
@@ -212,7 +240,11 @@ def main():
     (outdir / "metadata.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    print(f"\n✅ {mp4}  ({meta['duration_sec']}s)")
+    used = {e.split("+")[0] for e in ENGINES}
+    meta["voice_engines"] = sorted(used)
+    print(f"\n🎙  voice: {', '.join(sorted(used))}"
+          + ("  <- ElevenLabs fail hua, free voice pe chala" if "edge" in used else ""))
+    print(f"✅ {mp4}  ({meta['duration_sec']}s)")
     print(f"📝 {outdir / 'metadata.json'}")
     print(f"🎬 {meta['title']}")
     return 0

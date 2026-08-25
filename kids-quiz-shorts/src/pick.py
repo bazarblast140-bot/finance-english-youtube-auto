@@ -24,7 +24,7 @@ def load_used():
     return {"history": []}
 
 
-def pick(n=2, dry_run=False, seed=None):
+def pick(n=2, dry_run=False, seed=None, slot="morning"):
     bank = load_bank()
     used = load_used()
     used_ids = [h["id"] for h in used["history"]]
@@ -39,18 +39,32 @@ def pick(n=2, dry_run=False, seed=None):
     rng = random.Random(seed if seed is not None else datetime.now().strftime("%Y%m%d%H"))
     rng.shuffle(fresh)
 
-    chosen, cats = [], set()
-    for q in fresh:                      # pehle alag category try karo
-        if q["cat"] not in cats:
-            chosen.append(q)
-            cats.add(q["cat"])
+    # Subject rotation: har video me 2 alag subject, aur har slot alag jodi se
+    # shuru hota hai — taaki hafte bhar me chaaron subject barabar aayein.
+    order = ["GK", "Science", "Maths", "English"]
+    shift = int(datetime.now().strftime("%j")) * 2 + (0 if slot == "morning" else 1)
+    wanted = [order[(shift + k) % 4] for k in range(n)]
+
+    chosen, used_now = [], set()
+    for want in wanted:
+        for q in fresh:
+            if q["id"] in used_now:
+                continue
+            if q.get("sub") == want:
+                chosen.append(q)
+                used_now.add(q["id"])
+                break
+    subs_taken = {q.get("sub") for q in chosen}
+    for q in fresh:                      # gap bhar do, subject repeat se bachte hue
         if len(chosen) == n:
             break
-    for q in fresh:                      # kam pade to kuch bhi
+        if q["id"] not in used_now and q.get("sub") not in subs_taken:
+            chosen.append(q); used_now.add(q["id"]); subs_taken.add(q.get("sub"))
+    for q in fresh:                      # phir bhi kam pade to kuch bhi
         if len(chosen) == n:
             break
-        if q not in chosen:
-            chosen.append(q)
+        if q["id"] not in used_now:
+            chosen.append(q); used_now.add(q["id"])
 
     if not dry_run:
         stamp = datetime.now().isoformat(timespec="seconds")
@@ -61,5 +75,7 @@ def pick(n=2, dry_run=False, seed=None):
 
 
 if __name__ == "__main__":
-    for q in pick(2, dry_run=True):
-        print(q["cat"], "|", q["q"], "->", q["opts"][q["ans"]])
+    for slot in ("morning", "evening"):
+        print(f"--- {slot} ---")
+        for q in pick(2, dry_run=True, slot=slot):
+            print(f'  {q["sub"]:<8}| {q["q"]} -> {q["opts"][q["ans"]]}')

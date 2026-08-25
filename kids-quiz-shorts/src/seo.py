@@ -34,14 +34,14 @@ BASE_TAGS = [
     "hindi quiz for children", "gk shorts", "बाल जीके", "primary school gk",
 ]
 
-CAT_TAGS = {
-    "भारत": ["india gk for kids", "bharat gk hindi"],
-    "जानवर": ["animal gk hindi", "janwar gk kids"],
-    "शरीर": ["human body gk hindi", "science gk for kids"],
-    "प्रकृति": ["science gk hindi kids", "nature gk hindi"],
-    "गिनती": ["maths gk for kids", "ganit quiz hindi"],
-    "त्योहार": ["festival gk hindi", "tyohar quiz kids"],
+SUB_TAGS = {
+    "GK":      ["gk questions hindi", "india gk for kids", "samanya gyan bachche"],
+    "Science": ["science gk for kids", "vigyan quiz hindi", "science questions hindi"],
+    "Maths":   ["maths quiz for kids", "ganit quiz hindi", "maths questions hindi"],
+    "English": ["english for kids hindi", "english grammar quiz kids",
+                "english word meaning hindi"],
 }
+SUB_HI = {"GK": "जीके", "Science": "विज्ञान", "Maths": "गणित", "English": "इंग्लिश"}
 
 
 def build(questions, slot="morning", date=None):
@@ -51,15 +51,18 @@ def build(questions, slot="morning", date=None):
     hook = rng.choice(hooks)
     q1 = questions[0]["q"].rstrip("?")
 
-    title = f"{hook} 🤔 {q1}? | GK Quiz Class 1-5 #shorts"
+    sub_hi = " + ".join(dict.fromkeys(SUB_HI.get(q.get("sub", "GK"), "जीके")
+                                      for q in questions))
+    title = f"{hook} 🤔 {q1}? | {sub_hi} Quiz Class 1-5 #shorts"
     if len(title) > 98:
-        title = f"{hook} 🤔 {q1[:44]}…? | GK Quiz #shorts"
+        title = f"{hook} 🤔 {q1[:40]}…? | {sub_hi} Quiz #shorts"
 
     labels = ["A", "B", "C", "D"]
     q_block = "\n\n".join(
-        f"सवाल {i+1}: {q['q']}\n"
+        f"सवाल {i+1} ({SUB_HI.get(q.get('sub','GK'),'जीके')}): {q['q']}\n"
         + "\n".join(f"{labels[j]}) {o}" for j, o in enumerate(q["opts"]))
         + f"\n✅ सही जवाब: {labels[q['ans']]}) {q['opts'][q['ans']]}"
+        + (f"\n💡 क्यों: {q['why']}" if q.get("why") else "")
         for i, q in enumerate(questions)
     )
 
@@ -75,16 +78,16 @@ def build(questions, slot="morning", date=None):
 {engage}
 
 इस चैनल पर मिलेगा:
-• Class 1-5 के बच्चों के लिए GK questions in Hindi
-• General knowledge quiz — जानवर, भारत, विज्ञान, गिनती
+• Class 1-5 के बच्चों के लिए GK, विज्ञान, गणित और इंग्लिश के सवाल
+• हर जवाब के साथ एक लाइन में "क्यों" — सिर्फ़ रटना नहीं, समझना
 • रोज़ 2 नए शॉर्ट्स — सुबह और शाम
 
-#GKInHindi #KidsQuiz #shorts"""
+#QuizPathshala #KidsQuiz #shorts"""
 
-    cats = {q["cat"] for q in questions}
+    subs = [q.get("sub", "GK") for q in questions]
     tags = list(BASE_TAGS)
-    for c in cats:
-        tags += CAT_TAGS.get(c, [])
+    for c in dict.fromkeys(subs):
+        tags += SUB_TAGS.get(c, [])
     seen, out_tags, total = set(), [], 0
     for t in tags:
         if t in seen:
@@ -120,5 +123,5 @@ def build(questions, slot="morning", date=None):
 if __name__ == "__main__":
     import json
     from pick import pick
-    qs = pick(2, dry_run=True)
+    qs = pick(2, dry_run=True, slot='morning')
     print(json.dumps(build(qs, "morning"), ensure_ascii=False, indent=2))

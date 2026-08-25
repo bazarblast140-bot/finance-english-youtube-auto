@@ -149,16 +149,20 @@ def question_script(q: dict, index: int, total: int) -> str:
 
 
 def reveal_script(q: dict) -> str:
+    """Jawaab + ek line reasoning. Reasoning hi wo cheez hai jo viewer ko
+    'kuch seekha' feel deti hai — isliye har sawaal me mandatory hai."""
     labels = ["ए", "बी", "सी", "डी"]
-    return f"सही जवाब है, {labels[q['ans']]}, {q['opts'][q['ans']]}।"
+    base = f"सही जवाब है, {labels[q['ans']]}, {q['opts'][q['ans']]}।"
+    why = (q.get("why") or "").strip()
+    return f"{base} {why}" if why else base
 
 
 def intro_script() -> str:
-    return "नमस्ते बच्चों! आज का जी के सवाल। तैयार हो जाओ।"
+    return "नमस्ते बच्चों! क्विज़ पाठशाला में आज के दो सवाल। तैयार?"
 
 
 def outro_script() -> str:
-    return "कितने सही हुए? कमेंट में लिखो। और चैनल को सब्सक्राइब करना मत भूलना।"
+    return "कितने सही हुए? कमेंट में लिखो और सब्सक्राइब करना मत भूलना।"
 
 
 if __name__ == "__main__":

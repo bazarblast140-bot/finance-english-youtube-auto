@@ -147,7 +147,7 @@ def card(img, box, radius=44, fill=(255, 255, 255), shadow=True, outline=None, w
 
 
 # ---------------------------------------------------------------- chrome
-def banner(img, qnum=None, total=None):
+def banner(img, qnum=None, total=None, subject=None):
     """Top ribbon + left me 'सवाल 1/2' chip. Right side timer ke liye khaali
     chhoda hai — isliye chip center me nahi hai."""
     d = ImageDraw.Draw(img)
@@ -162,6 +162,14 @@ def banner(img, qnum=None, total=None):
         cw = text_w(d, chip, cf)
         d.rounded_rectangle([70, 240, 70 + cw + 68, 336], 48, fill=(255, 255, 255))
         d.text((104, 256), chip, font=cf, fill=C.COLORS["banner"])
+        if subject:
+            sf = F(40)
+            sw = text_w(d, subject, sf)
+            # timer ring ke left me, taaki dono kabhi takrayein nahi
+            x2 = TIMER_CX - TIMER_R - 24
+            d.rounded_rectangle([x2 - sw - 52, 250, x2, 326], 38,
+                                fill=C.COLORS["banner_text"])
+            d.text((x2 - sw - 26, 262), subject, font=sf, fill=C.COLORS["banner"])
     return img
 
 
@@ -220,7 +228,7 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False):
     Ye base image hai; timer per-frame iske upar paste hota hai.
     Return: (image, options_block_end_y) — reveal badge/footer isi se position hote hain."""
     img = background(qnum).convert("RGB")
-    banner(img, qnum, total)
+    banner(img, qnum, total, q.get("sub"))
 
     d = ImageDraw.Draw(img)
     inner_w = C.W - 2 * CARD_X - 96
@@ -277,15 +285,34 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False):
 def reveal_panel(q, qnum, total):
     img, opt_end = question_panel(q, qnum, total, highlight=q["ans"], dim_others=True)
     d = ImageDraw.Draw(img)
+
     t = "सही जवाब!"
-    f = F(70)
+    f = F(64)
     w = text_w(d, t, f)
-    by = opt_end + 26
-    d.rounded_rectangle([(C.W - w) // 2 - 46, by, (C.W + w) // 2 + 46, by + 106],
-                        50, fill=C.COLORS["correct"])
-    d.text(((C.W - w) // 2, by + 16), t, font=f, fill=(255, 255, 255))
+    by = opt_end + 22
+    d.rounded_rectangle([(C.W - w) // 2 - 44, by, (C.W + w) // 2 + 44, by + 96],
+                        46, fill=C.COLORS["correct"])
+    d.text(((C.W - w) // 2, by + 12), t, font=f, fill=(255, 255, 255))
+    y = by + 96
+
+    why = (q.get("why") or "").strip()
+    if why:
+        # Reasoning card — yahi wo hissa hai jo "seekha kuch" feel deta hai.
+        # Card ki height text ke hisaab se banti hai, fixed nahi.
+        wf, wlines, wlh = fit_lines(d, why, C.W - 240, 230, start=44,
+                                    min_size=32, max_lines=4, bold=False)
+        h = len(wlines) * wlh + 56
+        top = y + 20
+        d.rounded_rectangle([80, top, C.W - 80, top + h], 30,
+                            fill=(255, 255, 255), outline=C.COLORS["correct"], width=4)
+        lf = F(34)
+        d.text((116, top - 22), "क्यों?", font=lf, fill=C.COLORS["correct"],
+               stroke_width=6, stroke_fill=(255, 255, 255))
+        centered(d, wlines, wf, wlh, C.W // 2, top + 30, C.COLORS["opt_text"])
+        y = top + h
+
     footer(img, "अगला सवाल आ रहा है…" if qnum < total else C.CTA_TEXT,
-           y=max(FOOTER_Y, by + 132))
+           y=max(FOOTER_Y, y + 28))
     return img
 
 
