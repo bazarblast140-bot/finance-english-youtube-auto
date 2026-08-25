@@ -1,9 +1,9 @@
-# Bacchon Ka GK — Hindi Quiz Shorts (Class 1-5)
+# QUIZ PATHSHALA — Hindi Quiz Shorts (Class 1-5)
 
 > Ye `finance-english-youtube-auto` repo ke andar ek alag subfolder hai.
 > Root ka finance long-form pipeline (`run_pipeline.py`) isse bilkul untouched hai.
 
-Roz **subah aur shaam** ek-ek YouTube Short apne aap banta hai aur upload ho jaata hai.
+Channel: **QUIZ PATHSHALA** (@QuizPathshalaIndia). Roz **subah aur shaam** ek-ek YouTube Short apne aap banta hai aur upload ho jaata hai.
 Har video me **2 sawaal**, har sawaal pe **4 option**, **8 second ka tik-tik timer**,
 phir **sahi jawab reveal** — aur voice **ElevenLabs ki female Hindi** hai.
 

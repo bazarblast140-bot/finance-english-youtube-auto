@@ -19,8 +19,8 @@ OUTRO_SECONDS = 3.0
 READ_PAD_SECONDS = 0.6      # voice khatam hone ke baad thoda gap
 
 # ---------- brand ----------
-BRAND = "Bacchon Ka GK"
-HANDLE = "@bacchonkagk"
+BRAND = "QUIZ PATHSHALA"
+HANDLE = "@QuizPathshalaIndia"
 
 # ---------- COPPA / Made for Kids ----------
 # Rajesh ne False choose kiya taaki comments chaalu rahein (engagement CTA
@@ -37,21 +37,23 @@ CTA_TEXT = ("घर में सबको ये सवाल पूछो!" if
             else "सही जवाब कमेंट में लिखो!")
 
 # Kids palette — high contrast, thumbnail-safe (rajesh-ui-pro: bold > subtle for Shorts)
+# Palette channel branding se match ki hai — purple banner, yellow accent,
+# white "?" logo. Shorts feed me channel avatar aur video ek hi family lagein.
 COLORS = {
-    "bg_top":     (255, 214, 102),   # warm yellow
-    "bg_bottom":  (255, 138, 76),    # orange
+    "bg_top":     (124, 58, 237),    # violet-600
+    "bg_bottom":  (167, 139, 250),   # violet-400
     "card":       (255, 255, 255),
     "card_shadow": (0, 0, 0, 60),
-    "q_text":     (26, 32, 84),      # deep indigo
-    "opt_text":   (32, 38, 60),
-    "opt_label":  (214, 40, 57),     # red A/B/C/D
-    "opt_bg":     (245, 247, 255),
-    "correct":    (24, 168, 88),
-    "correct_bg": (222, 250, 233),
-    "timer_ring": (214, 40, 57),
-    "timer_ring_bg": (232, 232, 240),
-    "banner":     (176, 20, 80),
-    "banner_text": (255, 224, 92),
+    "q_text":     (46, 16, 101),     # violet-950
+    "opt_text":   (39, 27, 72),
+    "opt_label":  (124, 58, 237),    # violet A/B/C/D
+    "opt_bg":     (247, 245, 255),
+    "correct":    (22, 163, 74),
+    "correct_bg": (220, 252, 231),
+    "timer_ring": (245, 158, 11),    # amber — purple pe sabse zyada pop karta hai
+    "timer_ring_bg": (233, 228, 245),
+    "banner":     (76, 29, 149),     # violet-900
+    "banner_text": (253, 224, 71),   # yellow-300, banner ke Hindi text jaisa
     "footer":     (60, 60, 80),
 }
 
