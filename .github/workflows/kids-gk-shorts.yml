@@ -147,6 +147,11 @@ jobs:
             tail -n 40 upload_out.txt 2>/dev/null || echo "(upload step chala hi nahi)"
             echo '```'
             echo
+            echo '## voice'
+            echo '```'
+            grep -E '^\[tts\]|voice:' build_out.txt 2>/dev/null | head -12 || echo '(none)'
+            echo '```'
+            echo
             echo '## telegram'
             echo '```'
             cat telegram_out.txt 2>/dev/null || echo "(telegram step chala hi nahi)"

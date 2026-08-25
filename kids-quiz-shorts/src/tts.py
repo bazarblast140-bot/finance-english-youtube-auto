@@ -56,25 +56,28 @@ def _eleven(text: str, out_wav: Path) -> bool:
     except ImportError:
         return False
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{C.ELEVEN_VOICE_ID}"
+    headers = {"xi-api-key": C.ELEVEN_API_KEY,
+               "Content-Type": "application/json",
+               "Accept": "audio/mpeg"}
+
+    def payload(with_speed: bool):
+        vs = {"stability": C.ELEVEN_STABILITY,
+              "similarity_boost": C.ELEVEN_SIMILARITY}
+        if with_speed:
+            vs["speed"] = C.ELEVEN_SPEED
+        return {"text": text, "model_id": C.ELEVEN_MODEL, "voice_settings": vs}
+
     try:
-        r = requests.post(
-            url,
-            headers={"xi-api-key": C.ELEVEN_API_KEY,
-                     "Content-Type": "application/json",
-                     "Accept": "audio/mpeg"},
-            json={
-                "text": text,
-                "model_id": C.ELEVEN_MODEL,
-                "voice_settings": {
-                    "stability": C.ELEVEN_STABILITY,
-                    "similarity_boost": C.ELEVEN_SIMILARITY,
-                    "speed": C.ELEVEN_SPEED,
-                },
-            },
-            timeout=90,
-        )
+        r = requests.post(url, headers=headers, json=payload(True), timeout=90)
+        # "speed" har model/plan pe supported nahi hai — 422 aata hai. Us case me
+        # bina speed ke dobara try karo, warna poori voice hi free fallback pe
+        # chali jaati hai sirf ek optional parameter ki wajah se.
+        if r.status_code == 422:
+            print(f"[tts] ElevenLabs 422 (speed unsupported?) — bina speed retry: "
+                  f"{r.text[:160]}")
+            r = requests.post(url, headers=headers, json=payload(False), timeout=90)
         if r.status_code != 200:
-            print(f"[tts] ElevenLabs {r.status_code}: {r.text[:200]}")
+            print(f"[tts] ElevenLabs FAIL {r.status_code}: {r.text[:300]}")
             return False
         mp3 = out_wav.with_suffix(".mp3")
         mp3.write_bytes(r.content)
