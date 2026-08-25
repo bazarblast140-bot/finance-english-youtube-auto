@@ -19,8 +19,16 @@ import sys
 import time
 from pathlib import Path
 
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload",
-          "https://www.googleapis.com/auth/youtube.force-ssl"]
+# IMPORTANT: ye list repo ke youtube_auth.py se EXACT match honi chahiye.
+# Refresh ke waqt aisa scope maanga jo grant nahi hua tha, to Google
+# invalid_scope/403 deta hai — video ban jaata hai par upload fail hota hai.
+# force-ssl yahan JAAN-BOOJH KE nahi hai: wo kabhi grant nahi hua tha.
+# commentThreads.insert full "youtube" scope se bhi chal jaata hai.
+SCOPES = [
+    "https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/youtube.readonly",
+    "https://www.googleapis.com/auth/youtube",
+]
 
 
 def _creds():
@@ -77,7 +85,16 @@ def upload(meta_path: Path, privacy="public", publish_at=None):
         "status": status,
     }
 
-    yt = build("youtube", "v3", credentials=_creds(), cache_discovery=False)
+    creds = _creds()
+    yt = build("youtube", "v3", credentials=creds, cache_discovery=False)
+
+    # Galat channel pe upload sabse mehnga error hai — pehle naam padh lo.
+    try:
+        ch = yt.channels().list(part="snippet", mine=True).execute()
+        if ch.get("items"):
+            print(f"[upload] channel: {ch['items'][0]['snippet']['title']}")
+    except Exception as e:
+        print(f"[upload] channel naam nahi padh paaya (upload phir bhi try karenge): {e}")
     media = MediaFileUpload(str(video), chunksize=4 * 1024 * 1024,
                             resumable=True, mimetype="video/mp4")
     req = yt.videos().insert(part="snippet,status", body=body, media_body=media)
@@ -126,7 +143,20 @@ if __name__ == "__main__":
     if a.auth:
         do_auth()
     elif a.dir:
-        upload(a.dir / "metadata.json", a.privacy, a.publish_at)
+        try:
+            upload(a.dir / "metadata.json", a.privacy, a.publish_at)
+        except Exception as e:
+            # Poora error stdout pe — CI logs blob storage pe hote hain, isliye
+            # error ko file me bhi likhte hain jise workflow repo me commit karta hai.
+            import traceback
+            detail = traceback.format_exc()
+            print(detail)
+            body = getattr(getattr(e, "resp", None), "status", None)
+            print(f"[upload] FAILED (http={body}): {e}")
+            try:
+                (a.dir / "upload_error.txt").write_text(detail, encoding="utf-8")
+            except Exception:
+                pass
+            sys.exit(1)
     else:
         ap.error("--auth ya --dir me se ek do")
-        sys.exit(2)

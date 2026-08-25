@@ -91,13 +91,39 @@ jobs:
           path: kids-quiz-shorts/out/*/
           retention-days: 14
       - name: YouTube pe upload
+        id: up
+        continue-on-error: true
         env:
           YT_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
         run: |
           DIR=$(ls -td out/*/ | head -1)
-          python src/upload.py --dir "${DIR%/}" --privacy ${{ steps.slot.outputs.privacy }}
+          set -o pipefail
+          python src/upload.py --dir "${DIR%/}" \
+            --privacy ${{ steps.slot.outputs.privacy }} 2>&1 | tee upload_out.txt
+
+      # CI logs Azure blob pe hote hain jo har network se readable nahi. Isliye
+      # last run ka nateeja repo me hi likh dete hain — mobile se bhi dikh jaaye.
+      - name: Last run ka status repo me likho
+        if: always()
+        run: |
+          DIR=$(ls -td out/*/ | head -1)
+          {
+            echo "# Last run"
+            echo "- when   : $(date -u +'%F %H:%M UTC')"
+            echo "- slot   : ${{ steps.slot.outputs.slot }}"
+            echo "- privacy: ${{ steps.slot.outputs.privacy }}"
+            echo "- upload : ${{ steps.up.outcome }}"
+            echo
+            echo '## metadata'
+            python -c "import json;m=json.load(open('$DIR/metadata.json'));print(chr(10).join(f'- {k}: {m[k]}' for k in ('title','duration_sec','voice_engines','youtube_url') if k in m))" || true
+            echo
+            echo '## upload output (tail)'
+            echo '```'
+            tail -n 40 upload_out.txt 2>/dev/null || echo "(upload step chala hi nahi)"
+            echo '```'
+          } > LAST_RUN.md
 
       - name: Telegram pe batao
         if: always()
@@ -110,12 +136,25 @@ jobs:
           curl -s -X POST "https://api.telegram.org/bot$TG/sendMessage" \
             -d chat_id="$CHAT" --data-urlencode text="$MSG" > /dev/null || true
 
-      - name: used.json commit karo
-        if: success()
+      - name: used.json + LAST_RUN.md commit karo
+        if: always()
         run: |
           git config user.name  "quiz-bot"
           git config user.email "quiz-bot@users.noreply.github.com"
-          git add data/used.json
-          git diff --staged --quiet || git commit -m "chore(kids-gk): used questions ${{ steps.slot.outputs.slot }} $(date -u +%F)"
+          # Sawaal tabhi "use ho gaya" mana jaaye jab upload sach me hua ho —
+          # warna fail hue run ke sawaal hamesha ke liye bank se gayab ho jaate.
+          if [ "${{ steps.up.outcome }}" = "success" ]; then
+            git add data/used.json
+          else
+            git checkout -- data/used.json || true
+          fi
+          git add LAST_RUN.md
+          git diff --staged --quiet || git commit -m "chore(kids-gk): ${{ steps.slot.outputs.slot }} run — upload ${{ steps.up.outcome }} [skip ci]"
           git pull --rebase --autostash || true
           git push
+
+      - name: Upload fail hua to job fail karo
+        if: steps.up.outcome != 'success'
+        run: |
+          echo "Upload fail hua. Detail: kids-quiz-shorts/LAST_RUN.md"
+          exit 1
