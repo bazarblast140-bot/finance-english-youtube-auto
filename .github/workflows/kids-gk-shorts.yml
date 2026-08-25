@@ -1,0 +1,137 @@
+name: Kids GK Quiz Shorts
+
+# IST = UTC + 5:30
+#   07:30 IST -> 02:00 UTC  (subah)
+#   18:30 IST -> 13:00 UTC  (shaam)
+# GitHub cron guaranteed on-time nahi hai — peak load pe 5-30 min late ho sakta hai.
+#
+# CHANNEL GUARD: is repo me pehle se YOUTUBE_CLIENT_ID / YOUTUBE_REFRESH_TOKEN
+# hain — wo "The Money Rule" (finance English) channel ke hain. Kids GK short
+# unse upload hua to GALAT channel pe chala jayega. Isliye ye workflow sirf
+# KIDS_YT_* secrets use karta hai. Wo set nahi honge to upload skip hoga aur
+# video artifact me milega — kuch galat jagah nahi jayega.
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: "morning ya evening"
+        type: choice
+        options: [morning, evening]
+        default: morning
+      privacy:
+        description: "unlisted / public / private"
+        type: choice
+        options: [unlisted, public, private]
+        default: unlisted
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kids-quiz-shorts
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: kids-quiz-shorts
+
+jobs:
+  make-and-upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Slot decide karo
+        id: slot
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "slot=${{ inputs.slot }}"       >> $GITHUB_OUTPUT
+            echo "privacy=${{ inputs.privacy }}" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.schedule }}" = "0 2 * * *" ]; then
+            echo "slot=morning" >> $GITHUB_OUTPUT
+            echo "privacy=public" >> $GITHUB_OUTPUT
+          else
+            echo "slot=evening" >> $GITHUB_OUTPUT
+            echo "privacy=public" >> $GITHUB_OUTPUT
+          fi
+
+      - name: System deps (ffmpeg + Devanagari fonts)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-noto-core fonts-indic libraqm0
+          fc-cache -f
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt
+
+      - name: Video banao
+        env:
+          ELEVENLABS_API_KEY:  ${{ secrets.ELEVENLABS_API_KEY }}
+          ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
+          ELEVENLABS_MODEL:    ${{ vars.ELEVENLABS_MODEL || 'eleven_multilingual_v2' }}
+        run: python src/build.py --slot ${{ steps.slot.outputs.slot }}
+
+      - name: Voice check — silent video upload mat hone do
+        run: |
+          DIR=$(ls -td out/*/ | head -1)
+          MEAN=$(ffmpeg -i "$DIR"/*.mp4 -af volumedetect -f null - 2>&1 \
+                 | grep mean_volume | awk '{print $5}')
+          echo "mean_volume = $MEAN dB"
+          python -c "import sys; m=float('$MEAN'); sys.exit('VOICE MISSING - TTS fail hua, upload rok diya.') if m < -34 else None"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kids-short-${{ steps.slot.outputs.slot }}-${{ github.run_number }}
+          path: kids-quiz-shorts/out/*/
+          retention-days: 14
+
+      - name: Kids channel ke secrets hain ya nahi
+        id: gate
+        env:
+          TOK: ${{ secrets.KIDS_YT_REFRESH_TOKEN }}
+        run: |
+          if [ -z "$TOK" ]; then
+            echo "ready=no" >> $GITHUB_OUTPUT
+            echo "::warning::KIDS_YT_REFRESH_TOKEN missing - upload skip. Video artifact me hai."
+          else
+            echo "ready=yes" >> $GITHUB_OUTPUT
+          fi
+
+      - name: YouTube pe upload
+        if: steps.gate.outputs.ready == 'yes'
+        env:
+          YT_CLIENT_ID:     ${{ secrets.KIDS_YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.KIDS_YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.KIDS_YT_REFRESH_TOKEN }}
+        run: |
+          DIR=$(ls -td out/*/ | head -1)
+          python src/upload.py --dir "${DIR%/}" --privacy ${{ steps.slot.outputs.privacy }}
+
+      - name: Telegram pe batao
+        if: always()
+        env:
+          TG:   ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          [ -z "$TG" ] && exit 0
+          MSG="Kids GK Short (${{ steps.slot.outputs.slot }}): ${{ job.status }} | upload_ready=${{ steps.gate.outputs.ready }}"
+          curl -s -X POST "https://api.telegram.org/bot$TG/sendMessage" \
+            -d chat_id="$CHAT" --data-urlencode text="$MSG" > /dev/null || true
+
+      - name: used.json commit karo
+        if: success()
+        run: |
+          git config user.name  "quiz-bot"
+          git config user.email "quiz-bot@users.noreply.github.com"
+          git add data/used.json
+          git diff --staged --quiet || git commit -m "chore(kids-gk): used questions ${{ steps.slot.outputs.slot }} $(date -u +%F)"
+          git pull --rebase --autostash || true
+          git push

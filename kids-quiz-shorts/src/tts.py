@@ -1,0 +1,166 @@
+"""Voice engine.
+
+Order: ElevenLabs (primary, tumhari female Hindi voice) -> edge-tts (hi-IN-SwaraNeural)
+-> silent track (pipeline kabhi crash na ho, video phir bhi bane).
+
+Har call ka output ek WAV file + uska exact duration, kyunki render.py ko
+timing chahiye segment length set karne ke liye.
+"""
+import hashlib
+import json
+import subprocess
+import shutil
+from pathlib import Path
+
+import config as C
+
+CACHE = C.OUT / "voice_cache"
+CACHE.mkdir(exist_ok=True, parents=True)
+
+
+# ---------------------------------------------------------------- helpers
+def audio_duration(path) -> float:
+    r = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+         "-of", "json", str(path)],
+        capture_output=True, text=True, check=True,
+    )
+    return float(json.loads(r.stdout)["format"]["duration"])
+
+
+def _to_wav(src, dst):
+    subprocess.run(
+        ["ffmpeg", "-y", "-v", "error", "-i", str(src),
+         "-ar", str(C.SAMPLE_RATE), "-ac", "1", str(dst)],
+        check=True,
+    )
+    return dst
+
+
+def clean_for_tts(text: str) -> str:
+    """TTS ko emoji/symbols mat do — Swara aur ElevenLabs dono unko literal padh
+    dete hain ya glitch karte hain."""
+    drop = "🔥✅❌👉🎯⭐️*#_~`|<>[]{}"
+    for ch in drop:
+        text = text.replace(ch, " ")
+    text = text.replace("?", "? ").replace("।", "। ")
+    return " ".join(text.split())
+
+
+# ---------------------------------------------------------------- engines
+def _eleven(text: str, out_wav: Path) -> bool:
+    if not (C.ELEVEN_API_KEY and C.ELEVEN_VOICE_ID):
+        return False
+    try:
+        import requests
+    except ImportError:
+        return False
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{C.ELEVEN_VOICE_ID}"
+    try:
+        r = requests.post(
+            url,
+            headers={"xi-api-key": C.ELEVEN_API_KEY,
+                     "Content-Type": "application/json",
+                     "Accept": "audio/mpeg"},
+            json={
+                "text": text,
+                "model_id": C.ELEVEN_MODEL,
+                "voice_settings": {
+                    "stability": C.ELEVEN_STABILITY,
+                    "similarity_boost": C.ELEVEN_SIMILARITY,
+                    "speed": C.ELEVEN_SPEED,
+                },
+            },
+            timeout=90,
+        )
+        if r.status_code != 200:
+            print(f"[tts] ElevenLabs {r.status_code}: {r.text[:200]}")
+            return False
+        mp3 = out_wav.with_suffix(".mp3")
+        mp3.write_bytes(r.content)
+        _to_wav(mp3, out_wav)
+        mp3.unlink(missing_ok=True)
+        return True
+    except Exception as e:
+        print(f"[tts] ElevenLabs failed: {e}")
+        return False
+
+
+def _edge(text: str, out_wav: Path) -> bool:
+    if not shutil.which("edge-tts"):
+        return False
+    try:
+        mp3 = out_wav.with_suffix(".mp3")
+        subprocess.run(
+            ["edge-tts", "--voice", C.EDGE_VOICE, "--text", text,
+             "--write-media", str(mp3)],
+            check=True, capture_output=True,
+        )
+        _to_wav(mp3, out_wav)
+        mp3.unlink(missing_ok=True)
+        return True
+    except Exception as e:
+        print(f"[tts] edge-tts failed: {e}")
+        return False
+
+
+def _silent(text: str, out_wav: Path) -> bool:
+    """Aakhri fallback. Duration = word count se estimate (Hindi ~2.6 words/sec)."""
+    words = max(len(text.split()), 1)
+    dur = max(1.5, words / 2.6)
+    subprocess.run(
+        ["ffmpeg", "-y", "-v", "error", "-f", "lavfi",
+         "-i", f"anullsrc=r={C.SAMPLE_RATE}:cl=mono",
+         "-t", f"{dur:.2f}", str(out_wav)],
+        check=True,
+    )
+    print(f"[tts] SILENT fallback used ({dur:.1f}s) — voice missing!")
+    return True
+
+
+# ---------------------------------------------------------------- public
+def say(text: str, tag: str = "") -> tuple[Path, float, str]:
+    """Returns (wav_path, duration_seconds, engine_used). Cached by text hash."""
+    text = clean_for_tts(text)
+    key = hashlib.sha1(
+        f"{text}|{C.ELEVEN_VOICE_ID}|{C.ELEVEN_MODEL}".encode()
+    ).hexdigest()[:16]
+    out_wav = CACHE / f"{tag}_{key}.wav" if tag else CACHE / f"{key}.wav"
+    meta = out_wav.with_suffix(".json")
+
+    if out_wav.exists() and meta.exists():
+        m = json.loads(meta.read_text())
+        return out_wav, m["dur"], m["engine"] + "+cache"
+
+    for name, fn in (("elevenlabs", _eleven), ("edge", _edge), ("silent", _silent)):
+        if fn(text, out_wav):
+            dur = audio_duration(out_wav)
+            meta.write_text(json.dumps({"dur": dur, "engine": name, "text": text}))
+            return out_wav, dur, name
+    raise RuntimeError("Koi TTS engine kaam nahi kiya")
+
+
+def question_script(q: dict, index: int, total: int) -> str:
+    """Voice kya bolegi — sawaal + chaaron option, TTS-safe Hindi."""
+    labels = ["ए", "बी", "सी", "डी"]
+    opts = "। ".join(f"{labels[i]}, {o}" for i, o in enumerate(q["opts"]))
+    lead = "पहला सवाल।" if index == 0 else ("आखिरी सवाल।" if index == total - 1 else "अगला सवाल।")
+    return f"{lead} {q['q']} {opts}। अब सोचो, आठ सेकंड।"
+
+
+def reveal_script(q: dict) -> str:
+    labels = ["ए", "बी", "सी", "डी"]
+    return f"सही जवाब है, {labels[q['ans']]}, {q['opts'][q['ans']]}।"
+
+
+def intro_script() -> str:
+    return "नमस्ते बच्चों! आज का जी के सवाल। तैयार हो जाओ।"
+
+
+def outro_script() -> str:
+    return "कितने सही हुए? कमेंट में लिखो। और चैनल को सब्सक्राइब करना मत भूलना।"
+
+
+if __name__ == "__main__":
+    p, d, e = say("नमस्ते बच्चों, आज का सवाल।", "test")
+    print(p, f"{d:.2f}s", e)
