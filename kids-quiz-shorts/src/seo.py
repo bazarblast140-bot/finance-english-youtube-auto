@@ -88,6 +88,9 @@ def build(questions, slot="morning", date=None):
     tags = list(BASE_TAGS)
     for c in dict.fromkeys(subs):
         tags += SUB_TAGS.get(c, [])
+    if any(q.get("topic") == "सबसे" for q in questions):
+        tags = ["duniya me sabse bada", "sabse uncha kaun sa hai",
+                "world records for kids hindi", "duniya ka sabse"] + tags
     seen, out_tags, total = set(), [], 0
     for t in tags:
         if t in seen:

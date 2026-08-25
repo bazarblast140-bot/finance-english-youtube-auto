@@ -127,9 +127,15 @@ lagaya hai.
 `ans` = 0-based index. `data/used.json` khud maintain hoti hai — wahi sawaal
 dobara nahi aayega jab tak poora bank khatam na ho jaye.
 
-**Bank abhi chhota hai:** 91 sawaal ÷ 4 roz = **~22 din**. Uske baad cycle reset
-hoke purane sawaal repeat honge. English aur Maths sabse pehle khatam honge
-(21-21 hain). Teen hafte ke andar har subject ko 60+ tak le jaao.
+**Bank:** 116 sawaal ÷ 4 roz = **~29 din**. Uske baad cycle reset hoke purane
+sawaal repeat honge. **English aur Maths sabse pehle khatam honge (21-21 hain)** —
+GK 42 aur Science 32 hain, to rotation English/Maths pe jaldi atkega. Agla kaam:
+in dono ko 40+ tak le jaao.
+
+**"सबसे" wale sawaal:** 25 superlative sawaal hain (`"topic": "सबसे"`) — duniya
+ka sabse bada / ooncha / chhota / gehra / lamba. Ye sabse zyada search hone wale
+kids GK sawaal hain, isliye inke liye SEO me alag tags bhi jud jaate hain.
+Naya superlative daalo to `topic` field zaroor lagana.
 
 ---
 
