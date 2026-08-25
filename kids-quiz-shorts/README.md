@@ -12,7 +12,12 @@ free `hi-IN-SwaraNeural` pe chali jaati hai.
 **Chaar subject:** GK · Science · Maths · English. Har din slot ke hisaab se
 rotate hote hain, taaki hafte bhar me chaaron barabar aayein.
 
-Video: 1080x1920, 30fps, ~45-52 second (Shorts shelf ki 60s limit ke andar).
+Video: 1080x1920, 30fps, ~52-60 second.
+
+**Length ke baare me:** Shorts ki asli limit **3 minute** hai (Oct 2024 se;
+pehle 60s thi). Hum 60s ke aas-paas isliye rehte hain kyunki engagement ka
+sweet spot 30-60s hai — ye retention ka target hai, platform ka rule nahi.
+`config.py` me `TARGET_SECONDS` aur `HARD_LIMIT_SECONDS` alag-alag hain.
 
 ---
 
@@ -129,6 +134,12 @@ kuch galat jagah nahi jaayega.
 voice pe chal jaata hai — log me `voice: edge` dikhega aur build ke ant me
 saaf likha aata hai ki ElevenLabs fail hua. Sirf teeno fail hone pe silent
 video banta hai, aur us case me workflow ka volume-check upload rok deta hai.
+
+**2b. Pinned comment API se nahi lagta.** `metadata.json` me `pinned_comment`
+ready hota hai, par usse post karne ke liye jo scope chahiye wo tumhare
+refresh token me granted nahi hai (403 aata hai, aur script use chup-chaap
+skip kar deti hai). Comment khud paste kar do, ya `youtube_auth.py` dobara
+chala ke naya token banao.
 
 **3. YouTube quota.** Har upload ~1600 units. Daily quota 10,000 = ~6 upload/din.
 Tumhein 2 chahiye, so theek hai — par upload script me retry max 2 rakha hai

@@ -218,11 +218,11 @@ def main():
     segs = plan_segments(questions)
     total_dur = sum(s["frames"] for s in segs) / C.FPS
     print(f"[plan] {len(segs)} segments, {total_dur:.2f}s total")
-    # Reasoning add hone se video lamba ho gaya hai. 60s cross karte hi YouTube
-    # ise Short nahi maanta — isliye yahan apne aap intro/outro se time chhinte
-    # hain. Timer aur reveal ko haath nahi lagate, wo content hai.
-    if total_dur > 58.0:
-        need = total_dur - 58.0
+    # 60s koi platform limit NAHI hai (asli limit 3 min hai) — ye retention
+    # target hai. Isliye yahan sirf intro/outro trim karte hain; agar phir bhi
+    # thoda upar reh jaaye to koi dikkat nahi, video Short hi rahega.
+    if total_dur > C.TARGET_SECONDS - 2:
+        need = total_dur - (C.TARGET_SECONDS - 2)
         for kind, floor in (("outro", 2.5), ("intro", 1.6)):
             if need <= 0:
                 break
@@ -235,11 +235,15 @@ def main():
                     sg["frames"] = max(1, round((cur - cut) / (1 / C.FPS)))
                     need -= cut
         total_dur = sum(s["frames"] for s in segs) / C.FPS
-        print(f"[plan] trimmed to {total_dur:.2f}s (60s Shorts limit)")
-    if total_dur > 59.0:
-        print(f"[warn] {total_dur:.1f}s — 60s Shorts limit cross ho raha hai.\n"
-              "       Fix: config.py me ELEVEN_SPEED badhao (1.1-1.2), ya "
-              "questions.json me 'why' chhota karo, ya TIMER_SECONDS ghatao.")
+        print(f"[plan] trimmed to {total_dur:.2f}s (target {C.TARGET_SECONDS:.0f}s)")
+    if total_dur > C.HARD_LIMIT_SECONDS:
+        print(f"[ERROR] {total_dur:.1f}s — 3 min se lamba hai, ye Short nahi "
+              "banega, normal video ban jaayega. TIMER_SECONDS ya "
+              "QUESTIONS_PER_VIDEO ghatao.")
+    elif total_dur > C.TARGET_SECONDS + 5:
+        print(f"[note] {total_dur:.1f}s — Short to rahega (limit 3 min), par "
+              f"retention ke liye {C.TARGET_SECONDS:.0f}s ke aas-paas behtar hai. "
+              "ELEVEN_SPEED badhao ya 'why' chhota karo.")
 
     from seo import SUB_HI
     subs = " + ".join(dict.fromkeys(SUB_HI.get(q.get("sub", "GK"), "जीके")

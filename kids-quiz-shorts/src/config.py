@@ -13,6 +13,15 @@ W, H = 1080, 1920           # YouTube Shorts vertical
 FPS = 30
 QUESTIONS_PER_VIDEO = 2     # Rajesh spec: 2 sawaal per short
 TIMER_SECONDS = 8           # Rajesh spec: 8 second tik-tik
+# Length ke do alag number hain — inhe mat mila dena:
+#   HARD_LIMIT_SECONDS = platform ka asli rule. Oct 2024 se Shorts 3 MINUTE
+#     tak ke ho sakte hain (pehle 60s tha). Isse upar gaya to normal video
+#     ban jaata hai, Shorts feed me nahi jaata.
+#   TARGET_SECONDS = retention ka target, rule nahi. Shorts ka engagement
+#     sweet spot 30-60s hai, isliye hum yahin rehne ki koshish karte hain.
+HARD_LIMIT_SECONDS = 180.0
+TARGET_SECONDS = 60.0
+
 INTRO_SECONDS = 2.0
 REVEAL_SECONDS = 3.2
 OUTRO_SECONDS = 3.0
