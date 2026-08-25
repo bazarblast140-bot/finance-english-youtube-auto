@@ -1,19 +1,19 @@
 # Last run
-- when   : 2026-08-25 14:55 UTC
+- when   : 2026-08-25 15:48 UTC
 - slot   : evening
 - privacy: public
 - upload : success
 
 ## metadata
-- title: होमवर्क के बाद ये सवाल 🤔 अंग्रेज़ी वर्णमाला में कितने अक्षर होते …? | इंग्लिश + जीके Quiz #shorts
-- duration_sec: 44.07
+- title: 'Teacher' का हिंदी अर्थ क्या है? 🤔 | इंग्लिश + जीके क्विज़ Class 1-5
+- duration_sec: 40.23
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/NSDcZahVp-c
+- youtube_url: https://youtube.com/shorts/S4QT3N7UY1o
 
 ## upload output (tail)
 ```
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/NSDcZahVp-c
+[upload] done -> https://youtube.com/shorts/S4QT3N7UY1o
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
