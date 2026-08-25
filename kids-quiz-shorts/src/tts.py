@@ -105,9 +105,11 @@ def _edge(text: str, out_wav: Path) -> bool:
 
 
 def _silent(text: str, out_wav: Path) -> bool:
-    """Aakhri fallback. Duration = word count se estimate (Hindi ~2.6 words/sec)."""
+    """Aakhri fallback. Duration estimate asli TTS ke kareeb rakha hai —
+    pehle 2.6 words/sec tha, jisse local dry-run 56s dikhata tha jabki asli
+    edge-tts video 77s ka bana. Measured rate ~1.9 words/sec hai."""
     words = max(len(text.split()), 1)
-    dur = max(1.5, words / 2.6)
+    dur = max(1.5, words / 1.9)
     subprocess.run(
         ["ffmpeg", "-y", "-v", "error", "-f", "lavfi",
          "-i", f"anullsrc=r={C.SAMPLE_RATE}:cl=mono",
@@ -141,11 +143,17 @@ def say(text: str, tag: str = "") -> tuple[Path, float, str]:
 
 
 def question_script(q: dict, index: int, total: int) -> str:
-    """Voice kya bolegi — sawaal + chaaron option, TTS-safe Hindi."""
+    """Sirf sawaal. Options alag se bolte hain — wo timer ke DAURAN chalte hain,
+    isse har sawaal se ~7 second bachte hain aur video 60s ke andar rehta hai."""
+    lead = "पहला सवाल।" if index == 0 else ("आखिरी सवाल।" if index == total - 1 else "अगला सवाल।")
+    return f"{lead} {q['q']}"
+
+
+def options_script(q: dict) -> str:
+    """Timer chalte waqt bolne ke liye — chaaron option."""
     labels = ["ए", "बी", "सी", "डी"]
     opts = "। ".join(f"{labels[i]}, {o}" for i, o in enumerate(q["opts"]))
-    lead = "पहला सवाल।" if index == 0 else ("आखिरी सवाल।" if index == total - 1 else "अगला सवाल।")
-    return f"{lead} {q['q']} {opts}। अब सोचो, आठ सेकंड।"
+    return f"{opts}। अब सोचो।"
 
 
 def reveal_script(q: dict) -> str:
@@ -158,11 +166,11 @@ def reveal_script(q: dict) -> str:
 
 
 def intro_script() -> str:
-    return "नमस्ते बच्चों! क्विज़ पाठशाला में आज के दो सवाल। तैयार?"
+    return "क्विज़ पाठशाला! आज के दो सवाल।"
 
 
 def outro_script() -> str:
-    return "कितने सही हुए? कमेंट में लिखो और सब्सक्राइब करना मत भूलना।"
+    return "कितने सही हुए? कमेंट करो, सब्सक्राइब करो!"
 
 
 if __name__ == "__main__":

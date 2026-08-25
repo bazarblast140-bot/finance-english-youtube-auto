@@ -36,9 +36,12 @@ def _creds():
     cid = os.environ["YT_CLIENT_ID"]
     csec = os.environ["YT_CLIENT_SECRET"]
     rtok = os.environ["YT_REFRESH_TOKEN"]
+    # scopes JAAN-BOOJH KE nahi bhej rahe. Refresh ke waqt scope param bhejne se
+    # Google use granted set se match karta hai; zara sa farq bhi ho to
+    # invalid_scope aata hai. Bina param ke wo jo granted hai wahi de deta hai.
     return Credentials(
         None, refresh_token=rtok, client_id=cid, client_secret=csec,
-        token_uri="https://oauth2.googleapis.com/token", scopes=SCOPES,
+        token_uri="https://oauth2.googleapis.com/token",
     )
 
 

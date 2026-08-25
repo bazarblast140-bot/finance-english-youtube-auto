@@ -73,7 +73,7 @@ FONT_CANDIDATES_REG = [
 
 # ---------- audio ----------
 SAMPLE_RATE = 44100
-TICK_VOLUME = 0.30
+TICK_VOLUME = 0.20   # voice ab timer ke dauran chalti hai, tick dabna nahi chahiye
 VOICE_VOLUME = 1.0
 
 # ---------- ElevenLabs ----------
@@ -83,7 +83,7 @@ ELEVEN_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "")
 ELEVEN_MODEL = os.getenv("ELEVENLABS_MODEL", "eleven_multilingual_v2")
 ELEVEN_STABILITY = 0.45
 ELEVEN_SIMILARITY = 0.80
-ELEVEN_SPEED = 1.0
+ELEVEN_SPEED = 1.08  # thoda tez — 60s Shorts limit ke liye headroom
 
 # Fallback agar ElevenLabs fail ho (quota/network): edge-tts female Hindi
 EDGE_VOICE = os.getenv("EDGE_VOICE", "hi-IN-SwaraNeural")

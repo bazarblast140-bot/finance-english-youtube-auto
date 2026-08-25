@@ -77,8 +77,16 @@ def plan_segments(questions):
                          audio=[(0.0, v, C.VOICE_VOLUME)],
                          payload=(q, i + 1, n)))
 
-        segs.append(dict(kind="timer", dur=float(C.TIMER_SECONDS),
-                         audio=[(0.0, "TICKBED", C.TICK_VOLUME)],
+        # Options timer ke DAURAN bolte hain. Agar bolne me 8s se zyada lage to
+        # segment utna lamba ho jaata hai — par countdown hamesha poore 8 second
+        # ka dikhta hai (ring segment ke aakhri 8 second me chalti hai).
+        ov, od, oeng = tts.say(tts.options_script(q), f"o{i}_{q['id']}")
+        ENGINES.append(oeng)
+        tdur = max(float(C.TIMER_SECONDS), od + 0.5)
+        print(f"[voice] Q{i+1} options {od:.2f}s via {oeng} -> timer segment {tdur:.2f}s")
+        segs.append(dict(kind="timer", dur=tdur,
+                         audio=[(0.0, "TICKBED", C.TICK_VOLUME),
+                                (0.0, ov, C.VOICE_VOLUME)],
                          payload=(q, i + 1, n)))
 
         v, d, eng = tts.say(tts.reveal_script(q), f"a{i}_{q['id']}")
@@ -123,8 +131,10 @@ def render_video(segs, frames_dir: Path, intro_title="आज के सवाल
                               y=max(render.FOOTER_Y, opt_end + 34))
 
         if kind == "timer":
+            seg_secs = nf / C.FPS
             for f in range(nf):                     # sirf yahan per-frame kaam
-                remaining = C.TIMER_SECONDS * (1 - f / nf)
+                elapsed = f / C.FPS
+                remaining = min(float(C.TIMER_SECONDS), seg_secs - elapsed)
                 img = base.copy()
                 render.timer_ring(img, remaining, C.TIMER_SECONDS)
                 img.save(frames_dir / f"f{idx:06d}.jpg", quality=92)
@@ -153,7 +163,13 @@ def render_audio(segs, total_frames) -> np.ndarray:
         seg_start = int(round(frame_cursor / C.FPS * C.SAMPLE_RATE))
         for off, src, gain in s["audio"]:
             if src == "TICKBED":
+                # tick sirf aakhri 8 second me, taaki wo countdown se sync rahe
+                seg_secs = s["frames"] / C.FPS
+                lead = max(0.0, seg_secs - C.TIMER_SECONDS)
                 clip = sfx.build_timer_bed(C.TIMER_SECONDS, 1.0)
+                at_extra = int(lead * C.SAMPLE_RATE)
+                mix(track, clip, seg_start + at_extra, gain)
+                continue
             elif src == "DING":
                 clip = ding
             else:
@@ -221,7 +237,9 @@ def main():
         total_dur = sum(s["frames"] for s in segs) / C.FPS
         print(f"[plan] trimmed to {total_dur:.2f}s (60s Shorts limit)")
     if total_dur > 59.0:
-        print("[warn] abhi bhi 59s+ — TIMER_SECONDS ya reasoning chhota karo.")
+        print(f"[warn] {total_dur:.1f}s — 60s Shorts limit cross ho raha hai.\n"
+              "       Fix: config.py me ELEVEN_SPEED badhao (1.1-1.2), ya "
+              "questions.json me 'why' chhota karo, ya TIMER_SECONDS ghatao.")
 
     from seo import SUB_HI
     subs = " + ".join(dict.fromkeys(SUB_HI.get(q.get("sub", "GK"), "जीके")
