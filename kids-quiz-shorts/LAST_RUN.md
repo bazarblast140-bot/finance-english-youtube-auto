@@ -1,47 +1,17 @@
 # Last run
-- when   : 2026-08-25 11:28 UTC
+- when   : 2026-08-25 11:35 UTC
 - slot   : morning
 - privacy: unlisted
-- upload : failure
+- upload : success
 
 ## metadata
 - title: क्या तुम्हें पता है? 🤔 सौ में से पैंतालीस घटाने पर कितना बचेगा…? | गणित + इंग्लिश Quiz #shorts
-- duration_sec: 77.27
+- duration_sec: 60.1
+- youtube_url: https://youtube.com/shorts/RpTNcOZfP6Y
 
 ## upload output (tail)
 ```
-[upload] channel naam nahi padh paaya (upload phir bhi try karenge): ('invalid_scope: Bad Request', {'error': 'invalid_scope', 'error_description': 'Bad Request'})
-Traceback (most recent call last):
-  File "/home/runner/work/finance-english-youtube-auto/finance-english-youtube-auto/kids-quiz-shorts/src/upload.py", line 147, in <module>
-    upload(a.dir / "metadata.json", a.privacy, a.publish_at)
-  File "/home/runner/work/finance-english-youtube-auto/finance-english-youtube-auto/kids-quiz-shorts/src/upload.py", line 105, in upload
-    prog, resp = req.next_chunk()
-                 ^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/googleapiclient/_helpers.py", line 130, in positional_wrapper
-    return wrapped(*args, **kwargs)
-           ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/googleapiclient/http.py", line 1007, in next_chunk
-    resp, content = _retry_request(
-                    ^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/googleapiclient/http.py", line 191, in _retry_request
-    resp, content = http.request(uri, method, *args, **kwargs)
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/google_auth_httplib2.py", line 205, in request
-    self.credentials.before_request(self._request, method, uri, request_headers)
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/google/auth/credentials.py", line 240, in before_request
-    self._blocking_refresh(request)
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/google/auth/credentials.py", line 203, in _blocking_refresh
-    self.refresh(request)
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/google/auth/credentials.py", line 517, in refresh
-    self._perform_refresh_token(request)
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/google/oauth2/credentials.py", line 435, in _perform_refresh_token
-    ) = reauth.refresh_grant(
-        ^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/google/oauth2/reauth.py", line 370, in refresh_grant
-    _client._handle_error_response(response_data, retryable_error)
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/site-packages/google/oauth2/_client.py", line 73, in _handle_error_response
-    raise exceptions.RefreshError(
-google.auth.exceptions.RefreshError: ('invalid_scope: Bad Request', {'error': 'invalid_scope', 'error_description': 'Bad Request'})
-
-[upload] FAILED (http=None): ('invalid_scope: Bad Request', {'error': 'invalid_scope', 'error_description': 'Bad Request'})
+[upload] channel: QUIZ PATHSHALA
+[upload] done -> https://youtube.com/shorts/RpTNcOZfP6Y
+[upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
