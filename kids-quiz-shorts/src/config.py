@@ -92,7 +92,11 @@ ELEVEN_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID", "")
 ELEVEN_MODEL = os.getenv("ELEVENLABS_MODEL", "eleven_multilingual_v2")
 ELEVEN_STABILITY = 0.45
 ELEVEN_SIMILARITY = 0.80
-ELEVEN_SPEED = 1.08  # thoda tez — 60s Shorts limit ke liye headroom
+# 1.08 sirf isliye rakha tha ki video 60s ke andar aa jaye — par wo "limit"
+# thi hi nahi (asli limit 3 min hai), aur ElevenLabs edge-tts se waise hi
+# kaafi tez hai (video 54s -> 40s). Class 1-5 ke bacchon ko saaf aur thodi
+# aaram se bolti awaaz chahiye, isliye wapas normal speed.
+ELEVEN_SPEED = 1.0
 
 # Fallback agar ElevenLabs fail ho (quota/network): edge-tts female Hindi
 EDGE_VOICE = os.getenv("EDGE_VOICE", "hi-IN-SwaraNeural")
