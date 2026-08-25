@@ -168,6 +168,22 @@ refresh token me granted nahi hai (403 aata hai, aur script use chup-chaap
 skip kar deti hai). Comment khud paste kar do, ya `youtube_auth.py` dobara
 chala ke naya token banao.
 
+**2c. Telegram notification.** Har run ke baad message aata hai — title,
+duration, voice engine, subjects, aur YouTube link. Fail hone pe Actions log
+ka link bhi. `TELEGRAM_BOT_TOKEN` aur `TELEGRAM_CHAT_ID` repo me pehle se hain.
+
+Message me pinned comment ka text bhi aata hai — API se pin nahi hota (2b),
+to phone se copy-paste karke chipka do.
+
+Test karna ho bina bheje:
+```bash
+python src/notify.py --dir out/20260825_morning --slot morning \
+  --privacy public --upload success --dry-run
+```
+Telegram fail ho to pipeline nahi rukti, par status `LAST_RUN.md` ke
+`## telegram` section me poora dikh jaata hai (galat chat_id, bot blocked,
+waghairah) — chup-chaap gayab nahi hota.
+
 **3. YouTube quota.** Har upload ~1600 units. Daily quota 10,000 = ~6 upload/din.
 Tumhein 2 chahiye, so theek hai — par upload script me retry max 2 rakha hai
 taaki koi loop ek din ka quota na kha jaye.
@@ -194,4 +210,5 @@ src/render.py    1080x1920 frames
 src/build.py     sab jodta hai -> MP4 + metadata.json
 src/seo.py       title, description, tags, hashtags
 src/upload.py    YouTube Data API v3
+src/notify.py    Telegram notification (har run pe, pass ho ya fail)
 ```

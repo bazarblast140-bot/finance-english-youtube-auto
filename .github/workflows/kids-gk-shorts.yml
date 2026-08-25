@@ -107,6 +107,19 @@ jobs:
           python src/upload.py --dir "${DIR%/}" \
             --privacy ${{ steps.slot.outputs.privacy }} 2>&1 | tee upload_out.txt
 
+      - name: Telegram pe batao
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          DIR=$(ls -td out/*/ | head -1)
+          python src/notify.py --dir "${DIR%/}" \
+            --slot "${{ steps.slot.outputs.slot }}" \
+            --privacy "${{ steps.slot.outputs.privacy }}" \
+            --upload "${{ steps.up.outcome }}" \
+            --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
       # CI logs Azure blob pe hote hain jo har network se readable nahi. Isliye
       # last run ka nateeja repo me hi likh dete hain — mobile se bhi dikh jaaye.
       - name: Last run ka status repo me likho
@@ -127,18 +140,12 @@ jobs:
             echo '```'
             tail -n 40 upload_out.txt 2>/dev/null || echo "(upload step chala hi nahi)"
             echo '```'
+            echo
+            echo '## telegram'
+            echo '```'
+            cat telegram_out.txt 2>/dev/null || echo "(telegram step chala hi nahi)"
+            echo '```'
           } > LAST_RUN.md
-
-      - name: Telegram pe batao
-        if: always()
-        env:
-          TG:   ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: |
-          [ -z "$TG" ] && exit 0
-          MSG="Kids GK Short (${{ steps.slot.outputs.slot }}): ${{ job.status }}"
-          curl -s -X POST "https://api.telegram.org/bot$TG/sendMessage" \
-            -d chat_id="$CHAT" --data-urlencode text="$MSG" > /dev/null || true
 
       - name: used.json + LAST_RUN.md commit karo
         if: always()

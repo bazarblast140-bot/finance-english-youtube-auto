@@ -258,6 +258,7 @@ def main():
 
     meta = build_seo(questions, args.slot)
     meta["video_file"] = str(mp4)
+    meta["subjects"] = [q.get("sub", "GK") for q in questions]
     meta["duration_sec"] = round(total_frames / C.FPS, 2)
     (outdir / "metadata.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
