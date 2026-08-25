@@ -62,13 +62,8 @@ def plan_segments(questions):
     segs = []
     n = len(questions)
 
-    v, d, eng = tts.say(tts.intro_script(), "intro")
-    ENGINES.append(eng)
-    print(f"[voice] intro {d:.2f}s via {eng}")
-    segs.append(dict(kind="intro", dur=d + C.READ_PAD_SECONDS,
-                     audio=[(0.0, v, C.VOICE_VOLUME)],
-                     payload=None))
-
+    # Koi intro segment nahi. Video ka frame 0 hi pehla sawaal hai — Shorts me
+    # branding/intro card sirf scroll-away banata hai.
     for i, q in enumerate(questions):
         v, d, eng = tts.say(tts.question_script(q, i, n), f"q{i}_{q['id']}")
         ENGINES.append(eng)
@@ -108,7 +103,7 @@ def plan_segments(questions):
 
 
 # ---------------------------------------------------------------- render
-def render_video(segs, frames_dir: Path, intro_title="आज के सवाल"):
+def render_video(segs, frames_dir: Path):
     if frames_dir.exists():
         shutil.rmtree(frames_dir)
     frames_dir.mkdir(parents=True)
@@ -116,9 +111,7 @@ def render_video(segs, frames_dir: Path, intro_title="आज के सवाल
     for s in segs:
         kind, payload, nf = s["kind"], s["payload"], s["frames"]
 
-        if kind == "intro":
-            base = render.title_panel(intro_title, "कक्षा 1 से 5 के बच्चों के लिए")
-        elif kind == "outro":
+        if kind == "outro":
             base = render.title_panel("कितने सही हुए?",
                                       "कमेंट में लिखो • रोज़ सुबह-शाम नया सवाल")
         else:
@@ -223,7 +216,7 @@ def main():
     # thoda upar reh jaaye to koi dikkat nahi, video Short hi rahega.
     if total_dur > C.TARGET_SECONDS - 2:
         need = total_dur - (C.TARGET_SECONDS - 2)
-        for kind, floor in (("outro", 2.5), ("intro", 1.6)):
+        for kind, floor in (("outro", 2.5),):
             if need <= 0:
                 break
             for sg in segs:
@@ -245,11 +238,8 @@ def main():
               f"retention ke liye {C.TARGET_SECONDS:.0f}s ke aas-paas behtar hai. "
               "ELEVEN_SPEED badhao ya 'why' chhota karo.")
 
-    from seo import SUB_HI
-    subs = " + ".join(dict.fromkeys(SUB_HI.get(q.get("sub", "GK"), "जीके")
-                                    for q in questions))
     frames_dir = outdir / "frames"
-    total_frames = render_video(segs, frames_dir, f"आज: {subs}")
+    total_frames = render_video(segs, frames_dir)
     track = render_audio(segs, total_frames)
     wav = sfx.write_wav(outdir / "audio.wav", track)
 

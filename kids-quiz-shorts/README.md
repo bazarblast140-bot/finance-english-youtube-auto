@@ -4,6 +4,14 @@
 > Root ka finance long-form pipeline (`run_pipeline.py`) isse bilkul untouched hai.
 
 Roz **subah aur shaam** ek-ek YouTube Short apne aap banta hai aur upload ho jaata hai.
+**Koi intro nahi.** Frame 0 se hi pehla sawaal dikhta hai aur bolna shuru
+ho jaata hai — Shorts me viewer scroll karke aata hai, pehle 1-2 second me
+sawaal shuru na ho to wo aage scroll kar deta hai. Branding sirf upar ke
+banner me rehti hai.
+
+Flow: सवाल बोला जाता है → 8s timer chalta hai (uske dauran A, B, C, D bole
+jaate hain) → timer khatam → सही जवाब + "क्यों" → agla sawaal.
+
 Har video me **2 sawaal** (do alag subject se), har sawaal pe **4 option**,
 **8 second ka tik-tik timer**, phir **sahi jawab + ek line "क्यों"** — sirf ratna
 nahi, samajhna. Voice **ElevenLabs female Hindi** hai; fail ho to apne aap

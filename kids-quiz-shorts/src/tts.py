@@ -143,10 +143,14 @@ def say(text: str, tag: str = "") -> tuple[Path, float, str]:
 
 
 def question_script(q: dict, index: int, total: int) -> str:
-    """Sirf sawaal. Options alag se bolte hain — wo timer ke DAURAN chalte hain,
-    isse har sawaal se ~7 second bachte hain aur video 60s ke andar rehta hai."""
-    lead = "पहला सवाल।" if index == 0 else ("आखिरी सवाल।" if index == total - 1 else "अगला सवाल।")
-    return f"{lead} {q['q']}"
+    """Sirf sawaal — koi lead-in nahi ("पहला सवाल" waghairah hata diya).
+
+    Shorts me viewer scroll karke aata hai; pehle 1-2 second me agar sawaal
+    shuru nahi hua to wo aage scroll kar deta hai. Isliye frame 0 se hi
+    sawaal bolna shuru hota hai.
+
+    Options alag se bolte hain — wo timer ke DAURAN chalte hain."""
+    return q["q"]
 
 
 def options_script(q: dict) -> str:
@@ -163,10 +167,6 @@ def reveal_script(q: dict) -> str:
     base = f"सही जवाब है, {labels[q['ans']]}, {q['opts'][q['ans']]}।"
     why = (q.get("why") or "").strip()
     return f"{base} {why}" if why else base
-
-
-def intro_script() -> str:
-    return "क्विज़ पाठशाला! आज के दो सवाल।"
 
 
 def outro_script() -> str:
