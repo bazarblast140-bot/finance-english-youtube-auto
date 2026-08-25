@@ -5,11 +5,9 @@ name: Kids GK Quiz Shorts
 #   18:30 IST -> 13:00 UTC  (shaam)
 # GitHub cron guaranteed on-time nahi hai — peak load pe 5-30 min late ho sakta hai.
 #
-# CHANNEL GUARD: is repo me pehle se YOUTUBE_CLIENT_ID / YOUTUBE_REFRESH_TOKEN
-# hain — wo "The Money Rule" (finance English) channel ke hain. Kids GK short
-# unse upload hua to GALAT channel pe chala jayega. Isliye ye workflow sirf
-# KIDS_YT_* secrets use karta hai. Wo set nahi honge to upload skip hoga aur
-# video artifact me milega — kuch galat jagah nahi jayega.
+# CHANNEL: wahi channel jo pehle "The Money Rule" tha — Rajesh ne rename karke
+# kids GK bana diya hai. Isliye repo ke maujuda YOUTUBE_* secrets hi use ho rahe
+# hain; alag KIDS_YT_* ki zaroorat nahi. Purana finance cron paused hai.
 
 on:
   schedule:
@@ -92,25 +90,11 @@ jobs:
           name: kids-short-${{ steps.slot.outputs.slot }}-${{ github.run_number }}
           path: kids-quiz-shorts/out/*/
           retention-days: 14
-
-      - name: Kids channel ke secrets hain ya nahi
-        id: gate
-        env:
-          TOK: ${{ secrets.KIDS_YT_REFRESH_TOKEN }}
-        run: |
-          if [ -z "$TOK" ]; then
-            echo "ready=no" >> $GITHUB_OUTPUT
-            echo "::warning::KIDS_YT_REFRESH_TOKEN missing - upload skip. Video artifact me hai."
-          else
-            echo "ready=yes" >> $GITHUB_OUTPUT
-          fi
-
       - name: YouTube pe upload
-        if: steps.gate.outputs.ready == 'yes'
         env:
-          YT_CLIENT_ID:     ${{ secrets.KIDS_YT_CLIENT_ID }}
-          YT_CLIENT_SECRET: ${{ secrets.KIDS_YT_CLIENT_SECRET }}
-          YT_REFRESH_TOKEN: ${{ secrets.KIDS_YT_REFRESH_TOKEN }}
+          YT_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
         run: |
           DIR=$(ls -td out/*/ | head -1)
           python src/upload.py --dir "${DIR%/}" --privacy ${{ steps.slot.outputs.privacy }}
@@ -122,7 +106,7 @@ jobs:
           CHAT: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           [ -z "$TG" ] && exit 0
-          MSG="Kids GK Short (${{ steps.slot.outputs.slot }}): ${{ job.status }} | upload_ready=${{ steps.gate.outputs.ready }}"
+          MSG="Kids GK Short (${{ steps.slot.outputs.slot }}): ${{ job.status }}"
           curl -s -X POST "https://api.telegram.org/bot$TG/sendMessage" \
             -d chat_id="$CHAT" --data-urlencode text="$MSG" > /dev/null || true
 

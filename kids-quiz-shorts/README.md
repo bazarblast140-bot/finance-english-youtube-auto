@@ -28,22 +28,18 @@ python src/build.py --slot morning --dry-run
 
 Output `out/YYYYMMDD_morning/` me milega — MP4 + `metadata.json`.
 
-### YouTube auth (ek baar, laptop pe — CI me nahi hoga)
+### YouTube auth
 
-1. Google Cloud Console → naya project → **YouTube Data API v3** enable karo
-2. OAuth client banao, type **Desktop app** → `client_secret.json` download
-3. `python src/upload.py --auth` chalao, browser me channel se login karo
-4. Terminal pe jo 3 values print hongi, unhe GitHub repo → Settings → Secrets me daalo:
-   `YT_CLIENT_ID`, `YT_CLIENT_SECRET`, `YT_REFRESH_TOKEN`
+Already done — repo ke `YOUTUBE_*` secrets isi channel ke hain. Sirf tab
+dobara banana padega agar tum naya alag channel kholo:
+`python src/upload.py --auth` (laptop pe, CI me interactive login nahi hota).
 
-Secrets me ye naam use karo (finance channel wale `YOUTUBE_*` se alag rakhna
-zaroori hai):
+YouTube ke `YOUTUBE_CLIENT_ID` / `YOUTUBE_CLIENT_SECRET` /
+`YOUTUBE_REFRESH_TOKEN` secrets is repo me **pehle se set hain** — kuch
+karne ki zaroorat nahi. Sirf ye do naye daalne hain:
 
 | Secret | Kyun |
 |---|---|
-| `KIDS_YT_CLIENT_ID` | Kids channel ka OAuth client |
-| `KIDS_YT_CLIENT_SECRET` | ,, |
-| `KIDS_YT_REFRESH_TOKEN` | Kids channel se login karke banaya |
 | `ELEVENLABS_API_KEY` | Female Hindi voice |
 | `ELEVENLABS_VOICE_ID` | ,, |
 
@@ -107,12 +103,17 @@ hai. **Channel Settings → Audience me bhi "No, it's not made for kids" hi
 rakhna** — warna channel-level setting video-level ko override kar degi aur
 comments phir bhi band ho jaayenge.
 
-**1b. Wrong-channel guard.** Is repo ke `YOUTUBE_*` secrets *The Money Rule*
-(finance English) channel ke hain. Kids short unse upload hua to galat channel
-pe chala jaayega. Isliye workflow sirf `KIDS_YT_CLIENT_ID` /
-`KIDS_YT_CLIENT_SECRET` / `KIDS_YT_REFRESH_TOKEN` use karta hai. Ye set nahi
-honge to upload skip ho jaata hai aur video Actions artifact me milta hai —
-kuch galat jagah nahi jaayega.
+**1b. Channel.** Wahi channel jo pehle *The Money Rule* tha — rename karke kids
+GK bana diya gaya hai. Isliye repo ke maujuda `YOUTUBE_CLIENT_ID` /
+`YOUTUBE_CLIENT_SECRET` / `YOUTUBE_REFRESH_TOKEN` secrets hi use ho rahe hain,
+kuch naya nahi banana.
+
+**1c. Purane finance videos.** Channel ka naam badal gaya, par purane English
+finance videos wahin hain. YouTube ka algorithm mixed signal padhta hai
+(English finance viewers ko Hindi kids GK recommend karega — dono fail).
+Purane videos ko **private** kar do (delete mat karna — analytics chali
+jaayegi). `daily-finance.yml` ka cron already paused hai, to naye finance
+videos ab nahi banenge.
 
 **2. Voice fail ho to upload nahi hoga.** Workflow me ek check hai jo video ka
 mean volume dekhta hai. ElevenLabs quota khatam ho jaye to script silent
