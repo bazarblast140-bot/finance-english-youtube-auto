@@ -79,7 +79,13 @@ jobs:
           ELEVENLABS_API_KEY:  ${{ secrets.ELEVENLABS_API_KEY }}
           ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
           ELEVENLABS_MODEL:    ${{ vars.ELEVENLABS_MODEL || 'eleven_multilingual_v2' }}
-        run: python src/build.py --slot ${{ steps.slot.outputs.slot }}
+        run: |
+          python src/build.py --slot ${{ steps.slot.outputs.slot }} | tee build_out.txt
+          # ElevenLabs chup-chaap fail hoke free voice pe chala jaaye to pata
+          # chalna chahiye — warna mahino tak galat voice publish hoti rahegi.
+          if grep -q "voice: edge" build_out.txt; then
+            echo "::warning::ElevenLabs fail hua - free Swara voice pe chala. Log dekho."
+          fi
 
       - name: Voice check — silent video upload mat hone do
         run: |

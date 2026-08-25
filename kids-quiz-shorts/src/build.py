@@ -250,11 +250,14 @@ def main():
     meta["video_file"] = str(mp4)
     meta["subjects"] = [q.get("sub", "GK") for q in questions]
     meta["duration_sec"] = round(total_frames / C.FPS, 2)
+    # voice_engines metadata WRITE se PEHLE set hona chahiye — pehle ye baad me
+    # set ho raha tha, isliye file me kabhi pahuncha hi nahi aur Telegram/
+    # LAST_RUN dono me "kaunsi voice chali" gayab tha.
+    used = {e.split("+")[0] for e in ENGINES}
+    meta["voice_engines"] = sorted(used)
     (outdir / "metadata.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    used = {e.split("+")[0] for e in ENGINES}
-    meta["voice_engines"] = sorted(used)
     print(f"\n🎙  voice: {', '.join(sorted(used))}"
           + ("  <- ElevenLabs fail hua, free voice pe chala" if "edge" in used else ""))
     print(f"✅ {mp4}  ({meta['duration_sec']}s)")
