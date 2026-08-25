@@ -226,3 +226,27 @@ src/seo.py       title, description, tags, hashtags
 src/upload.py    YouTube Data API v3
 src/notify.py    Telegram notification (har run pe, pass ho ya fail)
 ```
+
+
+---
+
+## SEO — kya kaam karta hai, kya nahi
+
+Ye 2026 ke Shorts behaviour pe based hai. Purana long-form SEO advice
+(20 tags bharo, #shorts lagao) yahan ulta nuksan karta hai.
+
+| Cheez | Hum kya karte hain | Kyun |
+|---|---|---|
+| Hashtag | **4** (broad → niche → subject → brand) | 15 se upar gaye to YouTube video ke **saare** hashtag ignore kar deta hai |
+| `#shorts` | **nahi lagate** | YouTube ab ratio (9:16) + duration se Short pehchanta hai; har Short ye tag laga sakta hai isliye categorisation me kuch batata nahi |
+| Tags | **8 specific** (pehle 21 the) | Tag volume nahi, relevance count hoti hai. Generic tag galat audience laata hai → low retention → algorithm neeche kar deta hai |
+| Title | **sawaal sabse aage** | Mobile Shorts feed me title ki ek hi line dikhti hai (~45-55 char). Pehle "क्या तुम्हें पता है? 🤔" aage tha, jisse asli sawaal truncate ho jaata tha |
+| Description | pehli line me keyword + sawaal | Pehle ~100 character sabse zyada weight rakhte hain |
+
+**Sabse zaroori baat:** ye sab **chhota lever** hai. Shorts me discovery
+mainly **retention aur swipe-away rate** se chalti hai. SEO sirf itna tay
+karta hai ki video *kis* audience ko dikhaya jaaye — wo audience rukegi ya
+nahi, wo video pe depend karta hai (hook, pacing, awaaz).
+
+Yaani: title/tag se 200 views 400 nahi ho jaate. Pehle 2 second ka hook
+aur timer ka pacing sudharo — asli growth wahan hai.

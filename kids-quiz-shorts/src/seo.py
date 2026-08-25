@@ -1,13 +1,25 @@
-"""YouTube metadata. Sab template-based hai — koi API call nahi, isliye
-deterministic aur free. Har slot (subah/shaam) ka alag hook taki duplicate
-title na bane.
+"""YouTube metadata. Sab template-based — koi API call nahi, deterministic aur free.
 
-SEO logic:
-- Title me search-intent keyword pehle 40 char me: "GK Question", "Class 1 to 5",
-  "बच्चों के लिए". Shorts feed me title truncate hota hai, isliye hook aage.
-- Description ke pehle 2 line hi search me count hoti hain — wahan keyword.
-- Tags: broad -> specific. 15 tags, ~450 char, YouTube limit 500 hai.
-- Hashtag: max 3 (3 se zyada daalo to YouTube sabko ignore kar deta hai).
+Ye rules 2026 ke Shorts behaviour pe based hain, purane long-form SEO pe nahi:
+
+1. HASHTAG: 3-5 se zyada ka koi fayda nahi. 15 se upar gaye to YouTube
+   video ke SAARE hashtag ignore kar deta hai — pehle teen bhi. Hum 4 use
+   karte hain: broad -> niche -> subject -> brand.
+2. #shorts NAHI lagate. YouTube ab aspect ratio (9:16) aur duration se
+   Short pehchanta hai; #shorts sirf title/hashtag budget khaata hai aur
+   categorisation me zero madad karta hai (har Short use kar sakta hai).
+3. TAGS (hidden metadata): 21 generic tags se 8 specific tags behtar hain.
+   Tag volume nahi, relevance count hoti hai. Irrelevant tag ulta galat
+   audience tak le jaata hai -> low retention -> algorithm neeche kar deta hai.
+4. TITLE: sawaal SABSE PEHLE. Shorts feed me mobile pe title ki ek hi line
+   dikhti hai (~45-55 char), isliye "क्या तुम्हें पता है?" jaisa hook aage
+   rakha to asli sawaal truncate ho jaata hai. Sawaal khud hi hook hai.
+5. DESCRIPTION: pehle ~100 character sabse zyada weight rakhte hain —
+   wahan keyword + sawaal, na ki generic tagline.
+
+Sabse zaroori baat: ye sab CHHOTA lever hai. Shorts me discovery mainly
+retention aur swipe-away rate se chalti hai. SEO sirf ye tay karta hai ki
+video KIS audience ko dikhe; wo audience rukegi ya nahi, wo video pe hai.
 """
 import random
 from datetime import datetime
@@ -27,20 +39,26 @@ HOOKS_EVENING = [
     "90% बच्चे गलत करते हैं",
 ]
 
+# Specific -> broad. 8 tags kaafi hain; "class 1 gk ... class 5 gk" jaise
+# paanch alag tags sirf budget khaate the, koi naya audience nahi laate.
 BASE_TAGS = [
-    "gk questions in hindi", "gk for kids", "gk quiz hindi",
-    "बच्चों के लिए जीके", "class 1 gk", "class 2 gk", "class 3 gk",
-    "class 4 gk", "class 5 gk", "kids quiz hindi", "general knowledge for kids",
-    "hindi quiz for children", "gk shorts", "बाल जीके", "primary school gk",
+    "gk quiz for kids in hindi",
+    "बच्चों के लिए जीके सवाल",
+    "class 1 to 5 gk questions",
+    "hindi gk quiz with answers",
+    "kids general knowledge hindi",
 ]
 
 SUB_TAGS = {
-    "GK":      ["gk questions hindi", "india gk for kids", "samanya gyan bachche"],
-    "Science": ["science gk for kids", "vigyan quiz hindi", "science questions hindi"],
-    "Maths":   ["maths quiz for kids", "ganit quiz hindi", "maths questions hindi"],
-    "English": ["english for kids hindi", "english grammar quiz kids",
-                "english word meaning hindi"],
+    "GK":      ["samanya gyan quiz hindi", "india gk for kids"],
+    "Science": ["vigyan quiz hindi bachche", "science gk for kids hindi"],
+    "Maths":   ["ganit quiz for kids hindi", "maths questions for class 1 to 5"],
+    "English": ["english word meaning in hindi", "english grammar for kids hindi"],
 }
+
+# 4 hashtag: broad -> niche -> subject -> brand. #shorts jaan-boojh ke nahi.
+SUB_HASH = {"GK": "#GeneralKnowledge", "Science": "#ScienceForKids",
+            "Maths": "#MathsQuiz", "English": "#EnglishForKids"}
 SUB_HI = {"GK": "जीके", "Science": "विज्ञान", "Maths": "गणित", "English": "इंग्लिश"}
 
 
@@ -49,15 +67,25 @@ def build(questions, slot="morning", date=None):
     rng = random.Random(f"{date:%Y%m%d}{slot}")
     hooks = HOOKS_MORNING if slot == "morning" else HOOKS_EVENING
     hook = rng.choice(hooks)
-    q1 = questions[0]["q"].rstrip("?")
-
-    sub_hi = " + ".join(dict.fromkeys(SUB_HI.get(q.get("sub", "GK"), "जीके")
-                                      for q in questions))
-    title = f"{hook} 🤔 {q1}? | {sub_hi} Quiz Class 1-5 #shorts"
-    if len(title) > 98:
-        title = f"{hook} 🤔 {q1[:40]}…? | {sub_hi} Quiz #shorts"
-
     labels = ["A", "B", "C", "D"]
+
+    q1 = questions[0]
+    qtext = q1["q"].strip()
+    subs = list(dict.fromkeys(q.get("sub", "GK") for q in questions))
+    sub_hi = " + ".join(SUB_HI.get(x, "जीके") for x in subs)
+
+    # --- TITLE: sawaal pehle -------------------------------------------------
+    # Mobile Shorts feed me title ki ek line dikhti hai. Isliye sawaal poora
+    # aage, aur context (subject/class) baad me — truncate ho bhi jaaye to
+    # viewer ne asli hook padh liya hota hai.
+    tail = f" | {sub_hi} क्विज़ Class 1-5"
+    if len(qtext) + len(tail) > 96:
+        tail = f" | {sub_hi} क्विज़"
+    title = f"{qtext} 🤔{tail}"
+    if len(title) > 100:
+        title = f"{qtext[:100 - len(tail) - 4]}…{tail}"
+
+    # --- DESCRIPTION ---------------------------------------------------------
     q_block = "\n\n".join(
         f"सवाल {i+1} ({SUB_HI.get(q.get('sub','GK'),'जीके')}): {q['q']}\n"
         + "\n".join(f"{labels[j]}) {o}" for j, o in enumerate(q["opts"]))
@@ -65,49 +93,48 @@ def build(questions, slot="morning", date=None):
         + (f"\n💡 क्यों: {q['why']}" if q.get("why") else "")
         for i, q in enumerate(questions)
     )
-
     engage = ("बच्चों, कितने सही हुए? घर में सबसे ये सवाल पूछो 🎯"
-              if C.MADE_FOR_KIDS else "बच्चों, कितने सही हुए? कमेंट में लिखो 👇")
+              if C.MADE_FOR_KIDS else "कितने सही हुए? कमेंट में लिखो 👇")
 
-    description = f"""{hook} — कक्षा 1 से 5 तक के बच्चों के लिए आसान GK सवाल हिंदी में। हर सवाल पर 8 सेकंड का टाइमर, फिर सही जवाब।
+    # Pehli line me hi keyword + sawaal — ye ~100 char sabse zyada weight
+    # rakhte hain, isliye yahan "hook" nahi, saaf topic likhte hain.
+    first = (f"कक्षा 1 से 5 के बच्चों के लिए {sub_hi} क्विज़ हिंदी में — {qtext} "
+             f"हर सवाल पर 8 सेकंड का टाइमर, फिर सही जवाब और वजह।")
 
-रोज़ सुबह और शाम नए GK सवाल — चैनल सब्सक्राइब करो!
+    description = f"""{first}
+
+{hook} रोज़ सुबह और शाम 2 नए सवाल — {C.BRAND} को सब्सक्राइब करो! 🔔
 
 {q_block}
 
 {engage}
 
 इस चैनल पर मिलेगा:
-• Class 1-5 के बच्चों के लिए GK, विज्ञान, गणित और इंग्लिश के सवाल
+• GK, विज्ञान, गणित और इंग्लिश — चारों के सवाल, कक्षा 1 से 5 तक
 • हर जवाब के साथ एक लाइन में "क्यों" — सिर्फ़ रटना नहीं, समझना
-• रोज़ 2 नए शॉर्ट्स — सुबह और शाम
+• रोज़ 2 नए शॉर्ट्स — सुबह {C.SLOTS['morning']} और शाम {C.SLOTS['evening']}
 
-#QuizPathshala #KidsQuiz #shorts"""
+{hashtags(subs)}"""
 
-    subs = [q.get("sub", "GK") for q in questions]
+    # --- TAGS ----------------------------------------------------------------
     tags = list(BASE_TAGS)
-    for c in dict.fromkeys(subs):
-        tags += SUB_TAGS.get(c, [])
     if any(q.get("topic") == "सबसे" for q in questions):
-        tags = ["duniya me sabse bada", "sabse uncha kaun sa hai",
-                "world records for kids hindi", "duniya ka sabse"] + tags
+        tags = ["duniya me sabse bada kaun sa hai", "sabse uncha lamba gehra"] + tags
+    for c in subs:
+        tags += SUB_TAGS.get(c, [])
     seen, out_tags, total = set(), [], 0
     for t in tags:
-        if t in seen:
+        if t in seen or total + len(t) + 1 > 460:
             continue
-        if total + len(t) + 1 > 460:
+        seen.add(t); out_tags.append(t); total += len(t) + 1
+        if len(out_tags) == 8:        # volume nahi, relevance — 8 pe rok do
             break
-        seen.add(t)
-        out_tags.append(t)
-        total += len(t) + 1
 
-    # MFK videos pe comments band hote hain -> pinned comment ka koi matlab nahi
     pinned = None if C.MADE_FOR_KIDS else (
-        f"बच्चों, दोनों सवाल सही हुए? 🎯\n"
         f"जवाब: 1) {labels[questions[0]['ans']]}  "
         f"2) {labels[questions[1]['ans']]}\n"
-        f"रोज़ सुबह {C.SLOTS['morning']} और शाम {C.SLOTS['evening']} पर नया सवाल — "
-        f"सब्सक्राइब करके बेल दबा दो 🔔"
+        f"दोनों सही? तो अगला सवाल कल सुबह {C.SLOTS['morning']} पर 🔔\n"
+        f"किस subject के सवाल और चाहिए — GK, विज्ञान, गणित या इंग्लिश?"
     )
 
     return {
@@ -121,6 +148,20 @@ def build(questions, slot="morning", date=None):
         "date": f"{date:%Y-%m-%d}",
         "question_ids": [q["id"] for q in questions],
     }
+
+
+def hashtags(subs):
+    """4 hashtag: broad -> niche -> subject -> brand.
+
+    15 se upar gaye to YouTube saare ignore kar deta hai, isliye ginti kam
+    rakhna hi surakshit hai. #shorts nahi lagate — YouTube ab ratio aur
+    duration se Short pehchanta hai, aur wo tag har Short pe lag sakta hai
+    isliye categorisation me kuch batata nahi.
+    """
+    tags = ["#GKInHindi", "#KidsQuiz"]
+    tags.append(SUB_HASH.get(subs[0], "#GeneralKnowledge"))
+    tags.append("#QuizPathshala")
+    return " ".join(dict.fromkeys(tags))
 
 
 if __name__ == "__main__":
