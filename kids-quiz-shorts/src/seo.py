@@ -26,18 +26,16 @@ from datetime import datetime
 
 import config as C
 
-HOOKS_MORNING = [
-    "सुबह का GK सवाल",
-    "आज का पहला सवाल",
-    "स्कूल जाने से पहले ये बताओ",
-    "क्या तुम्हें पता है?",
-]
-HOOKS_EVENING = [
-    "शाम का GK चैलेंज",
-    "होमवर्क के बाद ये सवाल",
-    "आज का दूसरा सवाल",
-    "90% बच्चे गलत करते हैं",
-]
+HOOKS = {
+    "morning": ["सुबह का GK सवाल", "स्कूल जाने से पहले ये बताओ",
+                "आज का पहला सवाल", "क्या तुम्हें पता है?"],
+    "noon":    ["दोपहर का क्विज़ ब्रेक", "लंच टाइम चैलेंज",
+                "ये आसान सा सवाल", "80% बच्चे यहाँ अटक जाते हैं"],
+    "evening": ["स्कूल के बाद ये सवाल", "होमवर्क से पहले एक सवाल",
+                "शाम का GK चैलेंज", "90% बच्चे गलत करते हैं"],
+    "night":   ["सोने से पहले एक सवाल", "आज का आखिरी सवाल",
+                "रात का क्विज़ चैलेंज", "ये आता है तुम्हें?"],
+}
 
 # Specific -> broad. 8 tags kaafi hain; "class 1 gk ... class 5 gk" jaise
 # paanch alag tags sirf budget khaate the, koi naya audience nahi laate.
@@ -65,8 +63,7 @@ SUB_HI = {"GK": "जीके", "Science": "विज्ञान", "Maths": "�
 def build(questions, slot="morning", date=None):
     date = date or datetime.now()
     rng = random.Random(f"{date:%Y%m%d}{slot}")
-    hooks = HOOKS_MORNING if slot == "morning" else HOOKS_EVENING
-    hook = rng.choice(hooks)
+    hook = rng.choice(HOOKS.get(slot, HOOKS["morning"]))
     labels = ["A", "B", "C", "D"]
 
     q1 = questions[0]
@@ -98,12 +95,13 @@ def build(questions, slot="morning", date=None):
 
     # Pehli line me hi keyword + sawaal — ye ~100 char sabse zyada weight
     # rakhte hain, isliye yahan "hook" nahi, saaf topic likhte hain.
+    slot_times = ", ".join(C.SLOTS[k] for k in C.SLOT_ORDER)
     first = (f"कक्षा 1 से 5 के बच्चों के लिए {sub_hi} क्विज़ हिंदी में — {qtext} "
              f"हर सवाल पर 8 सेकंड का टाइमर, फिर सही जवाब और वजह।")
 
     description = f"""{first}
 
-{hook} रोज़ सुबह और शाम 2 नए सवाल — {C.BRAND} को सब्सक्राइब करो! 🔔
+{hook} रोज़ {C.VIDEOS_PER_DAY} नए सवाल — {C.BRAND} को सब्सक्राइब करो! 🔔
 
 {q_block}
 
@@ -112,7 +110,7 @@ def build(questions, slot="morning", date=None):
 इस चैनल पर मिलेगा:
 • GK, विज्ञान, गणित और इंग्लिश — चारों के सवाल, कक्षा 1 से 5 तक
 • हर जवाब के साथ एक लाइन में "क्यों" — सिर्फ़ रटना नहीं, समझना
-• रोज़ 2 नए शॉर्ट्स — सुबह {C.SLOTS['morning']} और शाम {C.SLOTS['evening']}
+• रोज़ {C.VIDEOS_PER_DAY} नए शॉर्ट्स — {slot_times}
 
 {hashtags(subs)}"""
 
@@ -133,7 +131,7 @@ def build(questions, slot="morning", date=None):
     pinned = None if C.MADE_FOR_KIDS else (
         f"जवाब: 1) {labels[questions[0]['ans']]}  "
         f"2) {labels[questions[1]['ans']]}\n"
-        f"दोनों सही? तो अगला सवाल कल सुबह {C.SLOTS['morning']} पर 🔔\n"
+        f"दोनों सही? रोज़ {C.VIDEOS_PER_DAY} नए सवाल आते हैं 🔔\n"
         f"किस subject के सवाल और चाहिए — GK, विज्ञान, गणित या इंग्लिश?"
     )
 
@@ -167,5 +165,5 @@ def hashtags(subs):
 if __name__ == "__main__":
     import json
     from pick import pick
-    qs = pick(2, dry_run=True, slot='morning')
+    qs = pick(2, dry_run=True, slot='noon')
     print(json.dumps(build(qs, "morning"), ensure_ascii=False, indent=2))

@@ -42,7 +42,12 @@ def pick(n=2, dry_run=False, seed=None, slot="morning"):
     # Subject rotation: har video me 2 alag subject, aur har slot alag jodi se
     # shuru hota hai — taaki hafte bhar me chaaron subject barabar aayein.
     order = ["GK", "Science", "Maths", "English"]
-    shift = int(datetime.now().strftime("%j")) * 2 + (0 if slot == "morning" else 1)
+    # Din ka number * slots-per-day + is slot ka index. Isse har slot alag
+    # jodi se shuru hota hai aur ek din me chaaron subject cover ho jaate hain
+    # (4 video x 2 sawaal = 8 sawaal, har subject 2 baar).
+    from config import SLOT_ORDER
+    si = SLOT_ORDER.index(slot) if slot in SLOT_ORDER else 0
+    shift = int(datetime.now().strftime("%j")) * len(SLOT_ORDER) + si
     wanted = [order[(shift + k) % 4] for k in range(n)]
 
     chosen, used_now = [], set()
@@ -75,7 +80,8 @@ def pick(n=2, dry_run=False, seed=None, slot="morning"):
 
 
 if __name__ == "__main__":
-    for slot in ("morning", "evening"):
+    from config import SLOT_ORDER
+    for slot in SLOT_ORDER:
         print(f"--- {slot} ---")
         for q in pick(2, dry_run=True, slot=slot):
             print(f'  {q["sub"]:<8}| {q["q"]} -> {q["opts"][q["ans"]]}')

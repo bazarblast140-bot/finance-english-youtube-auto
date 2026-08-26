@@ -80,10 +80,15 @@ Script ab `sk_` check karke pehle hi warning de deti hai.
 
 `.github/workflows/kids-gk-shorts.yml` already set hai:
 
-| Slot  | Cron (UTC)   | IST       |
-|-------|--------------|-----------|
-| Subah | `0 2 * * *`  | 07:30 AM  |
-| Shaam | `0 13 * * *` | 06:30 PM  |
+| Slot | Cron (UTC) | IST | Kyun ye time |
+|---|---|---|---|
+| `morning` | `0 2 * * *`  | 07:30 | School jaane se pehle |
+| `noon`    | `0 8 * * *`  | 13:30 | Lunch / ghar pe |
+| `evening` | `0 12 * * *` | 17:30 | School ke baad |
+| `night`   | `0 15 * * *` | 20:30 | Khaane ke baad |
+
+Naya slot jodna ho to **do jagah** badalna padega: workflow ka cron+case
+block, aur `config.py` ka `SLOT_ORDER`.
 
 Manual chalane ke liye: Actions tab → *Kids GK Quiz Shorts* → **Run workflow**
 (default privacy `unlisted` hai — pehla run dekh lo, phir `public` karna).
@@ -141,10 +146,14 @@ lagaya hai.
 `ans` = 0-based index. `data/used.json` khud maintain hoti hai — wahi sawaal
 dobara nahi aayega jab tak poora bank khatam na ho jaye.
 
-**Bank:** 116 sawaal ÷ 4 roz = **~29 din**. Uske baad cycle reset hoke purane
-sawaal repeat honge. **English aur Maths sabse pehle khatam honge (21-21 hain)** —
-GK 42 aur Science 32 hain, to rotation English/Maths pe jaldi atkega. Agla kaam:
-in dono ko 40+ tak le jaao.
+**Bank:** 116 sawaal ÷ **8 roz** (4 video × 2 sawaal) = **sirf ~14 din**. Uske baad cycle reset hoke purane sawaal repeat
+honge. **English aur Maths sabse pehle khatam honge (21-21 hain)** — GK 42
+aur Science 32 hain, aur rotation chaaron ko barabar uthata hai, to bottleneck
+English/Maths hi hain.
+
+⚠️ **4 video/din pe bank ki life aadhi ho gayi** (29 din se 14 din). Har
+subject ko kam se kam 60 sawaal tak le jaana zaroori hai, warna do hafte me
+repeat shuru ho jaayega aur wahi subscriber ko bore karta hai.
 
 **"सबसे" wale sawaal:** 25 superlative sawaal hain (`"topic": "सबसे"`) — duniya
 ka sabse bada / ooncha / chhota / gehra / lamba. Ye sabse zyada search hone wale

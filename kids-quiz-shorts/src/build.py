@@ -193,7 +193,7 @@ def mux(frames_dir: Path, wav: Path, out_mp4: Path):
 # ---------------------------------------------------------------- main
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--slot", choices=["morning", "evening"], default="morning")
+    ap.add_argument("--slot", choices=C.SLOT_ORDER, default="morning")
     ap.add_argument("--seed", type=int, default=None)
     ap.add_argument("--dry-run", action="store_true",
                     help="sawaal use-history me mat likho (testing ke liye)")
