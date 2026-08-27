@@ -1,9 +1,10 @@
 name: Kids GK Quiz Shorts
 
-# IST = UTC + 5:30 — roz 4 video
+# IST = UTC + 5:30 — roz 5 video
 #   07:30 IST -> 02:00 UTC  (morning: school jaane se pehle)
 #   13:30 IST -> 08:00 UTC  (noon:    lunch / ghar pe)
-#   17:30 IST -> 12:00 UTC  (evening: school ke baad)
+#   16:00 IST -> 10:30 UTC  (paheli:  school ke baad, riddle)
+#   17:30 IST -> 12:00 UTC  (evening: homework se pehle)
 #   20:30 IST -> 15:00 UTC  (night:   khaane ke baad)
 # GitHub cron guaranteed on-time nahi hai — peak load pe 5-30 min late ho sakta hai.
 #
@@ -15,6 +16,7 @@ on:
   schedule:
     - cron: "0 2 * * *"
     - cron: "0 8 * * *"
+    - cron: "30 10 * * *"
     - cron: "0 12 * * *"
     - cron: "0 15 * * *"
   workflow_dispatch:
@@ -22,7 +24,7 @@ on:
       slot:
         description: "kaunsa slot"
         type: choice
-        options: [morning, noon, evening, night]
+        options: [morning, noon, paheli, evening, night]
         default: morning
       privacy:
         description: "unlisted / public / private"
@@ -58,11 +60,12 @@ jobs:
             # cron -> slot mapping. Naya slot jodo to yahan aur config.py
             # ke SLOT_ORDER, dono jagah add karna.
             case "${{ github.event.schedule }}" in
-              "0 2 * * *")  SLOT=morning ;;
-              "0 8 * * *")  SLOT=noon ;;
-              "0 12 * * *") SLOT=evening ;;
-              "0 15 * * *") SLOT=night ;;
-              *)            SLOT=morning ;;
+              "0 2 * * *")   SLOT=morning ;;
+              "0 8 * * *")   SLOT=noon ;;
+              "30 10 * * *") SLOT=paheli ;;
+              "0 12 * * *")  SLOT=evening ;;
+              "0 15 * * *")  SLOT=night ;;
+              *)             SLOT=morning ;;
             esac
             echo "slot=$SLOT"     >> $GITHUB_OUTPUT
             echo "privacy=public" >> $GITHUB_OUTPUT

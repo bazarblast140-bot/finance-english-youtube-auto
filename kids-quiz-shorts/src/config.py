@@ -103,16 +103,20 @@ EDGE_VOICE = os.getenv("EDGE_VOICE", "hi-IN-SwaraNeural")
 
 # ---------- scheduling ----------
 # GitHub Actions me UTC cron use hota hai; ye sirf metadata/labelling ke liye.
-# 4 video roz. Time bacchon ki availability ke hisaab se chuna hai:
+# 5 video roz. Time bacchon ki availability ke hisaab se chuna hai:
 #   morning  — school jaane se pehle
 #   noon     — lunch / ghar pe
-#   evening  — school ke baad, homework se pehle
+#   paheli   — school ke baad, riddle (search + family time)
+#   evening  — homework se pehle
 #   night    — khaane ke baad, family time
-SLOT_ORDER = ["morning", "noon", "evening", "night"]
+SLOT_ORDER = ["morning", "noon", "paheli", "evening", "night"]
+QUIZ_SLOTS = ["morning", "noon", "evening", "night"]  # 4 subject-rotate; paheli alag
 SLOTS = {
     "morning": "07:30 IST",
     "noon":    "13:30 IST",
+    "paheli":  "16:00 IST",
     "evening": "17:30 IST",
     "night":   "20:30 IST",
 }
 VIDEOS_PER_DAY = len(SLOT_ORDER)
+PAHELI_SUB = "पहेली"

@@ -169,6 +169,8 @@ def question_script(q: dict, index: int, total: int) -> str:
     sawaal bolna shuru hota hai.
 
     Options alag se bolte hain — wo timer ke DAURAN chalte hain."""
+    if q.get("sub") == "पहेली":
+        return f"पहेली। {q['q']}"
     return q["q"]
 
 
@@ -189,7 +191,7 @@ def reveal_script(q: dict) -> str:
 
 
 def outro_script() -> str:
-    return "कितने सही हुए? कमेंट करो, सब्सक्राइब करो!"
+    return "कितने सही हुए? कमेंट करो, सब्सक्राइब करो! रोज़ पाँच नए शॉर्ट्स।"
 
 
 if __name__ == "__main__":

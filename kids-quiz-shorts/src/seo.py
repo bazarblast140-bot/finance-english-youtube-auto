@@ -31,6 +31,8 @@ HOOKS = {
                 "आज का पहला सवाल", "क्या तुम्हें पता है?"],
     "noon":    ["दोपहर का क्विज़ ब्रेक", "लंच टाइम चैलेंज",
                 "ये आसान सा सवाल", "80% बच्चे यहाँ अटक जाते हैं"],
+    "paheli":  ["आज की पहेली बूझो", "दिमागी पहेली — सोचो तो सही",
+                "90% बच्चे ये पहेली गलत करते हैं", "घर वालों से पूछो ये पहेली"],
     "evening": ["स्कूल के बाद ये सवाल", "होमवर्क से पहले एक सवाल",
                 "शाम का GK चैलेंज", "90% बच्चे गलत करते हैं"],
     "night":   ["सोने से पहले एक सवाल", "आज का आखिरी सवाल",
@@ -52,12 +54,15 @@ SUB_TAGS = {
     "Science": ["vigyan quiz hindi bachche", "science gk for kids hindi"],
     "Maths":   ["ganit quiz for kids hindi", "maths questions for class 1 to 5"],
     "English": ["english word meaning in hindi", "english grammar for kids hindi"],
+    "पहेली":   ["paheli for kids in hindi", "बच्चों की दिमागी पहेलियाँ"],
 }
 
 # 4 hashtag: broad -> niche -> subject -> brand. #shorts jaan-boojh ke nahi.
 SUB_HASH = {"GK": "#GeneralKnowledge", "Science": "#ScienceForKids",
-            "Maths": "#MathsQuiz", "English": "#EnglishForKids"}
-SUB_HI = {"GK": "जीके", "Science": "विज्ञान", "Maths": "गणित", "English": "इंग्लिश"}
+            "Maths": "#MathsQuiz", "English": "#EnglishForKids",
+            "पहेली": "#पहेली"}
+SUB_HI = {"GK": "जीके", "Science": "विज्ञान", "Maths": "गणित",
+          "English": "इंग्लिश", "पहेली": "पहेली"}
 
 
 def build(questions, slot="morning", date=None):
@@ -75,10 +80,16 @@ def build(questions, slot="morning", date=None):
     # Mobile Shorts feed me title ki ek line dikhti hai. Isliye sawaal poora
     # aage, aur context (subject/class) baad me — truncate ho bhi jaaye to
     # viewer ne asli hook padh liya hota hai.
-    tail = f" | {sub_hi} क्विज़ Class 1-5"
-    if len(qtext) + len(tail) > 96:
-        tail = f" | {sub_hi} क्विज़"
-    title = f"{qtext} 🤔{tail}"
+    if slot == "paheli" or "पहेली" in subs:
+        tail = " | बच्चों की पहेली Class 1-5"
+        if len(qtext) + len(tail) > 96:
+            tail = " | पहेली"
+        title = f"{qtext} 🤔{tail}"
+    else:
+        tail = f" | {sub_hi} क्विज़ Class 1-5"
+        if len(qtext) + len(tail) > 96:
+            tail = f" | {sub_hi} क्विज़"
+        title = f"{qtext} 🤔{tail}"
     if len(title) > 100:
         title = f"{qtext[:100 - len(tail) - 4]}…{tail}"
 
@@ -96,8 +107,12 @@ def build(questions, slot="morning", date=None):
     # Pehli line me hi keyword + sawaal — ye ~100 char sabse zyada weight
     # rakhte hain, isliye yahan "hook" nahi, saaf topic likhte hain.
     slot_times = ", ".join(C.SLOTS[k] for k in C.SLOT_ORDER)
-    first = (f"कक्षा 1 से 5 के बच्चों के लिए {sub_hi} क्विज़ हिंदी में — {qtext} "
-             f"हर सवाल पर 8 सेकंड का टाइमर, फिर सही जवाब और वजह।")
+    if slot == "paheli" or "पहेली" in subs:
+        first = (f"बच्चों की दिमागी पहेली हिंदी में — {qtext} "
+                 f"8 सेकंड का टाइमर, फिर सही जवाब और वजह।")
+    else:
+        first = (f"कक्षा 1 से 5 के बच्चों के लिए {sub_hi} क्विज़ हिंदी में — {qtext} "
+                 f"हर सवाल पर 8 सेकंड का टाइमर, फिर सही जवाब और वजह।")
 
     description = f"""{first}
 
@@ -108,7 +123,7 @@ def build(questions, slot="morning", date=None):
 {engage}
 
 इस चैनल पर मिलेगा:
-• GK, विज्ञान, गणित और इंग्लिश — चारों के सवाल, कक्षा 1 से 5 तक
+• GK, विज्ञान, गणित, इंग्लिश और पहेलियाँ — कक्षा 1 से 5 तक
 • हर जवाब के साथ एक लाइन में "क्यों" — सिर्फ़ रटना नहीं, समझना
 • रोज़ {C.VIDEOS_PER_DAY} नए शॉर्ट्स — {slot_times}
 
@@ -116,6 +131,9 @@ def build(questions, slot="morning", date=None):
 
     # --- TAGS ----------------------------------------------------------------
     tags = list(BASE_TAGS)
+    if slot == "paheli" or any(q.get("sub") == "पहेली" for q in questions):
+        tags = ["paheli for kids in hindi", "बच्चों की दिमागी पहेलियाँ",
+                "hindi riddles for class 1 to 5"] + tags
     if any(q.get("topic") == "सबसे" for q in questions):
         tags = ["duniya me sabse bada kaun sa hai", "sabse uncha lamba gehra"] + tags
     for c in subs:
@@ -132,7 +150,7 @@ def build(questions, slot="morning", date=None):
         f"जवाब: 1) {labels[questions[0]['ans']]}  "
         f"2) {labels[questions[1]['ans']]}\n"
         f"दोनों सही? रोज़ {C.VIDEOS_PER_DAY} नए सवाल आते हैं 🔔\n"
-        f"किस subject के सवाल और चाहिए — GK, विज्ञान, गणित या इंग्लिश?"
+        f"किस subject के सवाल और चाहिए — GK, विज्ञान, गणित, इंग्लिश या पहेली?"
     )
 
     return {
@@ -157,7 +175,10 @@ def hashtags(subs):
     isliye categorisation me kuch batata nahi.
     """
     tags = ["#GKInHindi", "#KidsQuiz"]
-    tags.append(SUB_HASH.get(subs[0], "#GeneralKnowledge"))
+    if "पहेली" in subs:
+        tags = ["#पहेली", "#दिमागीपहेली", "#KidsQuiz"]
+    else:
+        tags.append(SUB_HASH.get(subs[0], "#GeneralKnowledge"))
     tags.append("#QuizPathshala")
     return " ".join(dict.fromkeys(tags))
 

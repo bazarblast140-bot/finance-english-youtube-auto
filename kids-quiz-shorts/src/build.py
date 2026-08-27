@@ -113,7 +113,7 @@ def render_video(segs, frames_dir: Path):
 
         if kind == "outro":
             base = render.title_panel("कितने सही हुए?",
-                                      "कमेंट में लिखो • रोज़ सुबह-शाम नया सवाल")
+                                      "कमेंट में लिखो • रोज़ 5 नए शॉर्ट्स")
         else:
             q, qn, tot = payload
             if kind == "reveal":

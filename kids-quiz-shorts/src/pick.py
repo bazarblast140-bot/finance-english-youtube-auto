@@ -39,15 +39,31 @@ def pick(n=2, dry_run=False, seed=None, slot="morning"):
     rng = random.Random(seed if seed is not None else datetime.now().strftime("%Y%m%d%H"))
     rng.shuffle(fresh)
 
+    # Paheli slot: sirf riddles. Baaki 4 slot GK/Science/Maths/English rotate
+    # karte hain aur paheli bank ko chhoote nahi — warna riddle jaldi khatam.
+    from config import QUIZ_SLOTS, PAHELI_SUB
+
+    if slot == "paheli":
+        pool = [q for q in fresh if q.get("sub") == PAHELI_SUB]
+        if len(pool) < n:
+            pool = [q for q in bank if q.get("sub") == PAHELI_SUB]
+            rng.shuffle(pool)
+        chosen = pool[:n]
+        if not dry_run:
+            stamp = datetime.now().isoformat(timespec="seconds")
+            used["history"] += [{"id": q["id"], "at": stamp} for q in chosen]
+            USED.write_text(json.dumps(used, ensure_ascii=False, indent=1), encoding="utf-8")
+        return chosen
+
+    fresh = [q for q in fresh if q.get("sub") != PAHELI_SUB]
+
     # Subject rotation: har video me 2 alag subject, aur har slot alag jodi se
     # shuru hota hai — taaki hafte bhar me chaaron subject barabar aayein.
     order = ["GK", "Science", "Maths", "English"]
-    # Din ka number * slots-per-day + is slot ka index. Isse har slot alag
-    # jodi se shuru hota hai aur ek din me chaaron subject cover ho jaate hain
-    # (4 video x 2 sawaal = 8 sawaal, har subject 2 baar).
-    from config import SLOT_ORDER
-    si = SLOT_ORDER.index(slot) if slot in SLOT_ORDER else 0
-    shift = int(datetime.now().strftime("%j")) * len(SLOT_ORDER) + si
+    # Din ka number * quiz-slots + is slot ka index. Paheli is count me nahi,
+    # warna 5th slot rotation ko shift kar deta.
+    si = QUIZ_SLOTS.index(slot) if slot in QUIZ_SLOTS else 0
+    shift = int(datetime.now().strftime("%j")) * len(QUIZ_SLOTS) + si
     wanted = [order[(shift + k) % 4] for k in range(n)]
 
     chosen, used_now = [], set()

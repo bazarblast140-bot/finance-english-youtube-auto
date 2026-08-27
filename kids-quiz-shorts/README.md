@@ -3,7 +3,8 @@
 > Ye `finance-english-youtube-auto` repo ke andar ek alag subfolder hai.
 > Root ka finance long-form pipeline (`run_pipeline.py`) isse bilkul untouched hai.
 
-Roz **subah aur shaam** ek-ek YouTube Short apne aap banta hai aur upload ho jaata hai.
+Roz **5 YouTube Shorts** apne aap bante hain aur upload ho jaate hain
+(4 quiz + 1 पहेली).
 **Koi intro nahi.** Frame 0 se hi pehla sawaal dikhta hai aur bolna shuru
 ho jaata hai — Shorts me viewer scroll karke aata hai, pehle 1-2 second me
 sawaal shuru na ho to wo aage scroll kar deta hai. Branding sirf upar ke
@@ -17,8 +18,9 @@ Har video me **2 sawaal** (do alag subject se), har sawaal pe **4 option**,
 nahi, samajhna. Voice **ElevenLabs female Hindi** hai; fail ho to apne aap
 free `hi-IN-SwaraNeural` pe chali jaati hai.
 
-**Chaar subject:** GK · Science · Maths · English. Har din slot ke hisaab se
-rotate hote hain, taaki hafte bhar me chaaron barabar aayein.
+**Paanch subject:** GK · Science · Maths · English · पहेली. Quiz slots
+GK/Science/Maths/English rotate karte hain. **16:00 IST wala slot sirf
+पहेली** hai — riddle search Hindi Shorts me strong hai.
 
 Video: 1080x1920, 30fps, ~52-60 second.
 
@@ -82,10 +84,11 @@ Script ab `sk_` check karke pehle hi warning de deti hai.
 
 | Slot | Cron (UTC) | IST | Kyun ye time |
 |---|---|---|---|
-| `morning` | `0 2 * * *`  | 07:30 | School jaane se pehle |
-| `noon`    | `0 8 * * *`  | 13:30 | Lunch / ghar pe |
-| `evening` | `0 12 * * *` | 17:30 | School ke baad |
-| `night`   | `0 15 * * *` | 20:30 | Khaane ke baad |
+| `morning` | `0 2 * * *`   | 07:30 | School jaane se pehle |
+| `noon`    | `0 8 * * *`   | 13:30 | Lunch / ghar pe |
+| `paheli`  | `30 10 * * *` | 16:00 | School ke baad — sirf पहेली |
+| `evening` | `0 12 * * *`  | 17:30 | Homework se pehle |
+| `night`   | `0 15 * * *`  | 20:30 | Khaane ke baad |
 
 Naya slot jodna ho to **do jagah** badalna padega: workflow ka cron+case
 block, aur `config.py` ka `SLOT_ORDER`.
@@ -119,7 +122,7 @@ Sab kuch `src/config.py` me hai:
  "why": "एक line me reason — ye reveal screen pe dikhta hai aur bola bhi jaata hai."}
 ```
 
-`sub` sirf ye chaar ho sakte hain: `GK`, `Science`, `Maths`, `English`.
+`sub` ye ho sakte hain: `GK`, `Science`, `Maths`, `English`, `पहेली`.
 
 ### Option ke aage icon
 
@@ -146,14 +149,12 @@ lagaya hai.
 `ans` = 0-based index. `data/used.json` khud maintain hoti hai — wahi sawaal
 dobara nahi aayega jab tak poora bank khatam na ho jaye.
 
-**Bank:** 116 sawaal ÷ **8 roz** (4 video × 2 sawaal) = **sirf ~14 din**. Uske baad cycle reset hoke purane sawaal repeat
-honge. **English aur Maths sabse pehle khatam honge (21-21 hain)** — GK 42
-aur Science 32 hain, aur rotation chaaron ko barabar uthata hai, to bottleneck
-English/Maths hi hain.
+**Bank:** 116 quiz sawaal ÷ **8 roz** (4 quiz video × 2) = **~14 din** quiz
+cycle. **40 पहेली** ÷ 2 roz = **~20 din** paheli cycle. English/Maths
+bottleneck pehle khatam honge (21-21).
 
-⚠️ **4 video/din pe bank ki life aadhi ho gayi** (29 din se 14 din). Har
-subject ko kam se kam 60 sawaal tak le jaana zaroori hai, warna do hafte me
-repeat shuru ho jaayega aur wahi subscriber ko bore karta hai.
+⚠️ Quiz bank 14 din me repeat. Har subject ko 60 sawaal tak le jaana zaroori
+hai. Paheli bank 40 se 80 tak badhana behtar hai.
 
 **"सबसे" wale sawaal:** 25 superlative sawaal hain (`"topic": "सबसे"`) — duniya
 ka sabse bada / ooncha / chhota / gehra / lamba. Ye sabse zyada search hone wale
@@ -208,12 +209,11 @@ Telegram fail ho to pipeline nahi rukti, par status `LAST_RUN.md` ke
 waghairah) — chup-chaap gayab nahi hota.
 
 **3. YouTube quota.** Har upload ~1600 units. Daily quota 10,000 = ~6 upload/din.
-Tumhein 2 chahiye, so theek hai — par upload script me retry max 2 rakha hai
-taaki koi loop ek din ka quota na kha jaye.
+5 video = ~8000 units — theek hai, par 6th extra run quota kha sakta hai.
+Upload script me retry max 2 rakha hai taaki loop quota na kha jaye.
 
-**4. ElevenLabs cost.** Har video me 6 TTS call jaati hai (intro + 2 sawaal +
-2 jawab + outro), roughly 400-500 characters. 2 video/din = ~30k characters/month.
-Apne plan ka character limit dekh lena — Starter plan pe ye fit ho jaayega.
+**4. ElevenLabs cost.** Har video me ~6 TTS call, roughly 400-500 characters.
+5 video/din = ~75k characters/month. Apne plan ka limit dekh lena.
 Voice cache bhi hai (`out/voice_cache/`), so same text dobara paisa nahi legega.
 
 **5. ElevenLabs API shape.** `src/tts.py` ka request format apne current docs se
