@@ -1,19 +1,19 @@
 # Last run
-- when   : 2026-08-27 18:40 UTC
-- slot   : noon
+- when   : 2026-08-27 20:38 UTC
+- slot   : paheli
 - privacy: public
 - upload : success
 
 ## metadata
-- title: नींबू और संतरे में कौन सा विटामिन होता है? 🤔 | विज्ञान + गणित क्विज़ Class 1-5
-- duration_sec: 44.77
+- title: घर है पर दरवाज़ा नहीं — वो क्या है? 🤔 | बच्चों की पहेली Class 1-5
+- duration_sec: 43.23
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/Knf5Qu9wudg
+- youtube_url: https://youtube.com/shorts/4MG7icn1eVQ
 
 ## upload output (tail)
 ```
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/Knf5Qu9wudg
+[upload] done -> https://youtube.com/shorts/4MG7icn1eVQ
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
