@@ -8,7 +8,7 @@ Usage:
     python src/upload.py --dir ... --privacy private # test upload
 
 Quota warning: ek upload ~1600 quota units kharch karta hai. Default daily
-quota 10,000 hai = din me ~6 upload. Tumhein 2/din chahiye, so headroom hai —
+quota 10,000 hai = din me ~6 upload. Tumhein 5/din chahiye, so headroom hai —
 par agar script retry loop me phans gayi to quota ek hi din me khatam.
 Isliye retry max 2 rakha hai.
 """
@@ -29,8 +29,8 @@ IST = timezone(timedelta(hours=5, minutes=30))
 def resolve_publish_at(slot: str):
     """Slot ke exact IST time ka RFC3339 (UTC) lautata hai.
 
-    Kyun: GitHub ka cron on-time nahi hai — runner load pe runs 10-18 ghante
-    late tak chal jaate hain. Isliye hum cron ko target se ~5h PEHLE chalate
+    Kyun: GitHub ka cron on-time nahi hai — runner load pe runs 10-20 ghante
+    late tak chal jaate hain. Isliye hum cron ko target se ~20h PEHLE chalate
     hain aur video ko 'private + publishAt' ke saath upload karte hain.
     Uske baad publish YouTube ke haath me hai — video hamesha exact clock
     time pe live hoti hai.
@@ -41,23 +41,31 @@ def resolve_publish_at(slot: str):
     """
     label = C.SLOTS.get(slot, "")            # e.g. "20:30 IST"
     if not label:
+        print(f"[upload] WARN: unknown slot {slot!r} — publishAt skip, turant privacy use hogi")
         return None
     try:
         hh, mm = label.split()[0].split(":")
         h, m = int(hh), int(mm)
-    except Exception:
+    except Exception as e:
+        print(f"[upload] WARN: slot time parse fail ({label!r}): {e}")
         return None
     now_ist = datetime.now(timezone.utc).astimezone(IST)
     target = now_ist.replace(hour=h, minute=m, second=0, microsecond=0)
-    # 3 min buffer — build+upload ke beech thoda time lag sakta hai
-    if target <= now_ist + timedelta(minutes=3):
+    # 5 min buffer — build+upload ke beech thoda time lag sakta hai
+    if target <= now_ist + timedelta(minutes=5):
         target = target + timedelta(days=1)
         print(
-            f"[upload] {slot} aaj ka time ({label}) nikal chuka — "
-            f"kal {label} pe schedule (YouTube exact time pe public karega)"
+            f"[upload] {slot}: aaj ka time ({label}) nikal chuka "
+            f"(ab {now_ist.strftime('%H:%M IST')}) — "
+            f"KAL {label} pe schedule "
+            f"({target.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')})"
         )
     else:
-        print(f"[upload] {slot}: YouTube {label} par khud public karega")
+        print(
+            f"[upload] {slot}: YouTube {label} par khud public karega "
+            f"({target.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}) "
+            f"— abhi {now_ist.strftime('%H:%M IST')}"
+        )
     return target.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
@@ -115,8 +123,12 @@ def upload(meta_path: Path, privacy="public", publish_at=None):
         "selfDeclaredMadeForKids": bool(meta.get("made_for_kids", True)),
     }
     if publish_at:
+        # YouTube: private + publishAt = exact time pe public
         status["privacyStatus"] = "private"
         status["publishAt"] = publish_at       # RFC3339, e.g. 2026-08-26T02:00:00Z
+        print(f"[upload] privacy=private + publishAt={publish_at}")
+    else:
+        print(f"[upload] privacy={privacy} (no schedule — turant)")
 
     body = {
         "snippet": {
@@ -173,7 +185,7 @@ def upload(meta_path: Path, privacy="public", publish_at=None):
 
     meta["youtube_id"] = vid
     meta["youtube_url"] = f"https://youtube.com/shorts/{vid}"
-    meta["scheduled_for"] = publish_at or "turant public"
+    meta["scheduled_for"] = publish_at or f"immediate ({privacy})"
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     return vid
 

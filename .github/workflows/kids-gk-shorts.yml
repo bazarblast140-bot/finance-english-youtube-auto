@@ -7,22 +7,24 @@ name: Kids GK Quiz Shorts
 #   17:30 IST -> 12:00 UTC  (evening: homework se pehle)
 #   20:30 IST -> 15:00 UTC  (night:   khaane ke baad)
 #
-# GitHub cron on-time NAHI hai — pehle 10-18 ghante late chal raha tha.
+# GitHub cron on-time NAHI hai — regularly 10-20 ghante late chal raha hai.
 # Isliye:
-#   1. Cron target se ~5h PEHLE fire hota hai (build buffer)
+#   1. Cron target se ~20h PEHLE fire hota hai (build buffer)
 #   2. Upload private + publishAt se hota hai — YouTube exact IST time pe public karta hai
 #   3. Agar run itna late ho ki aaj ka target nikal jaye, upload.py KAL usi time pe schedule karta hai
+#   4. Har slot alag concurrency group — queue me block nahi hote
 #
 # CHANNEL: QUIZ PATHSHALA (YOUTUBE_* secrets)
 
 on:
   schedule:
-    # BUILD time (publish time nahi). Target se ~5h pehle.
-    - cron: "0 21 * * *"    # -> morning 07:30 IST (prev day 21:00 UTC)
-    - cron: "0 3 * * *"     # -> noon    13:30 IST
-    - cron: "30 5 * * *"    # -> paheli  16:00 IST
-    - cron: "0 7 * * *"     # -> evening 17:30 IST
-    - cron: "0 10 * * *"    # -> night   20:30 IST
+    # BUILD time (publish time nahi). Target se ~20h pehle.
+    # Target UTC -> cron UTC (previous calendar day for morning/noon-ish slots)
+    - cron: "0 6 * * *"     # -> morning 07:30 IST  (target 02:00 UTC, fire 06:00 prev day)
+    - cron: "0 12 * * *"    # -> noon    13:30 IST  (target 08:00 UTC, fire 12:00 prev day)
+    - cron: "30 14 * * *"   # -> paheli  16:00 IST  (target 10:30 UTC, fire 14:30 prev day)
+    - cron: "0 16 * * *"    # -> evening 17:30 IST  (target 12:00 UTC, fire 16:00 prev day)
+    - cron: "0 19 * * *"    # -> night   20:30 IST  (target 15:00 UTC, fire 19:00 prev day)
   workflow_dispatch:
     inputs:
       slot:
@@ -39,8 +41,9 @@ on:
 permissions:
   contents: write
 
+# Har slot alag group — ek late night run morning ko block na kare
 concurrency:
-  group: kids-quiz-shorts
+  group: kids-quiz-${{ github.event.schedule || inputs.slot || github.run_id }}
   cancel-in-progress: false
 
 defaults:
@@ -64,16 +67,17 @@ jobs:
             # cron -> slot mapping. Naya slot jodo to yahan aur config.py
             # ke SLOT_ORDER, dono jagah add karna.
             case "${{ github.event.schedule }}" in
-              "0 21 * * *")  SLOT=morning ;;
-              "0 3 * * *")   SLOT=noon ;;
-              "30 5 * * *")  SLOT=paheli ;;
-              "0 7 * * *")   SLOT=evening ;;
-              "0 10 * * *")  SLOT=night ;;
+              "0 6 * * *")   SLOT=morning ;;
+              "0 12 * * *")  SLOT=noon ;;
+              "30 14 * * *") SLOT=paheli ;;
+              "0 16 * * *")  SLOT=evening ;;
+              "0 19 * * *")  SLOT=night ;;
               *)             SLOT=morning ;;
             esac
             echo "slot=$SLOT"     >> $GITHUB_OUTPUT
             echo "privacy=public" >> $GITHUB_OUTPUT
           fi
+          echo "decided slot=$(cat $GITHUB_OUTPUT | grep slot=) privacy=$(cat $GITHUB_OUTPUT | grep privacy=)"
 
       - name: System deps (ffmpeg + Devanagari + emoji fonts)
         run: |
