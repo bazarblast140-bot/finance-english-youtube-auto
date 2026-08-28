@@ -1,19 +1,22 @@
 # Last run
-- when   : 2026-08-28 00:14 UTC
-- slot   : night
+- when   : 2026-08-28 08:24 UTC
+- slot   : paheli
 - privacy: public
 - upload : success
 
 ## metadata
-- title: सही spelling कौन सी है? 🤔 | इंग्लिश + जीके क्विज़ Class 1-5
-- duration_sec: 41.57
+- title: सफेद दाढ़ी, हरा बदन — वो क्या है? 🤔 | बच्चों की पहेली Class 1-5
+- duration_sec: 45.7
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/mf8Q1pnBKL8
+- youtube_url: https://youtube.com/shorts/hTwMl9-GDNk
+- scheduled_for: 2026-08-28T10:30:00Z
 
 ## upload output (tail)
 ```
+[upload] paheli: YouTube 16:00 IST par khud public karega (2026-08-28T10:30:00Z) — abhi 13:54 IST
+[upload] privacy=private + publishAt=2026-08-28T10:30:00Z
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/mf8Q1pnBKL8
+[upload] done -> https://youtube.com/shorts/hTwMl9-GDNk
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
