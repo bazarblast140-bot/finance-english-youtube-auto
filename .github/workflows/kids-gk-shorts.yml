@@ -6,25 +6,23 @@ name: Kids GK Quiz Shorts
 #   16:00 IST -> 10:30 UTC  (paheli:  school ke baad, riddle)
 #   17:30 IST -> 12:00 UTC  (evening: homework se pehle)
 #   20:30 IST -> 15:00 UTC  (night:   khaane ke baad)
-# GitHub cron on-time NAHI hai. 27 Aug ko runs 3-4 ghante late chale (07:30 IST
-# wala 00:08 baje raat ko). Isliye cron ab sirf BUILD trigger hai — publish
-# time YouTube ke publishAt se aata hai, jo second-perfect hota hai.
 #
-# CHANNEL: wahi channel jo pehle "The Money Rule" tha — Rajesh ne rename karke
-# kids GK bana diya hai. Isliye repo ke maujuda YOUTUBE_* secrets hi use ho rahe
-# hain; alag KIDS_YT_* ki zaroorat nahi. Purana finance cron paused hai.
+# GitHub cron on-time NAHI hai — pehle 10-18 ghante late chal raha tha.
+# Isliye:
+#   1. Cron target se ~5h PEHLE fire hota hai (build buffer)
+#   2. Upload private + publishAt se hota hai — YouTube exact IST time pe public karta hai
+#   3. Agar run itna late ho ki aaj ka target nikal jaye, upload.py KAL usi time pe schedule karta hai
+#
+# CHANNEL: QUIZ PATHSHALA (YOUTUBE_* secrets)
 
 on:
   schedule:
-    # Ye BUILD time hai, publish time nahi. Har cron target se ~90 min pehle
-    # chalta hai; video 'private + publishAt' se upload hoti hai aur YouTube
-    # use exact IST time pe khud public karta hai. GitHub ka cron 3-4 ghante
-    # late bhi chale to publish time nahi hilta.
-    - cron: "30 0 * * *"    # -> morning 07:30 IST
-    - cron: "30 6 * * *"    # -> noon    13:30 IST
-    - cron: "0 9 * * *"     # -> paheli  16:00 IST
-    - cron: "30 10 * * *"   # -> evening 17:30 IST
-    - cron: "30 13 * * *"   # -> night   20:30 IST
+    # BUILD time (publish time nahi). Target se ~5h pehle.
+    - cron: "0 21 * * *"    # -> morning 07:30 IST (prev day 21:00 UTC)
+    - cron: "0 3 * * *"     # -> noon    13:30 IST
+    - cron: "30 5 * * *"    # -> paheli  16:00 IST
+    - cron: "0 7 * * *"     # -> evening 17:30 IST
+    - cron: "0 10 * * *"    # -> night   20:30 IST
   workflow_dispatch:
     inputs:
       slot:
@@ -66,11 +64,11 @@ jobs:
             # cron -> slot mapping. Naya slot jodo to yahan aur config.py
             # ke SLOT_ORDER, dono jagah add karna.
             case "${{ github.event.schedule }}" in
-              "30 0 * * *")  SLOT=morning ;;
-              "30 6 * * *")  SLOT=noon ;;
-              "0 9 * * *")   SLOT=paheli ;;
-              "30 10 * * *") SLOT=evening ;;
-              "30 13 * * *") SLOT=night ;;
+              "0 21 * * *")  SLOT=morning ;;
+              "0 3 * * *")   SLOT=noon ;;
+              "30 5 * * *")  SLOT=paheli ;;
+              "0 7 * * *")   SLOT=evening ;;
+              "0 10 * * *")  SLOT=night ;;
               *)             SLOT=morning ;;
             esac
             echo "slot=$SLOT"     >> $GITHUB_OUTPUT
@@ -119,6 +117,7 @@ jobs:
           name: kids-short-${{ steps.slot.outputs.slot }}-${{ github.run_number }}
           path: kids-quiz-shorts/out/*/
           retention-days: 14
+
       - name: YouTube pe upload
         id: up
         continue-on-error: true

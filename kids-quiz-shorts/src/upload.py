@@ -29,14 +29,15 @@ IST = timezone(timedelta(hours=5, minutes=30))
 def resolve_publish_at(slot: str):
     """Slot ke exact IST time ka RFC3339 (UTC) lautata hai.
 
-    Kyun: GitHub ka cron on-time nahi hai — quota ke paas ya runner load pe
-    runs 3-4 ghante late tak chal jaate hain. Isliye hum cron ko target se
-    ~90 min PEHLE chalate hain aur video ko 'private + publishAt' ke saath
-    upload karte hain. Uske baad publish YouTube ke haath me hai, GitHub ke
-    nahi — video hamesha exact time pe live hoti hai.
+    Kyun: GitHub ka cron on-time nahi hai — runner load pe runs 10-18 ghante
+    late tak chal jaate hain. Isliye hum cron ko target se ~5h PEHLE chalate
+    hain aur video ko 'private + publishAt' ke saath upload karte hain.
+    Uske baad publish YouTube ke haath me hai — video hamesha exact clock
+    time pe live hoti hai.
 
-    Agar run itna late chala ki target time nikal gaya, to None lautate hain
-    -> video turant public ho jaati hai (late sahi, par jaati zaroor hai).
+    Agar run itna late chala ki AAJ ka target nikal gaya, to KAL usi time
+    pe schedule karte hain (pehle turant-public kar dete the jo galat time
+    pe live ho jaata tha).
     """
     label = C.SLOTS.get(slot, "")            # e.g. "20:30 IST"
     if not label:
@@ -48,11 +49,17 @@ def resolve_publish_at(slot: str):
         return None
     now_ist = datetime.now(timezone.utc).astimezone(IST)
     target = now_ist.replace(hour=h, minute=m, second=0, microsecond=0)
+    # 3 min buffer — build+upload ke beech thoda time lag sakta hai
     if target <= now_ist + timedelta(minutes=3):
-        print(f"[upload] {slot} ka time ({label}) nikal chuka hai — turant public")
-        return None
-    print(f"[upload] {slot}: YouTube {label} par khud public karega")
+        target = target + timedelta(days=1)
+        print(
+            f"[upload] {slot} aaj ka time ({label}) nikal chuka — "
+            f"kal {label} pe schedule (YouTube exact time pe public karega)"
+        )
+    else:
+        print(f"[upload] {slot}: YouTube {label} par khud public karega")
     return target.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
 
 # IMPORTANT: ye list repo ke youtube_auth.py se EXACT match honi chahiye.
 # Refresh ke waqt aisa scope maanga jo grant nahi hua tha, to Google
