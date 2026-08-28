@@ -17,7 +17,42 @@ import json
 import os
 import sys
 import time
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+import config as C
+
+IST = timezone(timedelta(hours=5, minutes=30))
+
+
+def resolve_publish_at(slot: str):
+    """Slot ke exact IST time ka RFC3339 (UTC) lautata hai.
+
+    Kyun: GitHub ka cron on-time nahi hai — quota ke paas ya runner load pe
+    runs 3-4 ghante late tak chal jaate hain. Isliye hum cron ko target se
+    ~90 min PEHLE chalate hain aur video ko 'private + publishAt' ke saath
+    upload karte hain. Uske baad publish YouTube ke haath me hai, GitHub ke
+    nahi — video hamesha exact time pe live hoti hai.
+
+    Agar run itna late chala ki target time nikal gaya, to None lautate hain
+    -> video turant public ho jaati hai (late sahi, par jaati zaroor hai).
+    """
+    label = C.SLOTS.get(slot, "")            # e.g. "20:30 IST"
+    if not label:
+        return None
+    try:
+        hh, mm = label.split()[0].split(":")
+        h, m = int(hh), int(mm)
+    except Exception:
+        return None
+    now_ist = datetime.now(timezone.utc).astimezone(IST)
+    target = now_ist.replace(hour=h, minute=m, second=0, microsecond=0)
+    if target <= now_ist + timedelta(minutes=3):
+        print(f"[upload] {slot} ka time ({label}) nikal chuka hai — turant public")
+        return None
+    print(f"[upload] {slot}: YouTube {label} par khud public karega")
+    return target.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 # IMPORTANT: ye list repo ke youtube_auth.py se EXACT match honi chahiye.
 # Refresh ke waqt aisa scope maanga jo grant nahi hua tha, to Google
@@ -131,6 +166,7 @@ def upload(meta_path: Path, privacy="public", publish_at=None):
 
     meta["youtube_id"] = vid
     meta["youtube_url"] = f"https://youtube.com/shorts/{vid}"
+    meta["scheduled_for"] = publish_at or "turant public"
     meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
     return vid
 
@@ -141,13 +177,22 @@ if __name__ == "__main__":
     ap.add_argument("--dir", type=Path)
     ap.add_argument("--privacy", default="public",
                     choices=["public", "private", "unlisted"])
-    ap.add_argument("--publish-at", default=None)
+    ap.add_argument("--publish-at", default=None,
+                    help="RFC3339 UTC, e.g. 2026-08-28T15:00:00Z")
+    ap.add_argument("--publish-slot", default=None,
+                    help="slot ka naam — uske config.SLOTS wale IST time pe "
+                         "YouTube khud public karega (GitHub cron late ho tab bhi)")
     a = ap.parse_args()
     if a.auth:
         do_auth()
     elif a.dir:
+        pub_at = a.publish_at
+        # publishAt sirf tab jab video public hone wali ho. unlisted/private
+        # test uploads pe scheduling ka koi matlab nahi.
+        if not pub_at and a.publish_slot and a.privacy == "public":
+            pub_at = resolve_publish_at(a.publish_slot)
         try:
-            upload(a.dir / "metadata.json", a.privacy, a.publish_at)
+            upload(a.dir / "metadata.json", a.privacy, pub_at)
         except Exception as e:
             # Poora error stdout pe — CI logs blob storage pe hote hain, isliye
             # error ko file me bhi likhte hain jise workflow repo me commit karta hai.

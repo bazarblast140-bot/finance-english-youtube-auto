@@ -6,7 +6,9 @@ name: Kids GK Quiz Shorts
 #   16:00 IST -> 10:30 UTC  (paheli:  school ke baad, riddle)
 #   17:30 IST -> 12:00 UTC  (evening: homework se pehle)
 #   20:30 IST -> 15:00 UTC  (night:   khaane ke baad)
-# GitHub cron guaranteed on-time nahi hai — peak load pe 5-30 min late ho sakta hai.
+# GitHub cron on-time NAHI hai. 27 Aug ko runs 3-4 ghante late chale (07:30 IST
+# wala 00:08 baje raat ko). Isliye cron ab sirf BUILD trigger hai — publish
+# time YouTube ke publishAt se aata hai, jo second-perfect hota hai.
 #
 # CHANNEL: wahi channel jo pehle "The Money Rule" tha — Rajesh ne rename karke
 # kids GK bana diya hai. Isliye repo ke maujuda YOUTUBE_* secrets hi use ho rahe
@@ -14,11 +16,15 @@ name: Kids GK Quiz Shorts
 
 on:
   schedule:
-    - cron: "0 2 * * *"
-    - cron: "0 8 * * *"
-    - cron: "30 10 * * *"
-    - cron: "0 12 * * *"
-    - cron: "0 15 * * *"
+    # Ye BUILD time hai, publish time nahi. Har cron target se ~90 min pehle
+    # chalta hai; video 'private + publishAt' se upload hoti hai aur YouTube
+    # use exact IST time pe khud public karta hai. GitHub ka cron 3-4 ghante
+    # late bhi chale to publish time nahi hilta.
+    - cron: "30 0 * * *"    # -> morning 07:30 IST
+    - cron: "30 6 * * *"    # -> noon    13:30 IST
+    - cron: "0 9 * * *"     # -> paheli  16:00 IST
+    - cron: "30 10 * * *"   # -> evening 17:30 IST
+    - cron: "30 13 * * *"   # -> night   20:30 IST
   workflow_dispatch:
     inputs:
       slot:
@@ -60,11 +66,11 @@ jobs:
             # cron -> slot mapping. Naya slot jodo to yahan aur config.py
             # ke SLOT_ORDER, dono jagah add karna.
             case "${{ github.event.schedule }}" in
-              "0 2 * * *")   SLOT=morning ;;
-              "0 8 * * *")   SLOT=noon ;;
-              "30 10 * * *") SLOT=paheli ;;
-              "0 12 * * *")  SLOT=evening ;;
-              "0 15 * * *")  SLOT=night ;;
+              "30 0 * * *")  SLOT=morning ;;
+              "30 6 * * *")  SLOT=noon ;;
+              "0 9 * * *")   SLOT=paheli ;;
+              "30 10 * * *") SLOT=evening ;;
+              "30 13 * * *") SLOT=night ;;
               *)             SLOT=morning ;;
             esac
             echo "slot=$SLOT"     >> $GITHUB_OUTPUT
@@ -124,7 +130,8 @@ jobs:
           DIR=$(ls -td out/*/ | head -1)
           set -o pipefail
           python src/upload.py --dir "${DIR%/}" \
-            --privacy ${{ steps.slot.outputs.privacy }} 2>&1 | tee upload_out.txt
+            --privacy ${{ steps.slot.outputs.privacy }} \
+            --publish-slot "${{ steps.slot.outputs.slot }}" 2>&1 | tee upload_out.txt
 
       - name: Telegram pe batao
         if: always()
@@ -153,7 +160,7 @@ jobs:
             echo "- upload : ${{ steps.up.outcome }}"
             echo
             echo '## metadata'
-            python -c "import json;m=json.load(open('$DIR/metadata.json'));print(chr(10).join(f'- {k}: {m[k]}' for k in ('title','duration_sec','voice_engines','youtube_url') if k in m))" || true
+            python -c "import json;m=json.load(open('$DIR/metadata.json'));print(chr(10).join(f'- {k}: {m[k]}' for k in ('title','duration_sec','voice_engines','youtube_url','scheduled_for') if k in m))" || true
             echo
             echo '## upload output (tail)'
             echo '```'
