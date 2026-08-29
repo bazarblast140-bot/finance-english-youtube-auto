@@ -217,29 +217,38 @@ def banner(img, qnum=None, total=None, subject=None):
     w = text_w(d, C.BRAND, f)
     d.text(((C.W - w) // 2, 62), C.BRAND, font=f, fill=C.COLORS["banner_text"],
            stroke_width=3, stroke_fill=(90, 8, 42))
-    if qnum:
+    # 1 sawaal wali video me "सवाल 1/1" bekaar hai — sirf subject chip dikhao
+    if qnum and total > 1:
         chip = f"सवाल {qnum}/{total}"
         cf = F(46)
         cw = text_w(d, chip, cf)
         d.rounded_rectangle([70, 240, 70 + cw + 68, 336], 48, fill=(255, 255, 255))
         d.text((104, 256), chip, font=cf, fill=C.COLORS["banner"])
-        if subject:
-            sf = F(40)
-            sw = text_w(d, subject, sf)
-            # timer ring ke left me, taaki dono kabhi takrayein nahi
-            x2 = TIMER_CX - TIMER_R - 24
-            d.rounded_rectangle([x2 - sw - 52, 250, x2, 326], 38,
-                                fill=C.COLORS["banner_text"])
-            d.text((x2 - sw - 26, 262), subject, font=sf, fill=C.COLORS["banner"])
+    if subject:
+        sf = F(44)
+        sw = text_w(d, subject, sf)
+        # Chip left me. Timer right me rehta hai, isliye takraav nahi hota.
+        x0 = 70 if not (qnum and total > 1) else 70 + text_w(d, f"सवाल {qnum}/{total}", F(46)) + 92
+        d.rounded_rectangle([x0, 244, x0 + sw + 60, 332], 44,
+                            fill=C.COLORS["banner_text"])
+        d.text((x0 + 30, 258), subject, font=sf, fill=C.COLORS["banner"])
     return img
 
 
 FOOTER_Y = 1470          # iske neeche YouTube ka apna UI aata hai — khaali rakho
 
 
+EMOJI_STRIP = "👇👆✅❌🎯🔔🤔💡🔥"
+
+
 def footer(img, text=None, y=FOOTER_Y):
+    """Screen text me emoji mat daalo — Poppins me emoji glyph nahi hai aur
+    tofu box (□) render ho jaata hai. Option icons alag emoji font se aate hain."""
     d = ImageDraw.Draw(img)
     t = text or C.CTA_TEXT
+    for ch in EMOJI_STRIP:
+        t = t.replace(ch, "")
+    t = " ".join(t.split())
     f = F(44)
     w = text_w(d, t, f)
     d.rounded_rectangle([(C.W - w) // 2 - 40, y, (C.W + w) // 2 + 40, y + 88],

@@ -13,7 +13,7 @@ banner me rehti hai.
 Flow: सवाल बोला जाता है → 8s timer chalta hai (uske dauran A, B, C, D bole
 jaate hain) → timer khatam → सही जवाब + "क्यों" → agla sawaal.
 
-Har video me **2 sawaal** (do alag subject se), har sawaal pe **4 option**,
+Har video me **1 sawaal**, **4 option**,
 **8 second ka tik-tik timer**, phir **sahi jawab + ek line "क्यों"** — sirf ratna
 nahi, samajhna. Voice **ElevenLabs female Hindi** hai; fail ho to apne aap
 free `hi-IN-SwaraNeural` pe chali jaati hai.

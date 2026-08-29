@@ -59,7 +59,7 @@ def pick(n=2, dry_run=False, seed=None, slot="morning"):
 
     # Subject rotation: har video me 2 alag subject, aur har slot alag jodi se
     # shuru hota hai — taaki hafte bhar me chaaron subject barabar aayein.
-    order = ["GK", "Science", "Maths", "English"]
+    order = ["सामान्य ज्ञान", "विज्ञान", "भारत", "दुनिया"]
     # Din ka number * quiz-slots + is slot ka index. Paheli is count me nahi,
     # warna 5th slot rotation ko shift kar deta.
     si = QUIZ_SLOTS.index(slot) if slot in QUIZ_SLOTS else 0

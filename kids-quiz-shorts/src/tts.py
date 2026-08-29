@@ -178,7 +178,7 @@ def options_script(q: dict) -> str:
     """Timer chalte waqt bolne ke liye — chaaron option."""
     labels = ["ए", "बी", "सी", "डी"]
     opts = "। ".join(f"{labels[i]}, {o}" for i, o in enumerate(q["opts"]))
-    return f"{opts}। अब सोचो।"
+    return f"{opts}। सोचिए।"
 
 
 def reveal_script(q: dict) -> str:

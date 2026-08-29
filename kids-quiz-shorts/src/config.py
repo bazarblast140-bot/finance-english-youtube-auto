@@ -11,7 +11,8 @@ OUT.mkdir(exist_ok=True)
 # ---------- video ----------
 W, H = 1080, 1920           # YouTube Shorts vertical
 FPS = 30
-QUESTIONS_PER_VIDEO = 2     # Rajesh spec: 2 sawaal per short
+QUESTIONS_PER_VIDEO = 1     # 1 sawaal = ~25s video. Top Hindi GK shorts
+                            # 16-30s ke hote hain; 50s wale pe log swipe kar dete hain.
 TIMER_SECONDS = 8           # Rajesh spec: 8 second tik-tik
 # Length ke do alag number hain — inhe mat mila dena:
 #   HARD_LIMIT_SECONDS = platform ka asli rule. Oct 2024 se Shorts 3 MINUTE
@@ -20,7 +21,7 @@ TIMER_SECONDS = 8           # Rajesh spec: 8 second tik-tik
 #   TARGET_SECONDS = retention ka target, rule nahi. Shorts ka engagement
 #     sweet spot 30-60s hai, isliye hum yahin rehne ki koshish karte hain.
 HARD_LIMIT_SECONDS = 180.0
-TARGET_SECONDS = 60.0
+TARGET_SECONDS = 32.0   # ab 1 sawaal hai, video 25-30s me aani chahiye
 
 INTRO_SECONDS = 2.0
 REVEAL_SECONDS = 3.2
@@ -43,7 +44,7 @@ HANDLE = "@QuizPathshalaIndia"
 MADE_FOR_KIDS = False
 
 CTA_TEXT = ("घर में सबको ये सवाल पूछो!" if MADE_FOR_KIDS
-            else "सही जवाब कमेंट में लिखो!")
+            else "जवाब कमेंट में लिखो 👇")
 
 # Kids palette — high contrast, thumbnail-safe (rajesh-ui-pro: bold > subtle for Shorts)
 # Palette channel branding se match ki hai — purple banner, yellow accent,

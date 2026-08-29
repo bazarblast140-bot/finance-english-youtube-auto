@@ -42,27 +42,26 @@ HOOKS = {
 # Specific -> broad. 8 tags kaafi hain; "class 1 gk ... class 5 gk" jaise
 # paanch alag tags sirf budget khaate the, koi naya audience nahi laate.
 BASE_TAGS = [
-    "gk quiz for kids in hindi",
-    "बच्चों के लिए जीके सवाल",
-    "class 1 to 5 gk questions",
-    "hindi gk quiz with answers",
-    "kids general knowledge hindi",
+    "gk question in hindi",
+    "सामान्य ज्ञान के सवाल",
+    "gk quiz hindi with answer",
+    "general knowledge hindi",
+    "gk questions for competitive exams",
 ]
 
 SUB_TAGS = {
-    "GK":      ["samanya gyan quiz hindi", "india gk for kids"],
-    "Science": ["vigyan quiz hindi bachche", "science gk for kids hindi"],
-    "Maths":   ["ganit quiz for kids hindi", "maths questions for class 1 to 5"],
-    "English": ["english word meaning in hindi", "english grammar for kids hindi"],
-    "पहेली":   ["paheli for kids in hindi", "बच्चों की दिमागी पहेलियाँ"],
+    "सामान्य ज्ञान": ["samanya gyan quiz", "gk ke sawal hindi"],
+    "विज्ञान":      ["science gk in hindi", "vigyan ke rochak tathya"],
+    "भारत":        ["india gk in hindi", "bharat samanya gyan"],
+    "दुनिया":       ["world gk in hindi", "duniya ke rochak tathya"],
+    "पहेली":        ["paheli in hindi", "hindi riddles with answer"],
 }
 
 # 4 hashtag: broad -> niche -> subject -> brand. #shorts jaan-boojh ke nahi.
-SUB_HASH = {"GK": "#GeneralKnowledge", "Science": "#ScienceForKids",
-            "Maths": "#MathsQuiz", "English": "#EnglishForKids",
-            "पहेली": "#पहेली"}
-SUB_HI = {"GK": "जीके", "Science": "विज्ञान", "Maths": "गणित",
-          "English": "इंग्लिश", "पहेली": "पहेली"}
+SUB_HASH = {"सामान्य ज्ञान": "#SamanyaGyan", "विज्ञान": "#ScienceGK",
+            "भारत": "#IndiaGK", "दुनिया": "#WorldGK", "पहेली": "#Paheli"}
+SUB_HI = {k: k for k in
+          ["सामान्य ज्ञान", "विज्ञान", "भारत", "दुनिया", "पहेली"]}
 
 
 def build(questions, slot="morning", date=None):
@@ -86,7 +85,7 @@ def build(questions, slot="morning", date=None):
             tail = " | पहेली"
         title = f"{qtext} 🤔{tail}"
     else:
-        tail = f" | {sub_hi} क्विज़ Class 1-5"
+        tail = f" | {sub_hi} क्विज़"
         if len(qtext) + len(tail) > 96:
             tail = f" | {sub_hi} क्विज़"
         title = f"{qtext} 🤔{tail}"
@@ -111,7 +110,7 @@ def build(questions, slot="morning", date=None):
         first = (f"बच्चों की दिमागी पहेली हिंदी में — {qtext} "
                  f"8 सेकंड का टाइमर, फिर सही जवाब और वजह।")
     else:
-        first = (f"कक्षा 1 से 5 के बच्चों के लिए {sub_hi} क्विज़ हिंदी में — {qtext} "
+        first = (f"{sub_hi} क्विज़ हिंदी में — {qtext} "
                  f"हर सवाल पर 8 सेकंड का टाइमर, फिर सही जवाब और वजह।")
 
     description = f"""{first}
@@ -174,7 +173,7 @@ def hashtags(subs):
     duration se Short pehchanta hai, aur wo tag har Short pe lag sakta hai
     isliye categorisation me kuch batata nahi.
     """
-    tags = ["#GKInHindi", "#KidsQuiz"]
+    tags = ["#GKInHindi", "#GKQuestion"]
     if "पहेली" in subs:
         tags = ["#पहेली", "#दिमागीपहेली", "#KidsQuiz"]
     else:
