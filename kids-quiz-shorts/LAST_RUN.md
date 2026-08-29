@@ -1,32 +1,27 @@
 # Last run
-- when   : 2026-08-29 04:25 UTC
+- when   : 2026-08-29 04:28 UTC
 - slot   : noon
 - privacy: unlisted
-- upload : failure
+- upload : success
 
 ## metadata
+- title: इंसान के शरीर का सबसे बड़ा अंग कौन सा है? 🤔 | विज्ञान क्विज़
+- duration_sec: 26.13
+- voice_engines: ['elevenlabs']
+- youtube_url: https://youtube.com/shorts/onzzcKqBhEs
+- scheduled_for: immediate (unlisted)
 
 ## upload output (tail)
 ```
-Traceback (most recent call last):
-  File "/home/runner/work/finance-english-youtube-auto/finance-english-youtube-auto/kids-quiz-shorts/src/upload.py", line 214, in <module>
-    upload(a.dir / "metadata.json", a.privacy, pub_at)
-  File "/home/runner/work/finance-english-youtube-auto/finance-english-youtube-auto/kids-quiz-shorts/src/upload.py", line 115, in upload
-    meta = json.loads(meta_path.read_text(encoding="utf-8"))
-                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/pathlib.py", line 1058, in read_text
-    with self.open(mode='r', encoding=encoding, errors=errors) as f:
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/pathlib.py", line 1044, in open
-    return io.open(self, mode, buffering, encoding, errors, newline)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-FileNotFoundError: [Errno 2] No such file or directory: 'out/20260829_noon/metadata.json'
-
-[upload] FAILED (http=None): [Errno 2] No such file or directory: 'out/20260829_noon/metadata.json'
+[upload] privacy=unlisted (no schedule — turant)
+[upload] channel: QUIZ PATHSHALA
+[upload] done -> https://youtube.com/shorts/onzzcKqBhEs
+[upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
 ## voice
 ```
+🎙  voice: elevenlabs
 ```
 
 ## telegram
