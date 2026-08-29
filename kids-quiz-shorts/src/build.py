@@ -84,6 +84,15 @@ def plan_segments(questions):
                                 (0.0, ov, C.VOICE_VOLUME)],
                          payload=(q, i + 1, n)))
 
+        # CTA jawab se PEHLE. Viewer yahan ruka hua hai — 8 second lagakar
+        # jawab ka intezaar kar raha hai. Video ke ant me CTA daalne ka koi
+        # matlab nahi, jawab sunte hi log swipe kar dete hain.
+        cv, cd, ceng = tts.say(tts.cta_script(), "cta")
+        ENGINES.append(ceng)
+        segs.append(dict(kind="cta", dur=cd + 0.35,
+                         audio=[(0.0, cv, C.VOICE_VOLUME)],
+                         payload=(q, i + 1, n)))
+
         v, d, eng = tts.say(tts.reveal_script(q), f"a{i}_{q['id']}")
         ENGINES.append(eng)
         segs.append(dict(kind="reveal",
@@ -91,12 +100,8 @@ def plan_segments(questions):
                          audio=[(0.0, "DING", 0.8), (0.45, v, C.VOICE_VOLUME)],
                          payload=(q, i + 1, n)))
 
-    v, d, eng = tts.say(tts.outro_script(), "outro")
-    ENGINES.append(eng)
-    segs.append(dict(kind="outro", dur=max(C.OUTRO_SECONDS, d + 0.6),
-                     audio=[(0.0, v, C.VOICE_VOLUME)],
-                     payload=None))
-
+    # Koi outro nahi. Jawab hi aakhri cheez hai — uske baad viewer waise bhi
+    # swipe kar deta hai, to wahan kuch rakhna sirf duration badhata hai.
     for s in segs:
         s["frames"] = max(1, round(s["dur"] * C.FPS))
     return segs
@@ -111,16 +116,15 @@ def render_video(segs, frames_dir: Path):
     for s in segs:
         kind, payload, nf = s["kind"], s["payload"], s["frames"]
 
-        if kind == "outro":
-            base = render.title_panel("कितने सही हुए?",
-                                      "कमेंट में लिखो • रोज़ 5 नए शॉर्ट्स")
-        else:
-            q, qn, tot = payload
+        q, qn, tot = payload
+        if True:
             if kind == "reveal":
                 base = render.reveal_panel(q, qn, tot)
+            elif kind == "cta":
+                base = render.cta_panel(q, qn, tot)
             else:
                 base, opt_end = render.question_panel(q, qn, tot)
-                render.footer(base, "ध्यान से सुनो…" if kind == "read" else C.CTA_TEXT,
+                render.footer(base, "ध्यान से सुनिए…" if kind == "read" else C.CTA_TEXT,
                               y=max(render.FOOTER_Y, opt_end + 34))
 
         if kind == "timer":
@@ -216,7 +220,7 @@ def main():
     # thoda upar reh jaaye to koi dikkat nahi, video Short hi rahega.
     if total_dur > C.TARGET_SECONDS - 2:
         need = total_dur - (C.TARGET_SECONDS - 2)
-        for kind, floor in (("outro", 2.5),):
+        for kind, floor in (("cta", 2.0),):
             if need <= 0:
                 break
             for sg in segs:

@@ -190,8 +190,12 @@ def reveal_script(q: dict) -> str:
     return f"{base} {why}" if why else base
 
 
-def outro_script() -> str:
-    return "कितने सही हुए? कमेंट करो, सब्सक्राइब करो! रोज़ पाँच नए शॉर्ट्स।"
+def cta_script() -> str:
+    """Timer ke turant baad, jawab se PEHLE. Yahi ek jagah hai jahan viewer
+    sach me ruka hua hai — usne 8 second sawaal pe lagaye hain aur ab use
+    jawab chahiye. Isliye subscribe ki baat yahan, video ke ant me nahi:
+    jawab sunte hi log swipe kar dete hain."""
+    return "चैनल सब्सक्राइब कीजिए, और अब सुनिए सही जवाब।"
 
 
 if __name__ == "__main__":

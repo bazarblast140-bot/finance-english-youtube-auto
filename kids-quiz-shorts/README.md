@@ -10,8 +10,15 @@ ho jaata hai — Shorts me viewer scroll karke aata hai, pehle 1-2 second me
 sawaal shuru na ho to wo aage scroll kar deta hai. Branding sirf upar ke
 banner me rehti hai.
 
-Flow: सवाल बोला जाता है → 8s timer chalta hai (uske dauran A, B, C, D bole
-jaate hain) → timer khatam → सही जवाब + "क्यों" → agla sawaal.
+Flow: **सवाल** bola jaata hai → **8s timer** (uske dauran A, B, C, D bole
+jaate hain) → **"सब्सक्राइब कीजिए, और अब सुनिए सही जवाब"** → **सही जवाब + "क्यों"**,
+aur video wahin khatam.
+
+**Jawab hamesha AAKHIR me.** Pehle jawab beech me tha aur uske baad outro
+(CTA) chalta tha — par jawab sunte hi log swipe kar dete hain, isliye outro
+kabhi dekha hi nahi jaata tha. Ab CTA **jawab se pehle** hai: wahi ek pal hai
+jab viewer sach me ruka hua hota hai, kyunki usne 8 second lagaye hain aur
+ab use jawab chahiye. Outro poora hata diya.
 
 Har video me **1 sawaal**, **4 option**,
 **8 second ka tik-tik timer**, phir **sahi jawab + ek line "क्यों"** — sirf ratna

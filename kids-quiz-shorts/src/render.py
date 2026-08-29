@@ -363,6 +363,23 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False):
     return img, opt_end
 
 
+def cta_panel(q, qnum, total):
+    """Timer khatam, jawab abhi nahi. Options wahi rehte hain (viewer abhi bhi
+    soch raha hai) aur upar se subscribe ka banner aata hai."""
+    img, opt_end = question_panel(q, qnum, total)
+    d = ImageDraw.Draw(img)
+    t = "सब्सक्राइब करें"
+    f = F(68)
+    w = text_w(d, t, f)
+    by = opt_end + 26
+    d.rounded_rectangle([(C.W - w) // 2 - 52, by, (C.W + w) // 2 + 52, by + 104],
+                        50, fill=C.COLORS["banner"], outline=C.COLORS["banner_text"],
+                        width=6)
+    d.text(((C.W - w) // 2, by + 16), t, font=f, fill=C.COLORS["banner_text"])
+    footer(img, "जवाब आ रहा है…", y=max(FOOTER_Y, by + 140))
+    return img
+
+
 def reveal_panel(q, qnum, total):
     img, opt_end = question_panel(q, qnum, total, highlight=q["ans"], dim_others=True)
     d = ImageDraw.Draw(img)
