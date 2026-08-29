@@ -380,6 +380,33 @@ def cta_panel(q, qnum, total):
     return img
 
 
+def hint_panel(q, qnum, total):
+    """Wajah dikhti hai, par sahi option abhi highlight NAHI hota — warna
+    jawab yahin khul jaayega aur aakhri beat ka koi matlab nahi bachega."""
+    img, opt_end = question_panel(q, qnum, total)
+    d = ImageDraw.Draw(img)
+    import tts as _tts
+    why = (q.get("why") or "").strip()
+    if why:
+        why = _tts.mask_answer(why, q, "_____")
+    y = opt_end + 20
+    if why:
+        wf, wlines, wlh = fit_lines(d, why, C.W - 240, 240, start=46,
+                                    min_size=32, max_lines=4, bold=False)
+        h = len(wlines) * wlh + 58
+        top = y + 22
+        d.rounded_rectangle([80, top, C.W - 80, top + h], 30,
+                            fill=(255, 255, 255), outline=C.COLORS["timer_ring"],
+                            width=5)
+        lf = F(34)
+        d.text((116, top - 22), "इशारा", font=lf, fill=C.COLORS["timer_ring"],
+               stroke_width=6, stroke_fill=(255, 255, 255))
+        centered(d, wlines, wf, wlh, C.W // 2, top + 30, C.COLORS["opt_text"])
+        y = top + h
+    footer(img, "अब सही जवाब…", y=max(FOOTER_Y, y + 28))
+    return img
+
+
 def reveal_panel(q, qnum, total):
     img, opt_end = question_panel(q, qnum, total, highlight=q["ans"], dim_others=True)
     d = ImageDraw.Draw(img)
@@ -393,24 +420,7 @@ def reveal_panel(q, qnum, total):
     d.text(((C.W - w) // 2, by + 12), t, font=f, fill=(255, 255, 255))
     y = by + 96
 
-    why = (q.get("why") or "").strip()
-    if why:
-        # Reasoning card — yahi wo hissa hai jo "seekha kuch" feel deta hai.
-        # Card ki height text ke hisaab se banti hai, fixed nahi.
-        wf, wlines, wlh = fit_lines(d, why, C.W - 240, 230, start=44,
-                                    min_size=32, max_lines=4, bold=False)
-        h = len(wlines) * wlh + 56
-        top = y + 20
-        d.rounded_rectangle([80, top, C.W - 80, top + h], 30,
-                            fill=(255, 255, 255), outline=C.COLORS["correct"], width=4)
-        lf = F(34)
-        d.text((116, top - 22), "क्यों?", font=lf, fill=C.COLORS["correct"],
-               stroke_width=6, stroke_fill=(255, 255, 255))
-        centered(d, wlines, wf, wlh, C.W // 2, top + 30, C.COLORS["opt_text"])
-        y = top + h
-
-    footer(img, "अगला सवाल आ रहा है…" if qnum < total else C.CTA_TEXT,
-           y=max(FOOTER_Y, y + 28))
+    footer(img, C.CTA_TEXT, y=max(FOOTER_Y, y + 34))
     return img
 
 

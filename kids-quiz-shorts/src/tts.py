@@ -181,13 +181,36 @@ def options_script(q: dict) -> str:
     return f"{opts}। सोचिए।"
 
 
-def reveal_script(q: dict) -> str:
-    """Jawaab + ek line reasoning. Reasoning hi wo cheez hai jo viewer ko
-    'kuch seekha' feel deti hai — isliye har sawaal me mandatory hai."""
-    labels = ["ए", "बी", "सी", "डी"]
-    base = f"सही जवाब है, {labels[q['ans']]}, {q['opts'][q['ans']]}।"
+def mask_answer(why: str, q: dict, blank: str) -> str:
+    """Hint me se jawab ka naam hata do.
+
+    Zyadatar 'why' lines jawab ke naam se hi shuru hoti hain
+    ("प्रशांत महासागर धरती से bada hai") — agar aise hi bol diya to hint hi
+    jawab de deta hai aur aakhri beat bekaar ho jaati hai."""
+    ans = q["opts"][q["ans"]].strip()
+    out = why
+    for word in sorted({ans, *ans.split()}, key=len, reverse=True):
+        if len(word) >= 3:
+            out = out.replace(word, blank)
+    return " ".join(out.split())
+
+
+def hint_script(q: dict) -> str:
+    """Jawab se PEHLE bola jaata hai — sirf wajah, naam nahi.
+
+    Kyun: jawab sunte hi log swipe kar dete hain. Agar 'क्यों' jawab ke BAAD
+    aaye to wo kabhi suna hi nahi jaata. Isliye pehle wajah, aur jawab
+    video ki AAKHRI line."""
     why = (q.get("why") or "").strip()
-    return f"{base} {why}" if why else base
+    if not why:
+        return "ध्यान से देखिए।"
+    return f"एक इशारा — {mask_answer(why, q, 'ये')}"
+
+
+def answer_script(q: dict) -> str:
+    """Video ki aakhri line. Iske baad kuch nahi."""
+    labels = ["ए", "बी", "सी", "डी"]
+    return f"सही जवाब है — {labels[q['ans']]}, {q['opts'][q['ans']]}।"
 
 
 def cta_script() -> str:

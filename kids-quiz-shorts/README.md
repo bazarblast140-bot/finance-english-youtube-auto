@@ -10,9 +10,14 @@ ho jaata hai — Shorts me viewer scroll karke aata hai, pehle 1-2 second me
 sawaal shuru na ho to wo aage scroll kar deta hai. Branding sirf upar ke
 banner me rehti hai.
 
-Flow: **सवाल** bola jaata hai → **8s timer** (uske dauran A, B, C, D bole
-jaate hain) → **"सब्सक्राइब कीजिए, और अब सुनिए सही जवाब"** → **सही जवाब + "क्यों"**,
-aur video wahin khatam.
+Flow: **सवाल** → **8s timer** (uske dauran A, B, C, D bole jaate hain) →
+**"सब्सक्राइब कीजिए"** → **इशारा** (wajah, par jawab ka naam chhupa hua) →
+**सही जवाब** — aur video wahin khatam.
+
+`data/questions.json` ki `why` line ab **jawab se pehle** "इशारा" ban ke
+aati hai, baad me nahi. Usme se jawab ka naam apne aap mask ho jaata hai
+(`mask_answer`) — warna zyadatar `why` lines jawab ke naam se hi shuru hoti
+hain aur hint hi jawab de deta.
 
 **Jawab hamesha AAKHIR me.** Pehle jawab beech me tha aur uske baad outro
 (CTA) chalta tha — par jawab sunte hi log swipe kar dete hain, isliye outro

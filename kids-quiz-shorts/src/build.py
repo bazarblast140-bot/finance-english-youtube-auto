@@ -93,10 +93,17 @@ def plan_segments(questions):
                          audio=[(0.0, cv, C.VOICE_VOLUME)],
                          payload=(q, i + 1, n)))
 
-        v, d, eng = tts.say(tts.reveal_script(q), f"a{i}_{q['id']}")
+        hv, hd, heng = tts.say(tts.hint_script(q), f"h{i}_{q['id']}")
+        ENGINES.append(heng)
+        segs.append(dict(kind="hint", dur=hd + 0.4,
+                         audio=[(0.0, hv, C.VOICE_VOLUME)],
+                         payload=(q, i + 1, n)))
+
+        # Aakhri segment. Video yahin khatam — iske baad kuch nahi.
+        v, d, eng = tts.say(tts.answer_script(q), f"a{i}_{q['id']}")
         ENGINES.append(eng)
         segs.append(dict(kind="reveal",
-                         dur=max(C.REVEAL_SECONDS, d + 0.9),
+                         dur=max(C.REVEAL_SECONDS, d + 0.8),
                          audio=[(0.0, "DING", 0.8), (0.45, v, C.VOICE_VOLUME)],
                          payload=(q, i + 1, n)))
 
@@ -122,6 +129,8 @@ def render_video(segs, frames_dir: Path):
                 base = render.reveal_panel(q, qn, tot)
             elif kind == "cta":
                 base = render.cta_panel(q, qn, tot)
+            elif kind == "hint":
+                base = render.hint_panel(q, qn, tot)
             else:
                 base, opt_end = render.question_panel(q, qn, tot)
                 render.footer(base, "ध्यान से सुनिए…" if kind == "read" else C.CTA_TEXT,
