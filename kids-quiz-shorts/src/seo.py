@@ -145,9 +145,12 @@ def build(questions, slot="morning", date=None):
         if len(out_tags) == 8:        # volume nahi, relevance — 8 pe rok do
             break
 
+    # NOTE: kisi bhi question count ke saath chalna chahiye. Pehle yahan
+    # hardcoded questions[1] tha, jo QUESTIONS_PER_VIDEO=1 hote hi IndexError
+    # de raha tha — video ban jaata tha par metadata.json likha hi nahi jaata.
+    ans_line = "  ".join(f"{i+1}) {labels[q['ans']]}" for i, q in enumerate(questions))
     pinned = None if C.MADE_FOR_KIDS else (
-        f"जवाब: 1) {labels[questions[0]['ans']]}  "
-        f"2) {labels[questions[1]['ans']]}\n"
+        f"जवाब: {ans_line}\n"
         f"दोनों सही? रोज़ {C.VIDEOS_PER_DAY} नए सवाल आते हैं 🔔\n"
         f"किस subject के सवाल और चाहिए — GK, विज्ञान, गणित, इंग्लिश या पहेली?"
     )

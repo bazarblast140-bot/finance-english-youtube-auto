@@ -101,6 +101,10 @@ jobs:
           ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
           ELEVENLABS_MODEL:    ${{ vars.ELEVENLABS_MODEL || 'eleven_multilingual_v2' }}
         run: |
+          # pipefail zaroori hai — warna 'python ... | tee' me python crash ho
+          # jaaye to bhi tee ka exit 0 aata hai aur step GREEN dikhta hai.
+          # Isi wajah se ek crash chup-chaap nikal gaya tha.
+          set -o pipefail
           python src/build.py --slot ${{ steps.slot.outputs.slot }} | tee build_out.txt
           # ElevenLabs chup-chaap fail hoke free voice pe chala jaaye to pata
           # chalna chahiye — warna mahino tak galat voice publish hoti rahegi.
