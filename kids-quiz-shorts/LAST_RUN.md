@@ -1,28 +1,32 @@
 # Last run
-- when   : 2026-08-29 02:00 UTC
-- slot   : night
-- privacy: public
-- upload : success
+- when   : 2026-08-29 04:25 UTC
+- slot   : noon
+- privacy: unlisted
+- upload : failure
 
 ## metadata
-- title: 'Mouse' का plural क्या होता है? 🤔 | इंग्लिश + जीके क्विज़ Class 1-5
-- duration_sec: 41.27
-- voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/wkjAwlgFf-w
-- scheduled_for: 2026-08-29T15:00:00Z
 
 ## upload output (tail)
 ```
-[upload] night: YouTube 20:30 IST par khud public karega (2026-08-29T15:00:00Z) — abhi 07:30 IST
-[upload] privacy=private + publishAt=2026-08-29T15:00:00Z
-[upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/wkjAwlgFf-w
-[upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
+Traceback (most recent call last):
+  File "/home/runner/work/finance-english-youtube-auto/finance-english-youtube-auto/kids-quiz-shorts/src/upload.py", line 214, in <module>
+    upload(a.dir / "metadata.json", a.privacy, pub_at)
+  File "/home/runner/work/finance-english-youtube-auto/finance-english-youtube-auto/kids-quiz-shorts/src/upload.py", line 115, in upload
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/pathlib.py", line 1058, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.16/x64/lib/python3.11/pathlib.py", line 1044, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'out/20260829_noon/metadata.json'
+
+[upload] FAILED (http=None): [Errno 2] No such file or directory: 'out/20260829_noon/metadata.json'
 ```
 
 ## voice
 ```
-🎙  voice: elevenlabs
 ```
 
 ## telegram
