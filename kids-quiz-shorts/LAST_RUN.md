@@ -1,22 +1,22 @@
 # Last run
-- when   : 2026-08-30 16:02 UTC
-- slot   : noon
+- when   : 2026-08-30 18:09 UTC
+- slot   : paheli
 - privacy: public
 - upload : success
 
 ## metadata
-- title: इंसान के शरीर का कौन सा अंग दोबारा उग सकता है? 🤔 | विज्ञान क्विज़
-- duration_sec: 24.97
+- title: सिर पर ताज, हरा बदन — वो क्या है? 🤔 | बच्चों की पहेली Class 1-5
+- duration_sec: 22.93
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/58WGi42Yizc
-- scheduled_for: 2026-08-31T08:00:00Z
+- youtube_url: https://youtube.com/shorts/J4BebPdqDIU
+- scheduled_for: 2026-08-31T10:30:00Z
 
 ## upload output (tail)
 ```
-[upload] noon: aaj ka time (13:30 IST) nikal chuka (ab 21:32 IST) — KAL 13:30 IST pe schedule (2026-08-31T08:00:00Z)
-[upload] privacy=private + publishAt=2026-08-31T08:00:00Z
+[upload] paheli: aaj ka time (16:00 IST) nikal chuka (ab 23:39 IST) — KAL 16:00 IST pe schedule (2026-08-31T10:30:00Z)
+[upload] privacy=private + publishAt=2026-08-31T10:30:00Z
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/58WGi42Yizc
+[upload] done -> https://youtube.com/shorts/J4BebPdqDIU
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
