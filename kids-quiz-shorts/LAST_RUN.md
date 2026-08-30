@@ -1,22 +1,22 @@
 # Last run
-- when   : 2026-08-30 18:09 UTC
-- slot   : paheli
+- when   : 2026-08-30 19:13 UTC
+- slot   : evening
 - privacy: public
 - upload : success
 
 ## metadata
-- title: सिर पर ताज, हरा बदन — वो क्या है? 🤔 | बच्चों की पहेली Class 1-5
-- duration_sec: 22.93
+- title: जलियांवाला बाग हत्याकांड किस साल हुआ था? 🤔 | भारत क्विज़
+- duration_sec: 24.23
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/J4BebPdqDIU
-- scheduled_for: 2026-08-31T10:30:00Z
+- youtube_url: https://youtube.com/shorts/Ya77j27b7TE
+- scheduled_for: 2026-08-31T12:00:00Z
 
 ## upload output (tail)
 ```
-[upload] paheli: aaj ka time (16:00 IST) nikal chuka (ab 23:39 IST) — KAL 16:00 IST pe schedule (2026-08-31T10:30:00Z)
-[upload] privacy=private + publishAt=2026-08-31T10:30:00Z
+[upload] evening: YouTube 17:30 IST par khud public karega (2026-08-31T12:00:00Z) — abhi 00:43 IST
+[upload] privacy=private + publishAt=2026-08-31T12:00:00Z
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/J4BebPdqDIU
+[upload] done -> https://youtube.com/shorts/Ya77j27b7TE
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
