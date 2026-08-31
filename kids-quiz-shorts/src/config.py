@@ -75,34 +75,37 @@ COLORS = {
 }
 
 # ---------- NEON mode ----------
-# Neon glow SIRF dark background pe kaam karta hai. Isliye NEON=True hote hi
-# card aur option pills bhi dark ho jaate hain — halke card par glow wash out
-# ho jaata hai aur text dhundhla dikhta hai.
-# False karo to purana safed-card wala look wapas aa jaayega.
-NEON = True
+# BAND. Glow ke saath text ke aas-paas hamesha halka dhundhlapan reh jaata
+# tha — Devanagari ki matra aur sir-rekha patli hoti hain, unke upar koi bhi
+# blur turant chipak jaata hai. Shorts me 8 second me padhna hota hai,
+# isliye chamak se zyada saaf dikhna zaroori hai.
+#
+# Ab: solid background, SAFED boxes, aur box par gehre rang ka text.
+# Yahi format Hindi GK shorts me sabse zyada chalta hai kyunki contrast
+# sabse zyada milta hai.
+NEON = False
 
-if NEON:
-    COLORS.update({
-        "bg_top":       (26, 11, 46),      # gehra purple
-        "bg_bottom":    (58, 28, 92),
-        "card":         (18, 10, 32),      # near-black card
-        "opt_bg":       (28, 16, 48),
-        "q_text":       (240, 235, 255),
-        "opt_text":     (235, 230, 250),
-        "banner":       (12, 6, 24),
-        "banner_text":  (0, 240, 255),     # cyan
-        "opt_label":    (255, 60, 200),    # magenta
-        "correct":      (0, 255, 150),
-        "correct_bg":   (10, 46, 34),
-        "timer_ring":   (0, 240, 255),
-        "timer_ring_bg": (48, 30, 74),
-        "word1": (0, 240, 255),    # cyan
-        "word2": (255, 60, 200),   # magenta
-        "word3": (140, 120, 255),  # violet
-        "word4": (80, 200, 255),   # sky
-    })
+COLORS.update({
+    "bg_top":        (46, 26, 71),      # #2E1A47
+    "bg_bottom":     (46, 26, 71),      # flat — koi gradient nahi
+    "card":          (255, 255, 255),   # sawaal aur options, dono ek hi rang
+    "opt_bg":        (255, 255, 255),
+    "opt_text":      (39, 27, 72),
+    "q_text":        (26, 16, 54),
+    "opt_label":     (46, 26, 71),
+    "banner":        (26, 14, 44),      # bg se thoda gehra
+    "banner_text":   (253, 224, 71),    # yellow
+    "correct":       (22, 163, 74),
+    "correct_bg":    (214, 250, 227),
+    "timer_ring":    (229, 57, 53),     # laal — safed ring par sabse alert
+    "timer_ring_bg": (228, 224, 238),
+    # Safed box par gehre rang — teeno me contrast 7:1 se upar hai
+    "word1": (198, 40, 40),     # gehra laal
+    "word2": (21, 101, 192),    # gehra neela
+    "word3": (27, 94, 32),      # gehra hara
+    "word4": (69, 39, 160),     # gehra purple
+})
 
-# Question ke words in rango me ghoomte hain; har option ka apna rang.
 QUESTION_COLORS = ["word1", "word2", "word3", "word4"]
 OPTION_COLORS = ["word2", "word3", "word1", "word4"]
 
