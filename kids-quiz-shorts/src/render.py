@@ -182,7 +182,10 @@ def neon_text(img, xy, text, font, glow, core=None, pad=70):
     ImageDraw.Draw(layer).text(off, text, font=font, fill=glow)
 
     region = img.crop(box).convert("RGB")
-    for radius, gain in ((26, 0.95), (12, 1.0), (5, 1.0)):
+    # Sirf BAHAR ki do layers. Pehle ek 5px blur bhi tha jo glyph ke UPAR
+    # baithta tha — usi se text dhundhla dikh raha tha. Neon me glow text ke
+    # CHAARON OR hona chahiye, text ke upar nahi.
+    for radius, gain in ((30, 0.75), (14, 0.85)):
         blurred = layer.filter(ImageFilter.GaussianBlur(radius))
         if gain < 1:
             blurred = blurred.point(lambda v, g=gain: int(v * g))
@@ -190,7 +193,10 @@ def neon_text(img, xy, text, font, glow, core=None, pad=70):
 
     region = region.convert("RGBA")
     if core is None:
-        core = tuple(min(255, int(c * 0.30 + 255 * 0.70)) for c in glow)
+        # Core lagbhag safed — reference neon me bhi beech safed hota hai aur
+        # rang kinaron/glow me. Halka tint (85% safed) rakha hai taaki shabd
+        # ka rang phir bhi pehchana jaaye, par edge crisp rahe.
+        core = tuple(min(255, int(c * 0.15 + 255 * 0.85)) for c in glow)
     ImageDraw.Draw(region).text(off, text, font=font, fill=tuple(core) + (255,))
     img.paste(region, box)
 
