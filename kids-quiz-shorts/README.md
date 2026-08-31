@@ -271,3 +271,20 @@ nahi, wo video pe depend karta hai (hook, pacing, awaaz).
 
 Yaani: title/tag se 200 views 400 nahi ho jaate. Pehle 2 second ka hook
 aur timer ka pacing sudharo — asli growth wahan hai.
+
+
+---
+
+## Neon look
+
+`config.py` me `NEON = True`. Ye sirf rang nahi badalta — **poora theme dark
+kar deta hai** (card, option pills, chips, footer), kyunki neon glow halke
+background par wash out ho jaata hai aur text dhundhla dikhne lagta hai.
+
+`NEON = False` karo to purana look wapas: purple background, safed card,
+gehre rang ka text. Dono modes ek hi code se chalte hain — koi alag branch
+nahi.
+
+Glow kaise banta hai: text ko teen alag radius par blur karke jodte hain,
+phir upar crisp safed core. Ye sirf **base panel** par hota hai (video me
+5 baar), har frame par nahi — isliye render time sirf ~42 second hai.

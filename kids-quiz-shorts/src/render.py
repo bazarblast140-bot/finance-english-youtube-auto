@@ -155,9 +155,27 @@ def fit_lines(draw, text, max_w, max_h, start=76, min_size=44, max_lines=4, bold
     return f, wrap(draw, text, f, max_w), int(min_size * 1.34)
 
 
-def centered_multicolor(draw, lines, font, lh, cx, top, colors):
+def neon_text(img, xy, text, font, glow, core=(255, 255, 255), spread=3):
+    """Neon glow — text ko kai baar blur karke jodo, phir upar crisp core.
+
+    Sirf DARK background pe dikhta hai. Halke card par glow wash out ho
+    jaata hai aur text dhundhla lagta hai, isliye NEON=True hone par cards
+    bhi dark kar diye jaate hain (config.py dekho).
+    """
+    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    ImageDraw.Draw(layer).text(xy, text, font=font, fill=glow + (255,))
+    for radius, alpha in ((18, 0.55), (9, 0.75), (4, 0.9)):
+        blurred = layer.filter(ImageFilter.GaussianBlur(radius))
+        if alpha < 1:
+            blurred.putalpha(blurred.getchannel("A").point(lambda a: int(a * alpha)))
+        img.alpha_composite(blurred)
+    ImageDraw.Draw(img).text(xy, text, font=font, fill=core + (255,))
+
+
+def centered_multicolor(draw, lines, font, lh, cx, top, colors, img=None):
     """Har shabd alag rang me. Devanagari shaping shabd ke ANDAR hoti hai,
-    space ke aar-paar nahi — isliye word-by-word draw karna surakshit hai."""
+    space ke aar-paar nahi — isliye word-by-word draw karna surakshit hai.
+    img diya ho aur NEON on ho to har shabd glow ke saath aata hai."""
     space = draw.textlength(" ", font=font)
     wi, y = 0, top
     for ln in lines:
@@ -166,7 +184,11 @@ def centered_multicolor(draw, lines, font, lh, cx, top, colors):
         total = sum(widths) + space * (len(words) - 1)
         x = cx - total / 2
         for w, wd in zip(words, widths):
-            draw.text((x, y), w, font=font, fill=colors[wi % len(colors)])
+            col = colors[wi % len(colors)]
+            if C.NEON and img is not None:
+                neon_text(img, (x, y), w, font, col)
+            else:
+                draw.text((x, y), w, font=font, fill=col)
             x += wd + space
             wi += 1
         y += lh
@@ -240,8 +262,12 @@ def banner(img, qnum=None, total=None, subject=None):
         chip = f"सवाल {qnum}/{total}"
         cf = F(46)
         cw = text_w(d, chip, cf)
-        d.rounded_rectangle([70, 240, 70 + cw + 68, 336], 48, fill=(255, 255, 255))
-        d.text((104, 256), chip, font=cf, fill=C.COLORS["banner"])
+        d.rounded_rectangle([70, 240, 70 + cw + 68, 336], 48,
+                            fill=C.COLORS["card"] if C.NEON else (255, 255, 255),
+                            outline=C.COLORS["banner_text"] if C.NEON else None,
+                            width=3 if C.NEON else 0)
+        d.text((104, 256), chip, font=cf,
+               fill=C.COLORS["banner_text"] if C.NEON else C.COLORS["banner"])
     if subject:
         sf = F(44)
         sw = text_w(d, subject, sf)
@@ -269,9 +295,12 @@ def footer(img, text=None, y=FOOTER_Y):
     t = " ".join(t.split())
     f = F(44)
     w = text_w(d, t, f)
+    pill = C.COLORS["card"] if C.NEON else (255, 255, 255)
+    ink = C.COLORS["banner_text"] if C.NEON else C.COLORS["banner"]
     d.rounded_rectangle([(C.W - w) // 2 - 40, y, (C.W + w) // 2 + 40, y + 88],
-                        44, fill=(255, 255, 255))
-    d.text(((C.W - w) // 2, y + 18), t, font=f, fill=C.COLORS["banner"])
+                        44, fill=pill,
+                        outline=ink if C.NEON else None, width=3 if C.NEON else 0)
+    d.text(((C.W - w) // 2, y + 18), t, font=f, fill=ink)
     hf = F(38, bold=False)
     hw = text_w(d, C.HANDLE, hf)
     d.text(((C.W - hw) // 2, y + 114), C.HANDLE, font=hf, fill=(255, 255, 255),
@@ -288,7 +317,8 @@ def timer_ring(img, remaining, total):
     d = ImageDraw.Draw(img)
     cx, cy, r = TIMER_CX, TIMER_CY, TIMER_R
     box = [cx - r, cy - r, cx + r, cy + r]
-    d.ellipse([cx - r - 8, cy - r - 8, cx + r + 8, cy + r + 8], fill=(255, 255, 255))
+    d.ellipse([cx - r - 8, cy - r - 8, cx + r + 8, cy + r + 8],
+              fill=C.COLORS["card"] if C.NEON else (255, 255, 255))
     d.arc(box, 0, 360, fill=C.COLORS["timer_ring_bg"], width=20)
     frac = max(0.0, min(1.0, remaining / total))
     if frac > 0:
@@ -328,8 +358,11 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False):
 
     d = ImageDraw.Draw(img)
     top = CARD_TOP + (card_h - len(lines) * lh) // 2
+    if C.NEON:
+        img = img.convert("RGBA")
+        d = ImageDraw.Draw(img)
     centered_multicolor(d, lines, f, lh, C.W // 2, top,
-                        [C.COLORS[k] for k in C.QUESTION_COLORS])
+                        [C.COLORS[k] for k in C.QUESTION_COLORS], img=img)
 
     opt_top = card_box[3] + OPT_PAD
     icons = icons_for(q)
@@ -343,16 +376,24 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False):
             d.rounded_rectangle(box, 34, fill=bg, outline=C.COLORS["correct"], width=8)
         else:
             faded = dim_others and highlight is not None
-            bg = (235, 235, 240) if faded else C.COLORS["opt_bg"]
+            # Faded rang theme ke hisaab se — dark mode me halka grey pill
+            # bilkul toota hua dikhta hai.
+            if faded:
+                bg = (30, 22, 44) if C.NEON else (235, 235, 240)
+            else:
+                bg = C.COLORS["opt_bg"]
             # Har option ka apna rang — A neela, B hara, C laal, D purple
-            fg = ((150, 150, 160) if faded
+            dim_fg = (110, 96, 140) if C.NEON else (150, 150, 160)
+            fg = (dim_fg if faded
                   else C.COLORS[C.OPTION_COLORS[i % len(C.OPTION_COLORS)]])
-            lab = (170, 150, 155) if faded else C.COLORS["opt_label"]
-            d.rounded_rectangle(box, 34, fill=bg, outline=(220, 222, 235), width=4)
+            lab = dim_fg if faded else C.COLORS["opt_label"]
+            d.rounded_rectangle(box, 34, fill=bg,
+                                outline=(70, 48, 110) if C.NEON else (220, 222, 235),
+                                width=4)
 
         cx = 134
         d.ellipse([cx - 42, y + 14, cx + 42, y + OPT_H - 14],
-                  fill=(255, 255, 255), outline=lab, width=6)
+                  fill=bg if C.NEON else (255, 255, 255), outline=lab, width=6)
         lf = F(50)
         lb = d.textbbox((0, 0), LABELS[i], font=lf)
         d.text((cx - (lb[2] - lb[0]) // 2 - lb[0], y + OPT_H // 2 - (lb[3] + lb[1]) // 2),
@@ -372,7 +413,11 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False):
         while text_w(d, opt, of) > max_w and of.size > 34:
             of = F(of.size - 2)
         ob = d.textbbox((0, 0), opt, font=of)
-        d.text((text_x, y + OPT_H // 2 - (ob[3] + ob[1]) // 2), opt, font=of, fill=fg)
+        oy = y + OPT_H // 2 - (ob[3] + ob[1]) // 2
+        if C.NEON and not (dim_others and not is_hit):
+            neon_text(img, (text_x, oy), opt, of, fg)
+        else:
+            d.text((text_x, oy), opt, font=of, fill=fg)
 
         if is_hit:
             # Poppins me U+2713 glyph nahi hai (tofu box aata hai) -> haath se draw
@@ -381,6 +426,8 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False):
                    fill=C.COLORS["correct"], width=11, joint="curve")
 
     opt_end = opt_top + 4 * (OPT_H + OPT_GAP) - OPT_GAP
+    if img.mode == "RGBA":
+        img = img.convert("RGB")
     return img, opt_end
 
 
@@ -417,11 +464,12 @@ def hint_panel(q, qnum, total):
         h = len(wlines) * wlh + 58
         top = y + 22
         d.rounded_rectangle([80, top, C.W - 80, top + h], 30,
-                            fill=(255, 255, 255), outline=C.COLORS["timer_ring"],
-                            width=5)
+                            fill=C.COLORS["card"] if C.NEON else (255, 255, 255),
+                            outline=C.COLORS["timer_ring"], width=5)
         lf = F(34)
+        bg_stroke = C.COLORS["bg_top"] if C.NEON else (255, 255, 255)
         d.text((116, top - 22), "इशारा", font=lf, fill=C.COLORS["timer_ring"],
-               stroke_width=6, stroke_fill=(255, 255, 255))
+               stroke_width=6, stroke_fill=bg_stroke)
         centered(d, wlines, wf, wlh, C.W // 2, top + 30, C.COLORS["opt_text"])
         y = top + h
     footer(img, "अब सही जवाब…", y=max(FOOTER_Y, y + 28))

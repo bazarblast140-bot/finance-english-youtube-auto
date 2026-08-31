@@ -74,6 +74,34 @@ COLORS = {
     "word4": (74, 20, 140),     # brand purple
 }
 
+# ---------- NEON mode ----------
+# Neon glow SIRF dark background pe kaam karta hai. Isliye NEON=True hote hi
+# card aur option pills bhi dark ho jaate hain — halke card par glow wash out
+# ho jaata hai aur text dhundhla dikhta hai.
+# False karo to purana safed-card wala look wapas aa jaayega.
+NEON = True
+
+if NEON:
+    COLORS.update({
+        "bg_top":       (26, 11, 46),      # gehra purple
+        "bg_bottom":    (58, 28, 92),
+        "card":         (18, 10, 32),      # near-black card
+        "opt_bg":       (28, 16, 48),
+        "q_text":       (240, 235, 255),
+        "opt_text":     (235, 230, 250),
+        "banner":       (12, 6, 24),
+        "banner_text":  (0, 240, 255),     # cyan
+        "opt_label":    (255, 60, 200),    # magenta
+        "correct":      (0, 255, 150),
+        "correct_bg":   (10, 46, 34),
+        "timer_ring":   (0, 240, 255),
+        "timer_ring_bg": (48, 30, 74),
+        "word1": (0, 240, 255),    # cyan
+        "word2": (255, 60, 200),   # magenta
+        "word3": (140, 120, 255),  # violet
+        "word4": (80, 200, 255),   # sky
+    })
+
 # Question ke words in rango me ghoomte hain; har option ka apna rang.
 QUESTION_COLORS = ["word1", "word2", "word3", "word4"]
 OPTION_COLORS = ["word2", "word3", "word1", "word4"]
