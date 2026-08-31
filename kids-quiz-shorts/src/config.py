@@ -65,7 +65,18 @@ COLORS = {
     "banner":     (76, 29, 149),     # violet-900
     "banner_text": (253, 224, 71),   # yellow-300, banner ke Hindi text jaisa
     "footer":     (60, 60, 80),
+
+    # Multi-colour text — Hindi GK shorts ka standard look. Ye rang SIRF
+    # safed card par use hote hain, isliye contrast ki dikkat nahi.
+    "word1": (198, 40, 40),     # gehra laal
+    "word2": (21, 101, 192),    # gehra neela
+    "word3": (46, 125, 50),     # gehra hara
+    "word4": (74, 20, 140),     # brand purple
 }
+
+# Question ke words in rango me ghoomte hain; har option ka apna rang.
+QUESTION_COLORS = ["word1", "word2", "word3", "word4"]
+OPTION_COLORS = ["word2", "word3", "word1", "word4"]
 
 FONT_CANDIDATES = [
     str(ASSETS / "fonts" / "NotoSansDevanagari-Bold.ttf"),

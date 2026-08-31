@@ -155,6 +155,24 @@ def fit_lines(draw, text, max_w, max_h, start=76, min_size=44, max_lines=4, bold
     return f, wrap(draw, text, f, max_w), int(min_size * 1.34)
 
 
+def centered_multicolor(draw, lines, font, lh, cx, top, colors):
+    """Har shabd alag rang me. Devanagari shaping shabd ke ANDAR hoti hai,
+    space ke aar-paar nahi — isliye word-by-word draw karna surakshit hai."""
+    space = draw.textlength(" ", font=font)
+    wi, y = 0, top
+    for ln in lines:
+        words = ln.split()
+        widths = [draw.textlength(w, font=font) for w in words]
+        total = sum(widths) + space * (len(words) - 1)
+        x = cx - total / 2
+        for w, wd in zip(words, widths):
+            draw.text((x, y), w, font=font, fill=colors[wi % len(colors)])
+            x += wd + space
+            wi += 1
+        y += lh
+    return y
+
+
 def centered(draw, lines, font, lh, cx, top, fill, stroke=0, stroke_fill=None):
     y = top
     for ln in lines:
@@ -310,7 +328,8 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False):
 
     d = ImageDraw.Draw(img)
     top = CARD_TOP + (card_h - len(lines) * lh) // 2
-    centered(d, lines, f, lh, C.W // 2, top, C.COLORS["q_text"])
+    centered_multicolor(d, lines, f, lh, C.W // 2, top,
+                        [C.COLORS[k] for k in C.QUESTION_COLORS])
 
     opt_top = card_box[3] + OPT_PAD
     icons = icons_for(q)
@@ -325,7 +344,9 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False):
         else:
             faded = dim_others and highlight is not None
             bg = (235, 235, 240) if faded else C.COLORS["opt_bg"]
-            fg = (150, 150, 160) if faded else C.COLORS["opt_text"]
+            # Har option ka apna rang — A neela, B hara, C laal, D purple
+            fg = ((150, 150, 160) if faded
+                  else C.COLORS[C.OPTION_COLORS[i % len(C.OPTION_COLORS)]])
             lab = (170, 150, 155) if faded else C.COLORS["opt_label"]
             d.rounded_rectangle(box, 34, fill=bg, outline=(220, 222, 235), width=4)
 
