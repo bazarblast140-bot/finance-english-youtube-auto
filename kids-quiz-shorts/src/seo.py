@@ -80,7 +80,7 @@ def build(questions, slot="morning", date=None):
     # aage, aur context (subject/class) baad me — truncate ho bhi jaaye to
     # viewer ne asli hook padh liya hota hai.
     if slot == "paheli" or "पहेली" in subs:
-        tail = " | बच्चों की पहेली Class 1-5"
+        tail = " | हिंदी पहेली"
         if len(qtext) + len(tail) > 96:
             tail = " | पहेली"
         title = f"{qtext} 🤔{tail}"
@@ -100,14 +100,14 @@ def build(questions, slot="morning", date=None):
         + (f"\n💡 क्यों: {q['why']}" if q.get("why") else "")
         for i, q in enumerate(questions)
     )
-    engage = ("बच्चों, कितने सही हुए? घर में सबसे ये सवाल पूछो 🎯"
+    engage = ("कितने सही हुए? घर में सबसे ये सवाल पूछिए 🎯"
               if C.MADE_FOR_KIDS else "कितने सही हुए? कमेंट में लिखो 👇")
 
     # Pehli line me hi keyword + sawaal — ye ~100 char sabse zyada weight
     # rakhte hain, isliye yahan "hook" nahi, saaf topic likhte hain.
     slot_times = ", ".join(C.SLOTS[k] for k in C.SLOT_ORDER)
     if slot == "paheli" or "पहेली" in subs:
-        first = (f"बच्चों की दिमागी पहेली हिंदी में — {qtext} "
+        first = (f"दिमाग़ घुमाने वाली हिंदी पहेली — {qtext} "
                  f"8 सेकंड का टाइमर, फिर सही जवाब और वजह।")
     else:
         first = (f"{sub_hi} क्विज़ हिंदी में — {qtext} "
@@ -131,7 +131,7 @@ def build(questions, slot="morning", date=None):
     # --- TAGS ----------------------------------------------------------------
     tags = list(BASE_TAGS)
     if slot == "paheli" or any(q.get("sub") == "पहेली" for q in questions):
-        tags = ["paheli for kids in hindi", "बच्चों की दिमागी पहेलियाँ",
+        tags = ["paheli in hindi with answer", "दिमागी पहेलियाँ हिंदी",
                 "hindi riddles for class 1 to 5"] + tags
     if any(q.get("topic") == "सबसे" for q in questions):
         tags = ["duniya me sabse bada kaun sa hai", "sabse uncha lamba gehra"] + tags
