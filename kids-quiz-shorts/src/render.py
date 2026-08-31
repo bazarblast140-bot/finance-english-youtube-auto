@@ -9,7 +9,7 @@ Design rules (rajesh-ui-pro, Shorts variant):
 import math
 import random
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageFont, ImageFilter
 
 import config as C
 
@@ -155,21 +155,44 @@ def fit_lines(draw, text, max_w, max_h, start=76, min_size=44, max_lines=4, bold
     return f, wrap(draw, text, f, max_w), int(min_size * 1.34)
 
 
-def neon_text(img, xy, text, font, glow, core=(255, 255, 255), spread=3):
-    """Neon glow — text ko kai baar blur karke jodo, phir upar crisp core.
+def neon_text(img, xy, text, font, glow, core=None, pad=70):
+    """Neon glow — blur ki kai layers ko ADDITIVELY jodo, phir upar crisp core.
 
-    Sirf DARK background pe dikhta hai. Halke card par glow wash out ho
-    jaata hai aur text dhundhla lagta hai, isliye NEON=True hone par cards
-    bhi dark kar diye jaate hain (config.py dekho).
+    Pehle ye alpha_composite se ho raha tha, jisse glow bright hi nahi hota:
+    alpha-over roshni ko jodta nahi, sirf dhak deta hai. Asli neon additive
+    hota hai — isliye ImageChops.add.
+
+    Core pura safed nahi rakha; glow rang ka halka tint hai, warna shabd ka
+    rang wash out ho jaata hai aur sab safed dikhne lagta hai.
+
+    Blur sirf shabd ke aas-paas ke box par lagta hai, poori 1080x1920 image
+    par nahi — warna har shabd par 3 full-frame blur padte aur render kai
+    guna dheema ho jaata.
     """
-    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    ImageDraw.Draw(layer).text(xy, text, font=font, fill=glow + (255,))
-    for radius, alpha in ((18, 0.55), (9, 0.75), (4, 0.9)):
+    d0 = ImageDraw.Draw(img)
+    b = d0.textbbox(xy, text, font=font)
+    box = (max(0, int(b[0]) - pad), max(0, int(b[1]) - pad),
+           min(img.width, int(b[2]) + pad), min(img.height, int(b[3]) + pad))
+    if box[2] <= box[0] or box[3] <= box[1]:
+        return
+    w, h = box[2] - box[0], box[3] - box[1]
+    off = (xy[0] - box[0], xy[1] - box[1])
+
+    layer = Image.new("RGB", (w, h), (0, 0, 0))
+    ImageDraw.Draw(layer).text(off, text, font=font, fill=glow)
+
+    region = img.crop(box).convert("RGB")
+    for radius, gain in ((26, 0.95), (12, 1.0), (5, 1.0)):
         blurred = layer.filter(ImageFilter.GaussianBlur(radius))
-        if alpha < 1:
-            blurred.putalpha(blurred.getchannel("A").point(lambda a: int(a * alpha)))
-        img.alpha_composite(blurred)
-    ImageDraw.Draw(img).text(xy, text, font=font, fill=core + (255,))
+        if gain < 1:
+            blurred = blurred.point(lambda v, g=gain: int(v * g))
+        region = ImageChops.add(region, blurred)
+
+    region = region.convert("RGBA")
+    if core is None:
+        core = tuple(min(255, int(c * 0.30 + 255 * 0.70)) for c in glow)
+    ImageDraw.Draw(region).text(off, text, font=font, fill=tuple(core) + (255,))
+    img.paste(region, box)
 
 
 def centered_multicolor(draw, lines, font, lh, cx, top, colors, img=None):
