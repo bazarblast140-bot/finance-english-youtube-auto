@@ -1,22 +1,22 @@
 # Last run
-- when   : 2026-08-31 18:46 UTC
-- slot   : noon
+- when   : 2026-08-31 20:17 UTC
+- slot   : paheli
 - privacy: public
 - upload : success
 
 ## metadata
-- title: कौन सा विटामिन शरीर खुद बना लेता है? 🤔 | विज्ञान क्विज़
-- duration_sec: 23.37
+- title: बिना पैर के चलती है — वो क्या है? 🤔 | हिंदी पहेली
+- duration_sec: 22.13
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/tpLzUBB7ib4
-- scheduled_for: 2026-09-01T08:00:00Z
+- youtube_url: https://youtube.com/shorts/MIqV9lxITvs
+- scheduled_for: 2026-09-01T10:30:00Z
 
 ## upload output (tail)
 ```
-[upload] noon: YouTube 13:30 IST par khud public karega (2026-09-01T08:00:00Z) — abhi 00:15 IST
-[upload] privacy=private + publishAt=2026-09-01T08:00:00Z
+[upload] paheli: YouTube 16:00 IST par khud public karega (2026-09-01T10:30:00Z) — abhi 01:47 IST
+[upload] privacy=private + publishAt=2026-09-01T10:30:00Z
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/tpLzUBB7ib4
+[upload] done -> https://youtube.com/shorts/MIqV9lxITvs
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
