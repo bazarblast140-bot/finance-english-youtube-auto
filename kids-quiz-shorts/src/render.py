@@ -155,7 +155,13 @@ def fit_lines(draw, text, max_w, max_h, start=76, min_size=44, max_lines=4, bold
     return f, wrap(draw, text, f, max_w), int(min_size * 1.34)
 
 
-def neon_text(img, xy, text, font, glow, core=None, pad=70):
+# Stroke SIRF glow layer par. Core par stroke mat lagana — Devanagari ke
+# andar ke patle gaps (स, म, भ) bhar jaate hain aur akshar ek jaise dikhne
+# lagte hain. Motai font SIZE se laate hain, stroke se nahi.
+NEON_GLOW_STROKE = 3
+
+
+def neon_text(img, xy, text, font, glow, core=None, pad=80):
     """Neon glow — blur ki kai layers ko ADDITIVELY jodo, phir upar crisp core.
 
     Pehle ye alpha_composite se ho raha tha, jisse glow bright hi nahi hota:
@@ -178,14 +184,19 @@ def neon_text(img, xy, text, font, glow, core=None, pad=70):
     w, h = box[2] - box[0], box[3] - box[1]
     off = (xy[0] - box[0], xy[1] - box[1])
 
+    # Glow bhi MOTE shape se banta hai, taaki halo akshar ke bahar rahe aur
+    # patli jagahon (matra, sir-rekha) me ghus kar unhe na dhundhla kare.
     layer = Image.new("RGB", (w, h), (0, 0, 0))
-    ImageDraw.Draw(layer).text(off, text, font=font, fill=glow)
+    ImageDraw.Draw(layer).text(off, text, font=font, fill=glow,
+                               stroke_width=NEON_GLOW_STROKE, stroke_fill=glow)
 
     region = img.crop(box).convert("RGB")
     # Sirf BAHAR ki do layers. Pehle ek 5px blur bhi tha jo glyph ke UPAR
     # baithta tha — usi se text dhundhla dikh raha tha. Neon me glow text ke
     # CHAARON OR hona chahiye, text ke upar nahi.
-    for radius, gain in ((30, 0.75), (14, 0.85)):
+    # Halo ab door aur halka. Pehle 14px @0.85 abhi bhi glyph ke kinaron par
+    # chadh raha tha, isliye text dhundhla lag raha tha.
+    for radius, gain in ((34, 0.60), (18, 0.45)):
         blurred = layer.filter(ImageFilter.GaussianBlur(radius))
         if gain < 1:
             blurred = blurred.point(lambda v, g=gain: int(v * g))
@@ -197,6 +208,8 @@ def neon_text(img, xy, text, font, glow, core=None, pad=70):
         # rang kinaron/glow me. Halka tint (85% safed) rakha hai taaki shabd
         # ka rang phir bhi pehchana jaaye, par edge crisp rahe.
         core = tuple(min(255, int(c * 0.15 + 255 * 0.85)) for c in glow)
+    # Core mota (stroke) — isse akshar glow ke beech se saaf ubhar aata hai
+    # aur mobile pe 3 inch me bhi turant padha jaata hai.
     ImageDraw.Draw(region).text(off, text, font=font, fill=tuple(core) + (255,))
     img.paste(region, box)
 
@@ -380,7 +393,7 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False):
     d = ImageDraw.Draw(img)
     inner_w = C.W - 2 * CARD_X - 96
     f, lines, lh = fit_lines(d, q["q"], inner_w, CARD_MAX_H - 76,
-                             start=78, min_size=48, max_lines=4)
+                             start=92, min_size=60, max_lines=4)
     card_h = max(CARD_MIN_H, min(CARD_MAX_H, len(lines) * lh + 76))
     card_box = [CARD_X, CARD_TOP, C.W - CARD_X, CARD_TOP + card_h]
     card(img, card_box, fill=C.COLORS["card"])
@@ -437,7 +450,7 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False):
                     tile = faded_tile
                 img.paste(tile, (200, y + (OPT_H - 72) // 2), tile)
 
-        of = F(56)
+        of = F(64)
         max_w = C.W - text_x - 150
         while text_w(d, opt, of) > max_w and of.size > 34:
             of = F(of.size - 2)
