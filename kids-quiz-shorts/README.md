@@ -198,6 +198,16 @@ voice pe chal jaata hai — log me `voice: edge` dikhega aur build ke ant me
 saaf likha aata hai ki ElevenLabs fail hua. Sirf teeno fail hone pe silent
 video banta hai, aur us case me workflow ka volume-check upload rok deta hai.
 
+**2a. Refresh token me WRITE scope nahi hai — do cheezein isse ruki hain.**
+Maujuda `YOUTUBE_REFRESH_TOKEN` sirf `youtube.upload` + `youtube.readonly`
+ke saath bana tha. Upload isse chal jaata hai, par ye do nahi:
+- pinned comment post karna (403)
+- purane videos ki description/title theek karna (`fix_descriptions.py`)
+
+Ek baar laptop par `python src/upload.py --auth` chala do — uski SCOPES list
+me `youtube` (write) pehle se hai — aur naye teen `YOUTUBE_*` secrets update
+kar do. Uske baad dono kaam karne lagenge.
+
 **2b. Pinned comment API se nahi lagta.** `metadata.json` me `pinned_comment`
 ready hota hai, par usse post karne ke liye jo scope chahiye wo tumhare
 refresh token me granted nahi hai (403 aata hai, aur script use chup-chaap

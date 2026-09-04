@@ -112,6 +112,18 @@ def main():
             except Exception as e:
                 failed += 1
                 print(f"      FAIL: {e}")
+                if "insufficientPermissions" in str(e) or "insufficient" in str(e):
+                    # Ye har video par same fail hoga — 65 identical error
+                    # chhapne ka koi matlab nahi.
+                    print("\n  RUK GAYE: refresh token me WRITE scope nahi hai.\n"
+                          "  videos.update ke liye 'youtube' scope chahiye; abhi\n"
+                          "  sirf upload + readonly granted hai. Isi wajah se\n"
+                          "  pinned comment bhi 403 deta hai.\n\n"
+                          "  Theek karne ke liye laptop par:\n"
+                          "    python src/upload.py --auth\n"
+                          "  phir naye YOUTUBE_CLIENT_ID / SECRET / REFRESH_TOKEN\n"
+                          "  repo Secrets me update karo, aur ye workflow dobara chalao.")
+                    return 1
 
     mode = "badle" if a.apply else "badle JAATE (dry run)"
     print(f"\n{changed} {mode} | {skipped} chhode/pehle se theek | {failed} fail")
