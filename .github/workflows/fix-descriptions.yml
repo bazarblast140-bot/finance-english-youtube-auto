@@ -24,6 +24,9 @@ defaults:
   run:
     working-directory: kids-quiz-shorts
 
+permissions:
+  contents: write        # nateeja repo me likhne ke liye
+
 jobs:
   fix:
     runs-on: ubuntu-latest
@@ -40,8 +43,30 @@ jobs:
           YT_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
         run: |
+          set -o pipefail
           if [ "${{ inputs.apply }}" = "true" ]; then
-            python src/fix_descriptions.py --apply
+            python src/fix_descriptions.py --apply | tee fix_out.txt
           else
-            python src/fix_descriptions.py
+            python src/fix_descriptions.py | tee fix_out.txt
           fi
+
+      # CI logs Azure blob pe hote hain, har jagah se readable nahi —
+      # isliye nateeja repo me hi likh dete hain.
+      - name: Nateeja repo me likho
+        if: always()
+        run: |
+          {
+            echo "# Fix Old Descriptions"
+            echo "- when : $(date -u +'%F %H:%M UTC')"
+            echo "- apply: ${{ inputs.apply }}"
+            echo
+            echo '```'
+            cat fix_out.txt 2>/dev/null || echo "(kuch nahi)"
+            echo '```'
+          } > FIX_DESCRIPTIONS.md
+          git config user.name  "quiz-bot"
+          git config user.email "quiz-bot@users.noreply.github.com"
+          git add FIX_DESCRIPTIONS.md
+          git diff --staged --quiet || git commit -m "chore: fix-descriptions nateeja (apply=${{ inputs.apply }}) [skip ci]"
+          git pull --rebase --autostash || true
+          git push
