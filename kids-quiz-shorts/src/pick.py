@@ -15,7 +15,24 @@ USED = DATA / "used.json"
 
 
 def load_bank():
-    return json.loads(BANK.read_text(encoding="utf-8"))
+    """Bank padho aur duplicate sawaal turant pakdo.
+
+    Ek baar aisa ho chuka hai: 'किस देश को उगते सूरज का देश कहते हैं?' aur
+    'उगते सूरज का देश किसे कहा जाता है?' dono bank me the, aur dono live
+    chale gaye. Same jawab + zyada shabd overlap = duplicate."""
+    bank = json.loads(BANK.read_text(encoding="utf-8"))
+    seen = {}
+    for q in bank:
+        key = (q["opts"][q["ans"]], frozenset(q["q"].split()))
+        for (ans, words), other in seen.items():
+            if ans != key[0]:
+                continue
+            ov = len(words & key[1]) / max(1, min(len(words), len(key[1])))
+            if ov >= 0.5:
+                print(f"[pick] WARNING duplicate: {other} aur {q['id']} "
+                      f"— dono ka jawab '{ans}', {ov:.0%} shabd same")
+        seen[key] = q["id"]
+    return bank
 
 
 def load_used():
