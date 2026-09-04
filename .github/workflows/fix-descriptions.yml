@@ -1,0 +1,47 @@
+name: Fix Old Descriptions
+
+# Ek baar chalane wala kaam. Pivot (kids -> general GK) se PEHLE publish hue
+# videos ki description/title me purani framing padi hai. Wo YouTube ko
+# channel ka topic galat batati hai.
+#
+# Pehle bina "apply" ke chalao — sirf list dikhegi, kuch badlega nahi.
+# List theek lage tabhi apply=true karo.
+#
+# Quota: har badle hue video par videos.update = 50 units. Roz ke 5 upload
+# pehle hi 8,000 units lete hain (limit 10,000), isliye ise upload slots se
+# alag time par chalao — warna us din ka koi upload fail ho sakta hai.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "true = sach me badlo, false = sirf dikhao"
+        type: choice
+        options: ["false", "true"]
+        default: "false"
+
+defaults:
+  run:
+    working-directory: kids-quiz-shorts
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install google-api-python-client google-auth google-auth-oauthlib
+      - name: Descriptions theek karo
+        env:
+          YT_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          if [ "${{ inputs.apply }}" = "true" ]; then
+            python src/fix_descriptions.py --apply
+          else
+            python src/fix_descriptions.py
+          fi
