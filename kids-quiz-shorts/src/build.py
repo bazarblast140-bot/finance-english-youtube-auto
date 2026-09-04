@@ -132,16 +132,29 @@ def render_video(segs, frames_dir: Path):
             elif kind == "hint":
                 base = render.hint_panel(q, qn, tot)
             else:
-                base, opt_end = render.question_panel(q, qn, tot)
+                base, opt_end = render.question_panel(
+                    q, qn, tot, show_options=0 if kind == "read" else 4)
                 render.footer(base, "ध्यान से सुनिए…" if kind == "read" else C.CTA_TEXT,
                               y=max(render.FOOTER_Y, opt_end + 34))
 
         if kind == "timer":
             seg_secs = nf / C.FPS
-            for f in range(nf):                     # sirf yahan per-frame kaam
+            # Options bolne ke saath ek-ek karke aate hain. 5 base image
+            # (0..4 options) pehle hi bana lete hain — per-frame poora panel
+            # banane se render 4 guna dheema ho jaata.
+            reveal_span = min(seg_secs * 0.55, 4.6)
+            bases = [render.question_panel(q, qn, tot, show_options=k)[0]
+                     for k in range(5)]
+            for b in bases:
+                render.footer(b, C.CTA_TEXT,
+                              y=max(render.FOOTER_Y,
+                                    render.question_panel(q, qn, tot)[1] + 34))
+            for f in range(nf):
                 elapsed = f / C.FPS
+                shown = 4 if elapsed >= reveal_span else \
+                    int(elapsed / (reveal_span / 4)) + 1
                 remaining = min(float(C.TIMER_SECONDS), seg_secs - elapsed)
-                img = base.copy()
+                img = bases[min(4, shown)].copy()
                 render.timer_ring(img, remaining, C.TIMER_SECONDS)
                 img.save(frames_dir / f"f{idx:06d}.jpg", quality=92)
                 idx += 1

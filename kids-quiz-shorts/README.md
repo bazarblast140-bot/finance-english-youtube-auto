@@ -274,7 +274,18 @@ Ye 2026 ke Shorts behaviour pe based hai. Purana long-form SEO advice
 | Title | **sawaal sabse aage** | Mobile Shorts feed me title ki ek hi line dikhti hai (~45-55 char). Pehle "क्या तुम्हें पता है? 🤔" aage tha, jisse asli sawaal truncate ho jaata tha |
 | Description | pehli line me keyword + sawaal | Pehle ~100 character sabse zyada weight rakhte hain |
 
-**Sabse zaroori baat:** ye sab **chhota lever** hai. Shorts me discovery
+### Kya asli me kaam kiya (30 videos ka data, 4 Sept)
+
+| Badlav | Nateeja |
+|---|---|
+| Duration 41-46s se 23-27s | median views **10 se 36** (3.6x) |
+| Jawab aakhir me, CTA usse pehle | 2 video breakout hue (953 aur 964 views) |
+| Options ek-ek karke aana | abhi naya hai, data baaki |
+
+Subject ka farak abhi **noise** hai — median 25 se 38 ke beech, sample bahut
+chhota. Uspe abhi koi faisla mat lo.
+
+**Sabse zaroori baat:** SEO **chhota lever** hai. Shorts me discovery
 mainly **retention aur swipe-away rate** se chalti hai. SEO sirf itna tay
 karta hai ki video *kis* audience ko dikhaya jaaye — wo audience rukegi ya
 nahi, wo video pe depend karta hai (hook, pacing, awaaz).

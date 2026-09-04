@@ -397,7 +397,15 @@ OPT_GAP = 20
 OPT_PAD = 34            # card ke neeche se options tak ka gap
 
 
-def question_panel(q, qnum, total, highlight=None, dim_others=False):
+def question_panel(q, qnum, total, highlight=None, dim_others=False,
+                   show_options=4):
+    """show_options: kitne option dikhane hain (0-4).
+
+    Shorts me sabse bada dushman STATIC screen hai. Pehle sawaal aur chaaron
+    option ek saath aa jaate the aur phir 12 second tak kuch hilta hi nahi
+    tha — viewer ke paas swipe karne ke alawa kuch bacha hi nahi tha. Ab
+    option ek-ek karke aate hain, thik us waqt jab wo bole ja rahe hote hain.
+    """
     """highlight=None -> normal. highlight=idx -> us option ko green.
     Ye base image hai; timer per-frame iske upar paste hota hai.
     Return: (image, options_block_end_y) — reveal badge/footer isi se position hote hain."""
@@ -422,8 +430,9 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False):
 
     opt_top = card_box[3] + OPT_PAD
     icons = icons_for(q)
+    q_opts = q["opts"][:max(0, min(4, show_options))]
     text_x = 296 if icons else 206
-    for i, opt in enumerate(q["opts"]):
+    for i, opt in enumerate(q_opts):
         y = opt_top + i * (OPT_H + OPT_GAP)
         box = [70, y, C.W - 70, y + OPT_H]
         is_hit = (highlight is not None and i == highlight)
