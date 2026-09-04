@@ -237,5 +237,5 @@ def cta_script() -> str:
 
 
 if __name__ == "__main__":
-    p, d, e = say("नमस्ते बच्चों, आज का सवाल।", "test")
+    p, d, e = say("नमस्ते, आज का सवाल।", "test")
     print(p, f"{d:.2f}s", e)

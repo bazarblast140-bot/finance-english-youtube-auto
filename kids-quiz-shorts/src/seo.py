@@ -178,7 +178,9 @@ def hashtags(subs):
     """
     tags = ["#GKInHindi", "#GKQuestion"]
     if "पहेली" in subs:
-        tags = ["#पहेली", "#दिमागीपहेली", "#KidsQuiz"]
+        # #KidsQuiz hataya — pivot ke baad audience general hai, aur ye
+        # hashtag YouTube ko galat audience ka signal deta tha.
+        tags = ["#पहेली", "#दिमागीपहेली", "#HindiPaheli"]
     else:
         tags.append(SUB_HASH.get(subs[0], "#GeneralKnowledge"))
     tags.append("#QuizPathshala")

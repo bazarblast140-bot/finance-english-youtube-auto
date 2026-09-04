@@ -46,7 +46,7 @@ MADE_FOR_KIDS = False
 CTA_TEXT = ("घर में सबको ये सवाल पूछो!" if MADE_FOR_KIDS
             else "जवाब कमेंट में लिखो 👇")
 
-# Kids palette — high contrast, thumbnail-safe (rajesh-ui-pro: bold > subtle for Shorts)
+# Palette — high contrast, mobile pe 3 inch me turant padha jaana chahiye
 # Palette channel branding se match ki hai — purple banner, yellow accent,
 # white "?" logo. Shorts feed me channel avatar aur video ek hi family lagein.
 COLORS = {
@@ -137,8 +137,8 @@ ELEVEN_STABILITY = 0.45
 ELEVEN_SIMILARITY = 0.80
 # 1.08 sirf isliye rakha tha ki video 60s ke andar aa jaye — par wo "limit"
 # thi hi nahi (asli limit 3 min hai), aur ElevenLabs edge-tts se waise hi
-# kaafi tez hai (video 54s -> 40s). Class 1-5 ke bacchon ko saaf aur thodi
-# aaram se bolti awaaz chahiye, isliye wapas normal speed.
+# kaafi tez hai (video 54s -> 40s). Saaf aur aaram se bolti awaaz chahiye,
+# isliye wapas normal speed.
 ELEVEN_SPEED = 1.0
 
 # Fallback agar ElevenLabs fail ho (quota/network): edge-tts female Hindi
