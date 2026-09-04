@@ -161,9 +161,12 @@ lagaya hai.
 `ans` = 0-based index. `data/used.json` khud maintain hoti hai — wahi sawaal
 dobara nahi aayega jab tak poora bank khatam na ho jaye.
 
-**Bank:** 116 quiz sawaal ÷ **8 roz** (4 quiz video × 2) = **~14 din** quiz
-cycle. **40 पहेली** ÷ 2 roz = **~20 din** paheli cycle. English/Maths
-bottleneck pehle khatam honge (21-21).
+**Bank: 200 sawaal** — paanchon subject me 40-40 (सामान्य ज्ञान, विज्ञान,
+भारत, दुनिया, पहेली). Quiz 160 ÷ 4 roz = **40 din**, paheli 40 ÷ 1 roz =
+**40 din**. Dono barabar chalte hain, koi ek pehle khatam nahi hota.
+
+Naya sawaal daalte waqt `load_bank()` khud duplicate check karta hai —
+same jawab + 50%+ shabd overlap par warning deta hai.
 
 ⚠️ Quiz bank 14 din me repeat. Har subject ko 60 sawaal tak le jaana zaroori
 hai. Paheli bank 40 se 80 tak badhana behtar hai.
