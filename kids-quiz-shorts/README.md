@@ -283,7 +283,7 @@ Ye 2026 ke Shorts behaviour pe based hai. Purana long-form SEO advice
 |---|---|
 | Duration 41-46s se 23-27s | median views **10 se 36** (3.6x) |
 | Jawab aakhir me, CTA usse pehle | 2 video breakout hue (953 aur 964 views) |
-| Options ek-ek karke aana | abhi naya hai, data baaki |
+| Options ek-ek karke aana | hata diya — chaaron shuru se dikhte hain |
 
 Subject ka farak abhi **noise** hai — median 25 se 38 ke beech, sample bahut
 chhota. Uspe abhi koi faisla mat lo.
