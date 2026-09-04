@@ -122,7 +122,7 @@ def build(questions, slot="morning", date=None):
 {engage}
 
 इस चैनल पर मिलेगा:
-• GK, विज्ञान, गणित, इंग्लिश और पहेलियाँ — कक्षा 1 से 5 तक
+• सामान्य ज्ञान, विज्ञान, भारत, दुनिया और पहेलियाँ
 • हर जवाब के साथ एक लाइन में "क्यों" — सिर्फ़ रटना नहीं, समझना
 • रोज़ {C.VIDEOS_PER_DAY} नए शॉर्ट्स — {slot_times}
 
@@ -152,7 +152,7 @@ def build(questions, slot="morning", date=None):
     pinned = None if C.MADE_FOR_KIDS else (
         f"जवाब: {ans_line}\n"
         f"दोनों सही? रोज़ {C.VIDEOS_PER_DAY} नए सवाल आते हैं 🔔\n"
-        f"किस subject के सवाल और चाहिए — GK, विज्ञान, गणित, इंग्लिश या पहेली?"
+        f"किस विषय के सवाल और चाहिए — भारत, विज्ञान, दुनिया या पहेली?"
     )
 
     return {
