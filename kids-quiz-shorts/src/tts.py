@@ -41,6 +41,9 @@ def _to_wav(src, dst):
     return dst
 
 
+from numwords import speak_numbers
+
+
 def clean_for_tts(text: str) -> str:
     """TTS ko emoji/symbols mat do — Swara aur ElevenLabs dono unko literal padh
     dete hain ya glitch karte hain."""
@@ -48,6 +51,10 @@ def clean_for_tts(text: str) -> str:
     for ch in drop:
         text = text.replace(ch, " ")
     text = text.replace("?", "? ").replace("।", "। ")
+    # Ank ko Hindi shabd me badlo. ElevenLabs digits theek nahi padhti —
+    # "1853" ko galat ya ek-ek ank karke bol deti hai. Screen par digits
+    # waise hi rehte hain, ye sirf bolne wale text par lagta hai.
+    text = speak_numbers(text)
     return " ".join(text.split())
 
 
@@ -188,11 +195,19 @@ def mask_answer(why: str, q: dict, blank: str) -> str:
     ("प्रशांत महासागर धरती से bada hai") — agar aise hi bol diya to hint hi
     jawab de deta hai aur aakhri beat bekaar ho jaati hai."""
     ans = q["opts"][q["ans"]].strip()
+    # Numeric jawab (saal, sankhya) ko "ये" se badalne par vaakya toot jaata
+    # hai — "16 अप्रैल 1853 को" banta tha "सोलह अप्रैल ये को". Aise me shabd
+    # ko hata dena behtar padhta hai: "सोलह अप्रैल को".
+    if blank == "ये" and ans.replace(",", "").replace(" ", "").isdigit():
+        blank = ""
     out = why
     for word in sorted({ans, *ans.split()}, key=len, reverse=True):
         if len(word) >= 3:
             out = out.replace(word, blank)
-    return " ".join(out.split())
+    out = " ".join(out.split())
+    # Mask ke baad bache hue akele comma/dash — "तेरह अप्रैल , बैसाखी" jaisa
+    out = out.replace(" ,", ",").replace(" —,", " —").replace(",,", ",")
+    return out.strip(" ,-—")
 
 
 def hint_script(q: dict) -> str:
