@@ -321,16 +321,23 @@ def banner(img, qnum=None, total=None, subject=None):
     return img
 
 
-FOOTER_Y = 1470          # iske neeche YouTube ka apna UI aata hai — khaali rakho
+# YouTube Shorts ka apna UI (channel row, description, "Share your video"
+# bar) lagbhag 1450px se neeche sab dhak leta hai. Pehle footer 1470 par
+# tha aur handle 1584 par — dono UI ke PEECHE chale jaate the.
+# Ab FOOTER_Y ek CEILING hai, floor nahi: footer content ke turant neeche
+# baithta hai aur is line se kabhi neeche nahi jaata.
+FOOTER_Y = 1330
+SAFE_BOTTOM = 1420       # is se neeche kuch bhi mat rakho
 
 
 EMOJI_STRIP = "👇👆✅❌🎯🔔🤔💡🔥"
 
 
-def footer(img, text=None, y=FOOTER_Y):
+def footer(img, text=None, y=FOOTER_Y, handle=False):
     """Screen text me emoji mat daalo — Poppins me emoji glyph nahi hai aur
     tofu box (□) render ho jaata hai. Option icons alag emoji font se aate hain."""
     d = ImageDraw.Draw(img)
+    y = min(y, FOOTER_Y)          # safe zone se bahar kabhi nahi
     t = text or C.CTA_TEXT
     for ch in EMOJI_STRIP:
         t = t.replace(ch, "")
@@ -343,10 +350,14 @@ def footer(img, text=None, y=FOOTER_Y):
                         44, fill=pill,
                         outline=ink if C.NEON else None, width=3 if C.NEON else 0)
     d.text(((C.W - w) // 2, y + 18), t, font=f, fill=ink)
-    hf = F(38, bold=False)
-    hw = text_w(d, C.HANDLE, hf)
-    d.text(((C.W - hw) // 2, y + 114), C.HANDLE, font=hf, fill=(255, 255, 255),
-           stroke_width=2, stroke_fill=(150, 60, 20))
+    # Handle line hata di: wo 1584px par baithti thi (poori tarah YouTube ke
+    # UI ke peeche) aur YouTube khud channel ka naam wahin dikhata hai —
+    # duplicate tha. Chahiye to handle=True karo.
+    if handle:
+        hf = F(38, bold=False)
+        hw = text_w(d, C.HANDLE, hf)
+        d.text(((C.W - hw) // 2, y + 114), C.HANDLE, font=hf,
+               fill=(255, 255, 255), stroke_width=2, stroke_fill=(60, 30, 90))
     return img
 
 
@@ -375,12 +386,15 @@ def timer_ring(img, remaining, total):
 
 
 # ---------------------------------------------------------------- panels
-CARD_TOP = 382
+CARD_TOP = 348
 CARD_X = 58
-CARD_MIN_H, CARD_MAX_H = 250, 396
+# Card ki height cap zaroori hai: lamba sawaal card ko bada karta hai,
+# jo options ko neeche dhakelta hai, aur phir CTA/ishara YouTube ke UI
+# (1420px se neeche) me chale jaate hain.
+CARD_MIN_H, CARD_MAX_H = 240, 352
 OPT_H = 112
 OPT_GAP = 20
-OPT_PAD = 42            # card ke neeche se options tak ka gap
+OPT_PAD = 34            # card ke neeche se options tak ka gap
 
 
 def question_panel(q, qnum, total, highlight=None, dim_others=False):
@@ -393,7 +407,7 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False):
     d = ImageDraw.Draw(img)
     inner_w = C.W - 2 * CARD_X - 96
     f, lines, lh = fit_lines(d, q["q"], inner_w, CARD_MAX_H - 76,
-                             start=92, min_size=60, max_lines=4)
+                             start=92, min_size=56, max_lines=3)
     card_h = max(CARD_MIN_H, min(CARD_MAX_H, len(lines) * lh + 76))
     card_box = [CARD_X, CARD_TOP, C.W - CARD_X, CARD_TOP + card_h]
     card(img, card_box, fill=C.COLORS["card"])
@@ -501,10 +515,13 @@ def hint_panel(q, qnum, total):
         why = _tts.mask_answer(why, q, "_____")
     y = opt_end + 20
     if why:
-        wf, wlines, wlh = fit_lines(d, why, C.W - 240, 240, start=46,
-                                    min_size=32, max_lines=4, bold=False)
-        h = len(wlines) * wlh + 58
-        top = y + 22
+        # Options 1254px par khatam hote hain aur safe zone 1420 par. Yaani
+        # ishara card ke paas sirf ~140px hai — isliye 2 line, chhota font,
+        # aur kam padding. 3-4 line ka card seedha YouTube ke UI me ghus jaata tha.
+        wf, wlines, wlh = fit_lines(d, why, C.W - 220, 120, start=38,
+                                    min_size=27, max_lines=2, bold=False)
+        h = len(wlines) * wlh + 40
+        top = y + 10
         d.rounded_rectangle([80, top, C.W - 80, top + h], 30,
                             fill=C.COLORS["card"] if C.NEON else (255, 255, 255),
                             outline=C.COLORS["timer_ring"], width=5)
@@ -514,7 +531,8 @@ def hint_panel(q, qnum, total):
                stroke_width=6, stroke_fill=bg_stroke)
         centered(d, wlines, wf, wlh, C.W // 2, top + 30, C.COLORS["opt_text"])
         y = top + h
-    footer(img, "अब सही जवाब…", y=max(FOOTER_Y, y + 28))
+    # Yahan footer chip NAHI. "इशारा" card khud hi message hai; ek aur chip
+    # lagane se content safe zone (1420px) se bahar chala jaata tha.
     return img
 
 
