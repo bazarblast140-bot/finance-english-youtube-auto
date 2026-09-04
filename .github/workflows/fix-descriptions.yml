@@ -19,6 +19,9 @@ on:
         type: choice
         options: ["false", "true"]
         default: "false"
+      max:
+        description: "ek run me kitne video update karne hain (quota bachane ke liye)"
+        default: "35"
 
 defaults:
   run:
@@ -45,7 +48,7 @@ jobs:
         run: |
           set -o pipefail
           if [ "${{ inputs.apply }}" = "true" ]; then
-            python src/fix_descriptions.py --apply | tee fix_out.txt
+            python src/fix_descriptions.py --apply --max ${{ inputs.max }} | tee fix_out.txt
           else
             python src/fix_descriptions.py | tee fix_out.txt
           fi

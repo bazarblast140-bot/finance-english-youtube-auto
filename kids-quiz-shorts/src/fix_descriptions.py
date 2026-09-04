@@ -49,7 +49,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--apply", action="store_true",
                     help="bina iske sirf dry run hota hai")
-    ap.add_argument("--limit", type=int, default=100)
+    ap.add_argument("--limit", type=int, default=100,
+                    help="kitne video SCAN karne hain")
+    ap.add_argument("--max", type=int, default=35,
+                    help="ek run me kitne UPDATE karne hain. Har update 50 "
+                         "quota units leta hai aur roz ke 5 upload pehle hi "
+                         "8,000 units le jaate hain (limit 10,000) — isliye "
+                         "ek hi run me sab karna quota tod deta hai.")
     a = ap.parse_args()
 
     from googleapiclient.discovery import build
@@ -86,6 +92,10 @@ def main():
             if not a.apply:
                 changed += 1
                 continue
+            if changed >= a.max:
+                print(f"      (--max {a.max} pahunch gaya, baaki agle run me)")
+                skipped += 1
+                continue
             try:
                 # videos.update poora snippet maangta hai — jo field na bhejo
                 # wo CLEAR ho jaata hai, isliye sab wapas bhej rahe hain.
@@ -104,7 +114,9 @@ def main():
                 print(f"      FAIL: {e}")
 
     mode = "badle" if a.apply else "badle JAATE (dry run)"
-    print(f"\n{changed} {mode} | {skipped} pehle se theek | {failed} fail")
+    print(f"\n{changed} {mode} | {skipped} chhode/pehle se theek | {failed} fail")
+    if a.apply:
+        print(f"quota kharch: lagbhag {changed * 50 + len(ids)//50 + 1} units")
     if not a.apply:
         print("Sach me badalne ke liye --apply lagao.")
     return 0
