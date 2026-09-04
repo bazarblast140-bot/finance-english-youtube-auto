@@ -1,22 +1,21 @@
 # Last run
-- when   : 2026-09-04 10:59 UTC
-- slot   : morning
-- privacy: public
+- when   : 2026-09-04 15:31 UTC
+- slot   : noon
+- privacy: unlisted
 - upload : success
 
 ## metadata
-- title: मच्छर में काटता कौन है — नर या मादा? 🤔 | सामान्य ज्ञान क्विज़
-- duration_sec: 25.03
+- title: आँखों का रंग किस चीज़ से तय होता है? 🤔 | विज्ञान क्विज़
+- duration_sec: 23.93
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/0twJQsqkias
-- scheduled_for: 2026-09-05T02:00:00Z
+- youtube_url: https://youtube.com/shorts/fFbGczvC2VM
+- scheduled_for: immediate (unlisted)
 
 ## upload output (tail)
 ```
-[upload] morning: aaj ka time (07:30 IST) nikal chuka (ab 16:29 IST) — KAL 07:30 IST pe schedule (2026-09-05T02:00:00Z)
-[upload] privacy=private + publishAt=2026-09-05T02:00:00Z
+[upload] privacy=unlisted (no schedule — turant)
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/0twJQsqkias
+[upload] done -> https://youtube.com/shorts/fFbGczvC2VM
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
