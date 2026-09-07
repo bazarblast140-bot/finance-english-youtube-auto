@@ -1,22 +1,22 @@
 # Last run
-- when   : 2026-09-07 18:48 UTC
-- slot   : paheli
+- when   : 2026-09-07 19:44 UTC
+- slot   : evening
 - privacy: public
 - upload : success
 
 ## metadata
-- title: काली कोठरी में सफेद बछड़े — वो क्या हैं? 🤔 | हिंदी पहेली
-- duration_sec: 23.93
+- title: झांसी की रानी का असली नाम क्या था? 🤔 | भारत क्विज़
+- duration_sec: 22.67
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/y0TBe1mDlCI
-- scheduled_for: 2026-09-08T10:30:00Z
+- youtube_url: https://youtube.com/shorts/nLIj48jPBU8
+- scheduled_for: 2026-09-08T12:00:00Z
 
 ## upload output (tail)
 ```
-[upload] paheli: YouTube 16:00 IST par khud public karega (2026-09-08T10:30:00Z) — abhi 00:18 IST
-[upload] privacy=private + publishAt=2026-09-08T10:30:00Z
+[upload] evening: YouTube 17:30 IST par khud public karega (2026-09-08T12:00:00Z) — abhi 01:14 IST
+[upload] privacy=private + publishAt=2026-09-08T12:00:00Z
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/y0TBe1mDlCI
+[upload] done -> https://youtube.com/shorts/nLIj48jPBU8
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
