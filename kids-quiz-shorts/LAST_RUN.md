@@ -1,22 +1,22 @@
 # Last run
-- when   : 2026-09-08 19:21 UTC
-- slot   : evening
+- when   : 2026-09-08 21:35 UTC
+- slot   : night
 - privacy: public
 - upload : success
 
 ## metadata
-- title: भारत का पहला सुपर कंप्यूटर कौन सा था? 🤔 | भारत क्विज़
-- duration_sec: 23.27
+- title: दुनिया की सबसे लंबी सुरंग किस देश में है? 🤔 | दुनिया क्विज़
+- duration_sec: 24.03
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/V6nyay4p5Xw
-- scheduled_for: 2026-09-09T12:00:00Z
+- youtube_url: https://youtube.com/shorts/LNWAGil-PJA
+- scheduled_for: 2026-09-09T15:00:00Z
 
 ## upload output (tail)
 ```
-[upload] evening: YouTube 17:30 IST par khud public karega (2026-09-09T12:00:00Z) — abhi 00:51 IST
-[upload] privacy=private + publishAt=2026-09-09T12:00:00Z
+[upload] night: YouTube 20:30 IST par khud public karega (2026-09-09T15:00:00Z) — abhi 03:05 IST
+[upload] privacy=private + publishAt=2026-09-09T15:00:00Z
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/V6nyay4p5Xw
+[upload] done -> https://youtube.com/shorts/LNWAGil-PJA
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
