@@ -1,22 +1,22 @@
 # Last run
-- when   : 2026-09-09 11:04 UTC
-- slot   : morning
+- when   : 2026-09-09 15:56 UTC
+- slot   : noon
 - privacy: public
 - upload : success
 
 ## metadata
-- title: हवाई जहाज़ किसने बनाया था? 🤔 | सामान्य ज्ञान क्विज़
-- duration_sec: 22.13
+- title: चाँद पर आवाज़ क्यों नहीं सुनाई देती? 🤔 | विज्ञान क्विज़
+- duration_sec: 25.97
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/USj8WMCCdsg
-- scheduled_for: 2026-09-10T02:00:00Z
+- youtube_url: https://youtube.com/shorts/5pm2-amTXPU
+- scheduled_for: 2026-09-10T08:00:00Z
 
 ## upload output (tail)
 ```
-[upload] morning: aaj ka time (07:30 IST) nikal chuka (ab 16:34 IST) — KAL 07:30 IST pe schedule (2026-09-10T02:00:00Z)
-[upload] privacy=private + publishAt=2026-09-10T02:00:00Z
+[upload] noon: aaj ka time (13:30 IST) nikal chuka (ab 21:26 IST) — KAL 13:30 IST pe schedule (2026-09-10T08:00:00Z)
+[upload] privacy=private + publishAt=2026-09-10T08:00:00Z
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/USj8WMCCdsg
+[upload] done -> https://youtube.com/shorts/5pm2-amTXPU
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
