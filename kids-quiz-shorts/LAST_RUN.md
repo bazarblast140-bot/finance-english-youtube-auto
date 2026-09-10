@@ -1,22 +1,22 @@
 # Last run
-- when   : 2026-09-10 11:00 UTC
-- slot   : morning
+- when   : 2026-09-10 15:50 UTC
+- slot   : noon
 - privacy: public
 - upload : success
 
 ## metadata
-- title: पंख हैं पर उड़ नहीं सकता — वो क्या है? 🤔 | हिंदी पहेली
-- duration_sec: 22.87
+- title: खजुराहो के मंदिर किस राज्य में हैं? 🤔 | भारत क्विज़
+- duration_sec: 24.13
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/ZM8MPvUeRZk
-- scheduled_for: 2026-09-11T02:00:00Z
+- youtube_url: https://youtube.com/shorts/MUPKppaGOaE
+- scheduled_for: 2026-09-11T08:00:00Z
 
 ## upload output (tail)
 ```
-[upload] morning: aaj ka time (07:30 IST) nikal chuka (ab 16:30 IST) — KAL 07:30 IST pe schedule (2026-09-11T02:00:00Z)
-[upload] privacy=private + publishAt=2026-09-11T02:00:00Z
+[upload] noon: aaj ka time (13:30 IST) nikal chuka (ab 21:20 IST) — KAL 13:30 IST pe schedule (2026-09-11T08:00:00Z)
+[upload] privacy=private + publishAt=2026-09-11T08:00:00Z
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/ZM8MPvUeRZk
+[upload] done -> https://youtube.com/shorts/MUPKppaGOaE
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
