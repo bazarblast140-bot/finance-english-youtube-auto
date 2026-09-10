@@ -53,14 +53,22 @@ def pick(n=2, dry_run=False, seed=None, slot="morning"):
         fresh = [q for q in bank if q["id"] not in used_ids[len(recycle):]]
         print(f"[pick] bank cycle reset — {len(fresh)} sawaal wapas available")
 
-    rng = random.Random(seed if seed is not None else datetime.now().strftime("%Y%m%d%H"))
+    # Seed me slot bhi hona zaroori hai. Pehle sirf date+ghanta tha, jo tab
+    # theek tha jab din me ek hi paheli banti thi. Ab teen paheli slot hain
+    # aur GitHub ke late/bunched cron ki wajah se do build ek hi ghante me
+    # chal sakte hain — us soorat me dono ko bilkul same riddle mil jaata
+    # (used.json tabhi update hota hai jab pehla upload push kar chuka ho).
+    rng = random.Random(seed if seed is not None
+                        else datetime.now().strftime("%Y%m%d%H") + slot)
     rng.shuffle(fresh)
 
-    # Paheli slot: sirf riddles. Baaki 4 slot GK/Science/Maths/English rotate
+    # Paheli slots: sirf riddles. Baaki slot GK/Science/Bharat/Duniya rotate
     # karte hain aur paheli bank ko chhoote nahi — warna riddle jaldi khatam.
-    from config import QUIZ_SLOTS, PAHELI_SUB
+    # 10-Sep-2026 se teen slot paheli ke hain (config.PAHELI_SLOTS) — isliye
+    # yahan naam se match mat karna, list se karna.
+    from config import QUIZ_SLOTS, PAHELI_SLOTS, PAHELI_SUB
 
-    if slot == "paheli":
+    if slot in PAHELI_SLOTS:
         pool = [q for q in fresh if q.get("sub") == PAHELI_SUB]
         if len(pool) < n:
             pool = [q for q in bank if q.get("sub") == PAHELI_SUB]

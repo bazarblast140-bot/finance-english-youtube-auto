@@ -96,11 +96,16 @@ Script ab `sk_` check karke pehle hi warning de deti hai.
 
 | Slot | Cron (UTC) | IST | Kyun ye time |
 |---|---|---|---|
-| `morning` | `0 2 * * *`   | 07:30 | School jaane se pehle |
-| `noon`    | `0 8 * * *`   | 13:30 | Lunch / ghar pe |
-| `paheli`  | `30 10 * * *` | 16:00 | School ke baad — sirf पहेली |
-| `evening` | `0 12 * * *`  | 17:30 | Homework se pehle |
-| `night`   | `0 15 * * *`  | 20:30 | Khaane ke baad |
+| `morning` | `0 2 * * *`   | 07:30 | School jaane se pehle — **पहेली** |
+| `noon`    | `0 8 * * *`   | 13:30 | Lunch / ghar pe — quiz |
+| `paheli`  | `30 10 * * *` | 16:00 | School ke baad — **पहेली** |
+| `evening` | `0 12 * * *`  | 17:30 | Homework se pehle — quiz |
+| `night`   | `0 15 * * *`  | 20:30 | Khaane ke baad — **पहेली** |
+
+10-Sep-2026 se din me **3 पहेली + 2 quiz** (pehle 1 + 4 tha). Kaunsa slot
+kya banata hai wo `config.py` ke `PAHELI_SLOTS` / `QUIZ_SLOTS` se tay hota
+hai — slot ke naam se nahi. Wapas purane mix par jaana ho to
+`PAHELI_SLOTS = ["paheli"]` aur baaki chaar `QUIZ_SLOTS` me daal do.
 
 Naya slot jodna ho to **do jagah** badalna padega: workflow ka cron+case
 block, aur `config.py` ka `SLOT_ORDER`.
@@ -161,9 +166,11 @@ lagaya hai.
 `ans` = 0-based index. `data/used.json` khud maintain hoti hai — wahi sawaal
 dobara nahi aayega jab tak poora bank khatam na ho jaye.
 
-**Bank: 200 sawaal** — paanchon subject me 40-40 (सामान्य ज्ञान, विज्ञान,
-भारत, दुनिया, पहेली). Quiz 160 ÷ 4 roz = **40 din**, paheli 40 ÷ 1 roz =
-**40 din**. Dono barabar chalte hain, koi ek pehle khatam nahi hota.
+**Bank: 228 sawaal** — 68 पहेली + baaki chaar subject me 40-40 (सामान्य
+ज्ञान, विज्ञान, भारत, दुनिया). Naye mix par: quiz 160 ÷ 2 roz = **80 din**,
+paheli 68 ÷ 3 roz = **~22 din**. Ab paheli pehle khatam hoti hai — 10-din
+test ke baad paheli bank bhi bharna padega, warna cycle reset hone par
+riddles dobara aane lagenge.
 
 Naya sawaal daalte waqt `load_bank()` khud duplicate check karta hai —
 same jawab + 50%+ shabd overlap par warning deta hai.

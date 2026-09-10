@@ -153,7 +153,19 @@ EDGE_VOICE = os.getenv("EDGE_VOICE", "hi-IN-SwaraNeural")
 #   evening  — homework se pehle
 #   night    — khaane ke baad, family time
 SLOT_ORDER = ["morning", "noon", "paheli", "evening", "night"]
-QUIZ_SLOTS = ["morning", "noon", "evening", "night"]  # 4 subject-rotate; paheli alag
+
+# 10-Sep-2026: paheli 1/din se 3/din. Wajah — 1-9 Sep ke ~50 shorts me sirf
+# do videos ne breakout kiya (1,033 aur 956 views) aur DONO paheli thi;
+# baaki koi category 232 se upar nahi gayi. Dhyan rahe: paheli ka MEDIAN
+# baaki categories jaisa hi hai (~44 vs ~50) — average nahi, upside zyada
+# hai. Isliye ye 10-din ka test hai, permanent faisla nahi. 20-Sep ko
+# dekhna hai; agar breakout nahi aaye to wapas 1 paheli/din kar dena
+# (PAHELI_SLOTS = ["paheli"], QUIZ_SLOTS me baaki chaar).
+#
+# Slot ke NAAM waise ke waise hain (workflow ka cron mapping inhi par tika
+# hai) — sirf unme kya content jaata hai wo badla hai.
+PAHELI_SLOTS = ["morning", "paheli", "night"]
+QUIZ_SLOTS = ["noon", "evening"]       # subject-rotate; paheli bank ko chhoote nahi
 SLOTS = {
     "morning": "07:30 IST",
     "noon":    "13:30 IST",

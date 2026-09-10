@@ -67,7 +67,13 @@ SUB_HI = {k: k for k in
 def build(questions, slot="morning", date=None):
     date = date or datetime.now()
     rng = random.Random(f"{date:%Y%m%d}{slot}")
-    hook = rng.choice(HOOKS.get(slot, HOOKS["morning"]))
+    # Hook pehle sirf slot se aata tha. Ab morning aur night me bhi paheli
+    # jaati hai (config.PAHELI_SLOTS), aur riddle par "सुबह का GK सवाल" galat
+    # hook hai — isliye content dekhkar chunte hain, slot ke naam se nahi.
+    is_paheli = slot in getattr(C, "PAHELI_SLOTS", ["paheli"]) or any(
+        q.get("sub") == C.PAHELI_SUB for q in questions)
+    hook = rng.choice(HOOKS["paheli"] if is_paheli
+                      else HOOKS.get(slot, HOOKS["morning"]))
     labels = ["A", "B", "C", "D"]
 
     q1 = questions[0]
@@ -79,7 +85,7 @@ def build(questions, slot="morning", date=None):
     # Mobile Shorts feed me title ki ek line dikhti hai. Isliye sawaal poora
     # aage, aur context (subject/class) baad me — truncate ho bhi jaaye to
     # viewer ne asli hook padh liya hota hai.
-    if slot == "paheli" or "पहेली" in subs:
+    if is_paheli:
         tail = " | हिंदी पहेली"
         if len(qtext) + len(tail) > 96:
             tail = " | पहेली"
@@ -106,7 +112,7 @@ def build(questions, slot="morning", date=None):
     # Pehli line me hi keyword + sawaal — ye ~100 char sabse zyada weight
     # rakhte hain, isliye yahan "hook" nahi, saaf topic likhte hain.
     slot_times = ", ".join(C.SLOTS[k] for k in C.SLOT_ORDER)
-    if slot == "paheli" or "पहेली" in subs:
+    if is_paheli:
         first = (f"दिमाग़ घुमाने वाली हिंदी पहेली — {qtext} "
                  f"8 सेकंड का टाइमर, फिर सही जवाब और वजह।")
     else:
@@ -130,7 +136,7 @@ def build(questions, slot="morning", date=None):
 
     # --- TAGS ----------------------------------------------------------------
     tags = list(BASE_TAGS)
-    if slot == "paheli" or any(q.get("sub") == "पहेली" for q in questions):
+    if is_paheli:
         tags = ["paheli in hindi with answer", "दिमागी पहेलियाँ हिंदी",
                 "hindi riddles for class 1 to 5"] + tags
     if any(q.get("topic") == "सबसे" for q in questions):
