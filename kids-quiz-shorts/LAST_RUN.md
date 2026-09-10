@@ -1,28 +1,29 @@
 # Last run
-- when   : 2026-09-10 17:48 UTC
-- slot   : paheli
+- when   : 2026-09-10 19:03 UTC
+- slot   : evening
 - privacy: public
 - upload : success
 
 ## metadata
-- title: सब कुछ दिखाए पर ख़ुद कुछ न बोले — वो क्या है? 🤔 | हिंदी पहेली
-- duration_sec: 23.6
-- voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/Nf1b4s97d8M
-- scheduled_for: 2026-09-11T10:30:00Z
+- title: ओलंपिक खेल कितने साल में एक बार होते हैं? 🤔 | दुनिया क्विज़
+- duration_sec: 30.0
+- voice_engines: ['edge']
+- youtube_url: https://youtube.com/shorts/nvRN-JyX5D0
+- scheduled_for: 2026-09-11T12:00:00Z
 
 ## upload output (tail)
 ```
-[upload] paheli: aaj ka time (16:00 IST) nikal chuka (ab 23:18 IST) — KAL 16:00 IST pe schedule (2026-09-11T10:30:00Z)
-[upload] privacy=private + publishAt=2026-09-11T10:30:00Z
+[upload] evening: YouTube 17:30 IST par khud public karega (2026-09-11T12:00:00Z) — abhi 00:33 IST
+[upload] privacy=private + publishAt=2026-09-11T12:00:00Z
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/Nf1b4s97d8M
+[upload] done -> https://youtube.com/shorts/nvRN-JyX5D0
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
 ## voice
 ```
-🎙  voice: elevenlabs
+[tts] ElevenLabs FAIL 401: {"detail":{"type":"payment_required","code":"payment_issue","message":"Your subscription has a failed or incomplete payment. Complete the latest invoice to continue usage.","status":"payment_issue","request_id":"dcb73684d2bd59b8053730a193959f58"}}
+🎙  voice: edge  <- ElevenLabs fail hua, free voice pe chala
 ```
 
 ## telegram
