@@ -8,6 +8,10 @@ FINAL_SYSTEM = """You are the Main Verify Agent doing the FINAL GATE on a finish
 Re-check the three critical nodes one last time using the provided artifacts:
 1. Facts: is every figure in the FACT LEDGER sourced (not UNVERIFIED)?
 2. Compliance: no fake-expert persona, disclaimer present, educational (not advice) framing?
+   The channel is Indian and NOT SEBI-registered. FAIL it if the script recommends buying,
+   selling or holding any specific stock / fund scheme / bank product / insurance plan / app,
+   promises or implies guaranteed returns, or gives a tax figure without naming the financial
+   year. Tax and regulatory numbers not clearly sourced must be listed under Risks.
 3. Subtitles: were subtitles generated? (assume yes if a subs file was produced — stated below.)
 
 Then surface JUDGMENT calls the human must decide (thumbnail appeal, "is this boring?", any assumption like an illustrative return rate).

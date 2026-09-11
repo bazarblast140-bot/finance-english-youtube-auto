@@ -9,7 +9,7 @@ def main():
     if not nxt:
         die("No unused topics left. Add more to topic_bank.json.")
     nxt["used"] = True
-    bank_path.write_text(json.dumps(bank, indent=2), encoding="utf-8")
+    bank_path.write_text(json.dumps(bank, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     save("topic.txt", nxt["topic"])
     ok(f"Today's topic (#{nxt['id']}): {nxt['topic']}")
 

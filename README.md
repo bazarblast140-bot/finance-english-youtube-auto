@@ -1,3 +1,19 @@
+# Paise Ki Pathshala — Hindi personal finance pipeline
+
+> **11-Sep-2026:** ye pipeline ab "The Money Rule" (English) nahi, **Paise Ki Pathshala**
+> (Hindi personal finance, India) ke liye hai. Neeche ka English README purane setup ka hai;
+> structure wahi hai, bas:
+> - Script / voice / visual prompts Hindi ke liye (`run_script.py`, `run_voice.py`, `run_visuals.py`).
+> - Captions Devanagari me; cards, charts aur thumbnail ka text Roman (Hinglish) me — PIL aur
+>   matplotlib Devanagari ki matra theek nahi jodte.
+> - SEBI-safe: koi share/fund recommendation nahi, guaranteed return nahi, tax figure ke saath FY.
+> - Upload **sirf** tab hota hai jab token ka channel `EXPECTED_CHANNEL_ID` (repo variable
+>   `YT_FIN_CHANNEL_ID`) se match kare — ye repo pehle isi workflow se QUIZ PATHSHALA par upload karta tha.
+> - Review phase: videos **unlisted** jaate hain, schedule band hai. 3-5 video dekh kar hi roz ka cron chalu karna.
+> - Purana "THE MONEY RULE" intro/outro `assets/brand/the-money-rule/` me archive hai.
+
+---
+
 # Finance English — Faceless YouTube Pipeline
 
 Faceless English finance/investing channel pipeline. Script → Voice → Visuals → Assembly, with a Verify Agent gating every stage, and a daily scheduler.

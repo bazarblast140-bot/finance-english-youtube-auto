@@ -335,6 +335,12 @@ def _cues(text, start, end, max_words=CAPTION_WORDS):
     return out
 
 
+# Captions narration ke hain — Hindi channel par Devanagari. libass HarfBuzz
+# se matra sahi jodta hai, bas font install hona chahiye (workflow: fonts-noto-core).
+CAP_FONT = ("Noto Sans Devanagari"
+            if str(cfg()["channel"].get("default_language", "")).lower().startswith("hi")
+            else "Arial")
+
 ASS_HEADER = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {W}
@@ -344,7 +350,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Cap,Arial,58,&H00FFFFFF,&H00FFFFFF,&H00101010,&H80000000,-1,0,0,0,100,100,0,0,1,4,1,2,160,160,90,1
+Style: Cap,{CAP_FONT},58,&H00FFFFFF,&H00FFFFFF,&H00101010,&H80000000,-1,0,0,0,100,100,0,0,1,4,1,2,160,160,90,1
 Style: Kick,Arial,38,&H00FFFFFF,&H00FFFFFF,&H00101010,&H80000000,-1,0,0,0,100,100,2,0,1,3,0,7,{SIDE},160,{KICK_Y},1
 
 [Events]

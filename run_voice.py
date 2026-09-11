@@ -4,18 +4,27 @@ import os, asyncio, re, time, subprocess
 import requests
 from common import cfg, claude, claude_json, read, save, need, ok, die, RUN
 
-VOICE_SYSTEM = """You are the Voice Prep Agent. Convert a finished script to clean spoken English for TTS. You do NOT change meaning or drop content.
+VOICE_SYSTEM = """You are the Voice Prep Agent. Convert a finished HINDI script into clean spoken Hindi
+for a Hindi TTS voice (hi-IN). You do NOT change meaning or drop content.
 
 RULES:
-1. Preserve every sentence. Strip [SEGMENT], [SOURCE], [UNVERIFIED], FACT LEDGER, TITLE — these are NOT spoken.
-2. Convert to spoken form: "$1,500"->"fifteen hundred dollars", "8%"->"eight percent", "S&P 500"->"the S and P five hundred", "2026"->"twenty twenty-six". Kill all symbols/abbreviations.
-3. Separate segments with a blank line for a natural breath.
-4. Output ONLY the plain spoken text, no JSON, no markdown fences."""
+1. Preserve every spoken sentence. Remove headings and markers, which are NOT spoken:
+   TITLE (and the title line), HOOK, BODY, [SEGMENT ...], [SOURCE: ...], [UNVERIFIED ...],
+   the words "CTA:" and "DISCLAIMER LINE:" (but KEEP the sentences under them), and the whole
+   FACT LEDGER section.
+2. Numbers into Hindi words, Indian system:
+   "₹1,50,000" -> "एक लाख पचास हज़ार रुपये", "₹50,000" -> "पचास हज़ार रुपये",
+   "₹2 करोड़" -> "दो करोड़ रुपये", "8%" -> "आठ प्रतिशत", "12.5%" -> "साढ़े बारह प्रतिशत",
+   "2026" -> "दो हज़ार छब्बीस", "FY 2025-26" -> "वित्त वर्ष दो हज़ार पच्चीस-छब्बीस".
+3. Abbreviations people say as letters stay in Roman: SIP, EMI, FD, PPF, NPS, UPI, CIBIL.
+   No symbols at all in the output: no ₹ % & # $ / + =.
+4. Separate segments with a blank line for a natural breath.
+5. Output ONLY the plain spoken text, no JSON, no markdown fences."""
 
 # markers that must never survive into narration
 LEFTOVER = ["[SEGMENT", "[SOURCE", "[UNVERIFIED", "FACT LEDGER", "TITLE:", "DISCLAIMER LINE"]
 # symbols TTS mangles — the Voice Agent is told to spell these out
-BAD_SYMBOLS = ["$", "%", "&", "#", "€", "£"]
+BAD_SYMBOLS = ["$", "%", "&", "#", "€", "£", "₹"]
 
 MAX_CHARS = 4000   # ElevenLabs per-request limit is well above this; stay safely under
 

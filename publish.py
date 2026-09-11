@@ -4,6 +4,7 @@ Always uploads as PRIVATE (or scheduled), never instant-public, on a finance cha
 Needs: pip install google-api-python-client google-auth-oauthlib
 and YOUTUBE_* env vars for the FINANCE channel (separate OAuth from your Hindi channel!).
 """
+import os
 import re
 import sys
 from common import cfg, read, die, ok, RUN, need
@@ -64,10 +65,11 @@ def build_description(sec, c):
     title = (sec.get("TITLE") or "").strip().splitlines()
     title = title[0].strip() if title else ""
     if title:
-        parts.append(f"In this video: {title}")
+        parts.append(f"इस वीडियो में: {title}")
 
     disclaimer = sec.get("DISCLAIMER LINE", "").strip()
-    parts.append(disclaimer or "This video is for education only and is not financial advice.")
+    parts.append(disclaimer or "यह वीडियो सिर्फ़ जानकारी के लिए है, निवेश सलाह नहीं।")
+    parts.append("हम SEBI-रजिस्टर्ड सलाहकार नहीं हैं। किसी भी निवेश से पहले रजिस्टर्ड सलाहकार से बात करें।")
 
     ledger = sec.get("FACT LEDGER", "").strip()
     if ledger:
@@ -79,12 +81,12 @@ def build_description(sec, c):
             line = re.sub(r"\s*—\s*(VERIFIED|no source required)\b.*$", "", line, flags=re.I)
             lines.append(line if line.startswith("•") or line.startswith("-") else f"• {line}")
         if lines:
-            parts.append("SOURCES & NOTES\n" + "\n".join(lines[:12]))
+            parts.append("स्रोत और नोट्स\n" + "\n".join(lines[:12]))
 
-    name = c["channel"].get("name", "The Money Rule").strip()
+    name = c["channel"].get("name", "Paise Ki Pathshala").strip()
     tagline = c["channel"].get("tagline", "").strip()
     parts.append(f"{name} — {tagline}" if tagline else name)
-    parts.append("New video every day. One rule. Clear numbers. No hype.")
+    parts.append("रोज़ नया वीडियो — एक नियम, साफ़ नंबर, कोई हाइप नहीं।")
 
     # SEO hashtags (YouTube indexes the first few)
     tags = c["channel"].get("tags") or []
@@ -135,9 +137,9 @@ def build_tags(title, c):
         if not w.isdigit():
             add(w)
 
-    add("the money rule")
-    add("personal finance")
-    add("dividend investing")
+    add(c["channel"].get("name", "Paise Ki Pathshala").lower())
+    add("personal finance hindi")
+    add("paise ki baat")
 
     kept, total = [], 0
     for t in tags:
@@ -147,7 +149,7 @@ def build_tags(title, c):
             break
         kept.append(t)
         total += len(t) + 1
-    return kept or ["personal finance", "investing", "the money rule"]
+    return kept or ["personal finance hindi", "paisa kaise bachaye", "paise ki pathshala"]
 
 
 def set_thumbnail(yt, video_id):
@@ -205,14 +207,31 @@ def main():
         client_id=need("YOUTUBE_CLIENT_ID"),
         client_secret=need("YOUTUBE_CLIENT_SECRET"),
         token_uri="https://oauth2.googleapis.com/token",
-        scopes=["https://www.googleapis.com/auth/youtube.upload"],
+        # scopes jaan-boojh ke nahi: refresh par jo grant hua wahi milta hai.
+        # Sirf youtube.upload maangne se neeche wala channels.list 403 deta.
     )
     yt = build("youtube", "v3", credentials=creds)
+
+    # Galat channel par upload KABHI nahi. Ye repo pehle isi workflow se
+    # QUIZ PATHSHALA par upload karta tha; secret mapping zara bhi galat reh
+    # jaaye to finance video quiz channel par chala jaata. Isliye expected
+    # channel ID na ho, ya token kisi aur channel ka ho, to upload ruk jaata hai.
+    expected = os.environ.get("EXPECTED_CHANNEL_ID", "").strip()
+    if not expected:
+        die("EXPECTED_CHANNEL_ID set nahi hai — pata nahi kis channel par upload karna hai. Upload roka.")
+    me = yt.channels().list(part="snippet", mine=True).execute().get("items") or []
+    got = me[0]["id"] if me else None
+    if got != expected:
+        who = me[0]["snippet"]["title"] if me else "koi channel nahi"
+        die(f"Token '{who}' ({got}) ka hai, par upload {expected} par hona tha. Upload roka.")
+    ok(f"channel check OK: {me[0]['snippet']['title']}")
 
     from googleapiclient.http import MediaFileUpload
     body = {
         "snippet": {"title": title, "description": description, "tags": tags,
-                    "categoryId": "27"},  # 27 = Education
+                    "categoryId": "27",  # 27 = Education
+                    "defaultLanguage": c["channel"].get("default_language", "hi"),
+                    "defaultAudioLanguage": c["channel"].get("default_language", "hi")},
         "status": {"privacyStatus": visibility,  # 'private' by default
                    "selfDeclaredMadeForKids": False},
     }
@@ -235,7 +254,7 @@ def main():
         msg = str(e)
         if "invalidTags" in msg or "invalid video keywords" in msg:
             print("[warn] YouTube rejected tags; retrying with safe minimal tags")
-            safe = ["personal finance", "investing for beginners", "the money rule", "dividends"]
+            safe = ["personal finance hindi", "paisa kaise bachaye", "paise ki pathshala"]
             resp = _do_upload(safe)
         else:
             raise
