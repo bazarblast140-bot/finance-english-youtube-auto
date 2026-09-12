@@ -8,6 +8,7 @@ timing chahiye segment length set karne ke liye.
 """
 import hashlib
 import json
+import re
 import subprocess
 import shutil
 from pathlib import Path
@@ -51,6 +52,11 @@ def clean_for_tts(text: str) -> str:
     for ch in drop:
         text = text.replace(ch, " ")
     text = text.replace("?", "? ").replace("।", "। ")
+    # ₹ ko ElevenLabs "Rs" bolta hai: "₹500" -> "500 रुपये", akela ₹ (जैसे "चिन्ह ₹ किस") hatao.
+    # "9:15" -> "9 बजकर 15 मिनट" (warna "नौ:पंद्रह" jaata tha).
+    text = re.sub(r"(?:₹|\bRs\.?)\s?(\d[\d,]*(?:\.\d+)?)(\s*(?:करोड़|लाख|हज़ार|हजार))?", r"\1\2 रुपये", text)
+    text = re.sub(r"₹|\bRs\b\.?", " ", text)
+    text = re.sub(r"\b(\d{1,2}):([0-5]\d)\b", r"\1 बजकर \2 मिनट", text)
     # Ank ko Hindi shabd me badlo. ElevenLabs digits theek nahi padhti —
     # "1853" ko galat ya ek-ek ank karke bol deti hai. Screen par digits
     # waise hi rehte hain, ye sirf bolne wale text par lagta hai.
