@@ -241,7 +241,8 @@ def cta_script() -> str:
     jawab sunte hi log swipe kar dete hain.
     FAUJI_CTA: fauji + tiranga screen par, female voice ("बताती")."""
     if getattr(C, "FAUJI_CTA", False):
-        return "जय हिंद! अगर आप सच्चे देशभक्त हैं, तो वीडियो को लाइक और चैनल को सब्सक्राइब कीजिए। जवाब अभी बताती हूँ!"
+        # "जय हिंद" nahi bolna (Rajesh, 13-Sep-2026)
+        return "अगर आप सच्चे देशभक्त हैं, तो वीडियो को लाइक और चैनल को सब्सक्राइब कीजिए। जवाब अभी बताती हूँ!"
     return "चैनल सब्सक्राइब कीजिए, और अब सुनिए सही जवाब।"
 
 
