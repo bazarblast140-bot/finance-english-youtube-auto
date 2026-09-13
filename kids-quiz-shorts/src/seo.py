@@ -112,12 +112,15 @@ def build(questions, slot="morning", date=None):
     # Pehli line me hi keyword + sawaal — ye ~100 char sabse zyada weight
     # rakhte hain, isliye yahan "hook" nahi, saaf topic likhte hain.
     slot_times = ", ".join(C.SLOTS[k] for k in C.SLOT_ORDER)
+    # video me "इशारा" band ho (fauji CTA) to वजह sirf neeche description me hai
+    tail = ("फिर सही जवाब और वजह।" if getattr(C, "HINT_BEFORE_ANSWER", True)
+            else "फिर सही जवाब — वजह नीचे।")
     if is_paheli:
         first = (f"दिमाग़ घुमाने वाली हिंदी पहेली — {qtext} "
-                 f"8 सेकंड का टाइमर, फिर सही जवाब और वजह।")
+                 f"{C.TIMER_SECONDS} सेकंड का टाइमर, {tail}")
     else:
         first = (f"{sub_hi} क्विज़ हिंदी में — {qtext} "
-                 f"हर सवाल पर 8 सेकंड का टाइमर, फिर सही जवाब और वजह।")
+                 f"हर सवाल पर {C.TIMER_SECONDS} सेकंड का टाइमर, {tail}")
 
     description = f"""{first}
 
