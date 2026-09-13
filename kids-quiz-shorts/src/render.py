@@ -534,6 +534,51 @@ def cta_panel(q, qnum, total):
     return img
 
 
+def fauji_base(q, qnum, total):
+    """Timer khatam: options wahi, neeche tiranga-rang ki patti, aur options ke
+    khaali daayein hisse me fauji + jhanda (fauji_frame per-frame lagata hai).
+    Return (image, region) — region = fauji ka box, like-rail (x>RAIL_X) se bahar."""
+    img, opt_end = question_panel(q, qnum, total)
+    d = ImageDraw.Draw(img)
+    t = "सच्चे देशभक्त हो तो लाइक + सब्सक्राइब"
+    f = F(56)
+    while text_w(d, t, f) > RAIL_X - 80 - 100 and f.size > 36:
+        f = F(f.size - 2)
+    w = text_w(d, t, f)
+    by = opt_end + 26
+    d.rounded_rectangle([COL_CX - w // 2 - 44, by, COL_CX + w // 2 + 44, by + 96], 48,
+                        fill=(255, 153, 51), outline=(19, 136, 8), width=7)
+    d.text((COL_CX - w // 2, by + 14), t, font=f, fill=(255, 255, 255),
+           stroke_width=3, stroke_fill=(120, 60, 0))
+    # options ka text kahan tak jaata hai — fauji uske baad hi baithega
+    icons = icons_for(q)
+    text_x = 296 if icons else 206
+    right = 0
+    for opt in q["opts"]:
+        of = F(64)
+        while text_w(d, opt, of) > RAIL_X - 110 - text_x and of.size > 34:
+            of = F(of.size - 2)
+        right = max(right, text_x + text_w(d, opt, of))
+    opt_top = opt_end - 4 * (OPT_H + OPT_GAP) + OPT_GAP
+    x0 = min(max(right + 24, 520), RAIL_X - 250)
+    return img, (x0, opt_top - 6, RAIL_X - 6, opt_end + 6)
+
+
+def fauji_frame(base, region, t):
+    """t = segment me seconds. Pehle 0.35s me fauji neeche se upar aata hai,
+    jhanda poore time lehrata hai."""
+    import fauji
+    x0, y0, x1, y1 = region
+    g = fauji.group(x1 - x0, y1 - y0, t)
+    k = min(1.0, t / 0.35)
+    ease = 1 - (1 - k) ** 3
+    if k < 1:
+        g.putalpha(g.getchannel("A").point(lambda a: int(a * ease)))
+    img = base.copy()
+    img.paste(g, (x0, y0 + int((1 - ease) * 120)), g)
+    return img
+
+
 def hint_panel(q, qnum, total):
     """Wajah dikhti hai, par sahi option abhi highlight NAHI hota — warna
     jawab yahin khul jaayega aur aakhri beat ka koi matlab nahi bachega."""

@@ -89,15 +89,17 @@ def plan_segments(questions):
         # matlab nahi, jawab sunte hi log swipe kar dete hain.
         cv, cd, ceng = tts.say(tts.cta_script(), "cta")
         ENGINES.append(ceng)
-        segs.append(dict(kind="cta", dur=cd + 0.35,
+        # voice = bolne ki lambai; trim isse chhota nahi karta (line beech me na kate)
+        segs.append(dict(kind="fauji" if C.FAUJI_CTA else "cta", dur=cd + 0.35, voice=cd,
                          audio=[(0.0, cv, C.VOICE_VOLUME)],
                          payload=(q, i + 1, n)))
 
-        hv, hd, heng = tts.say(tts.hint_script(q), f"h{i}_{q['id']}")
-        ENGINES.append(heng)
-        segs.append(dict(kind="hint", dur=hd + 0.4,
-                         audio=[(0.0, hv, C.VOICE_VOLUME)],
-                         payload=(q, i + 1, n)))
+        if C.HINT_BEFORE_ANSWER:
+            hv, hd, heng = tts.say(tts.hint_script(q), f"h{i}_{q['id']}")
+            ENGINES.append(heng)
+            segs.append(dict(kind="hint", dur=hd + 0.4,
+                             audio=[(0.0, hv, C.VOICE_VOLUME)],
+                             payload=(q, i + 1, n)))
 
         # Aakhri segment. Video yahin khatam — iske baad kuch nahi.
         v, d, eng = tts.say(tts.answer_script(q), f"a{i}_{q['id']}")
@@ -129,6 +131,8 @@ def render_video(segs, frames_dir: Path):
                 base = render.reveal_panel(q, qn, tot)
             elif kind == "cta":
                 base = render.cta_panel(q, qn, tot)
+            elif kind == "fauji":
+                base, region = render.fauji_base(q, qn, tot)
             elif kind == "hint":
                 base = render.hint_panel(q, qn, tot)
             else:
@@ -139,7 +143,11 @@ def render_video(segs, frames_dir: Path):
                 render.footer(base, "ध्यान से सुनिए…" if kind == "read" else C.CTA_TEXT,
                               y=max(render.FOOTER_Y, opt_end + 34))
 
-        if kind == "timer":
+        if kind == "fauji":                         # jhanda lehrata hai -> har frame alag
+            for f in range(nf):
+                render.fauji_frame(base, region, f / C.FPS).save(frames_dir / f"f{idx:06d}.jpg", quality=92)
+                idx += 1
+        elif kind == "timer":
             seg_secs = nf / C.FPS
             for f in range(nf):                     # sirf yahan per-frame kaam
                 elapsed = f / C.FPS
@@ -232,14 +240,15 @@ def main():
     # thoda upar reh jaaye to koi dikkat nahi, video Short hi rahega.
     if total_dur > C.TARGET_SECONDS - 2:
         need = total_dur - (C.TARGET_SECONDS - 2)
-        for kind, floor in (("cta", 2.0),):
+        for kind, floor in (("cta", 2.0), ("fauji", 2.0)):
             if need <= 0:
                 break
             for sg in segs:
                 if sg["kind"] != kind:
                     continue
                 cur = sg["frames"] / C.FPS
-                cut = min(need, max(0.0, cur - floor))
+                # bolti hui line kabhi mat kaato — sirf uske baad ka khaali hissa
+                cut = min(need, max(0.0, cur - max(floor, sg.get("voice", 0.0) + 0.1)))
                 if cut > 0:
                     sg["frames"] = max(1, round((cur - cut) / (1 / C.FPS)))
                     need -= cut

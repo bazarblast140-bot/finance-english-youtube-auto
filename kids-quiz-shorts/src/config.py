@@ -23,6 +23,14 @@ TIMER_SECONDS = 8           # Rajesh spec: 8 second tik-tik
 HARD_LIMIT_SECONDS = 180.0
 TARGET_SECONDS = 32.0   # ab 1 sawaal hai, video 25-30s me aani chahiye
 
+# Jawab se pehle: salute karta fauji + lehrata tiranga + "सच्चे देशभक्त हैं तो
+# लाइक-सब्सक्राइब… जवाब अभी बताती हूँ" (Rajesh, 13-Sep-2026 — top GK shorts ka
+# format). Ye purane "चैनल सब्सक्राइब कीजिए" CTA ki jagah hai. False = purana CTA.
+FAUJI_CTA = True
+# "इशारा" segment jawab se pehle. Fauji "जवाब अभी बताती हूँ" bolta hai — uske
+# baad ishara aaye to wada toot-ta hai aur video lamba hota hai, isliye band.
+HINT_BEFORE_ANSWER = False
+
 INTRO_SECONDS = 2.0
 REVEAL_SECONDS = 3.2
 OUTRO_SECONDS = 3.0
