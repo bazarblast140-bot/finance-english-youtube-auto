@@ -1,22 +1,22 @@
 # Last run
-- when   : 2026-09-14 17:41 UTC
-- slot   : noon
+- when   : 2026-09-14 19:32 UTC
+- slot   : paheli
 - privacy: public
 - upload : success
 
 ## metadata
-- title: भारत की सिलिकॉन वैली किसे कहा जाता है? 🤔 | भारत क्विज़
-- duration_sec: 20.9
+- title: पानी में रहती है पर तैर नहीं सकती — वो क्या है? 🤔 | हिंदी पहेली
+- duration_sec: 22.7
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/Esh-1nSg0-g
-- scheduled_for: 2026-09-15T08:00:00Z
+- youtube_url: https://youtube.com/shorts/E6L0KMh00EU
+- scheduled_for: 2026-09-15T10:30:00Z
 
 ## upload output (tail)
 ```
-[upload] noon: aaj ka time (13:30 IST) nikal chuka (ab 23:11 IST) — KAL 13:30 IST pe schedule (2026-09-15T08:00:00Z)
-[upload] privacy=private + publishAt=2026-09-15T08:00:00Z
+[upload] paheli: YouTube 16:00 IST par khud public karega (2026-09-15T10:30:00Z) — abhi 01:02 IST
+[upload] privacy=private + publishAt=2026-09-15T10:30:00Z
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/Esh-1nSg0-g
+[upload] done -> https://youtube.com/shorts/E6L0KMh00EU
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
