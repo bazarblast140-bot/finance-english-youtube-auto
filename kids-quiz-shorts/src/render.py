@@ -296,11 +296,19 @@ def banner(img, qnum=None, total=None, subject=None):
     """Top ribbon + left me 'सवाल 1/2' chip. Right side timer ke liye khaali
     chhoda hai — isliye chip center me nahi hai."""
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle([0, -60, C.W, 210], 60, fill=C.COLORS["banner"])
-    f = F(70)
-    w = text_w(d, C.BRAND, f)
-    d.text(((C.W - w) // 2, 62), C.BRAND, font=f, fill=C.COLORS["banner_text"],
-           stroke_width=3, stroke_fill=(90, 8, 42))
+    if getattr(C, "FRAME_V2", False):
+        # chhota banner: upar ka hissa YouTube ke top bar ke peeche waise bhi jaata hai
+        d.rounded_rectangle([0, -60, C.W, 128], 50, fill=C.COLORS["banner"])
+        f = F(46)
+        w = text_w(d, C.BRAND, f)
+        d.text(((C.W - w) // 2, 40), C.BRAND, font=f, fill=C.COLORS["banner_text"],
+               stroke_width=2, stroke_fill=(90, 8, 42))
+    else:
+        d.rounded_rectangle([0, -60, C.W, 210], 60, fill=C.COLORS["banner"])
+        f = F(70)
+        w = text_w(d, C.BRAND, f)
+        d.text(((C.W - w) // 2, 62), C.BRAND, font=f, fill=C.COLORS["banner_text"],
+               stroke_width=3, stroke_fill=(90, 8, 42))
     # 1 sawaal wali video me "सवाल 1/1" bekaar hai — sirf subject chip dikhao
     if qnum and total > 1:
         chip = f"सवाल {qnum}/{total}"
@@ -418,6 +426,21 @@ OPT_GAP = 20
 OPT_PAD = 34            # card ke neeche se options tak ka gap
 
 
+HERO_SIZE = 230
+
+
+def hero(img, q):
+    """FRAME_V2: banner aur sawaal ke beech bada emoji — frame 0 par sirf text
+    na ho. Beech me (x 425-655): baayein subject chip, daayein timer ring
+    (x 848+) se door; neeche card 348 se shuru. Emoji font na ho to kuch nahi."""
+    ch = q.get("emoji") or C.HERO_EMOJI.get(q.get("sub"), "❓")
+    tile = emoji_tile(ch, HERO_SIZE)
+    if tile is None:
+        return img
+    img.paste(tile, ((C.W - HERO_SIZE) // 2, 114), tile)
+    return img
+
+
 def question_panel(q, qnum, total, highlight=None, dim_others=False,
                    show_options=4):
     """show_options: kitne option dikhane hain (0-4).
@@ -432,6 +455,8 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False,
     Return: (image, options_block_end_y) — reveal badge/footer isi se position hote hain."""
     img = background(qnum).convert("RGB")
     banner(img, qnum, total, q.get("sub"))
+    if getattr(C, "FRAME_V2", False):
+        hero(img, q)
 
     d = ImageDraw.Draw(img)
     inner_w = C.W - 2 * CARD_X - 96

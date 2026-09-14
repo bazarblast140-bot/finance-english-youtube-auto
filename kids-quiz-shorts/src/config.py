@@ -31,6 +31,14 @@ FAUJI_CTA = True
 # baad ishara aaye to wada toot-ta hai aur video lamba hota hai, isliye band.
 HINT_BEFORE_ANSWER = False
 
+# Experiment 2 (audit 14-Sep-2026): 67% log pehle second me swipe karte hain.
+# Test: chhota "QUIZ PATHSHALA" banner + sawaal ke upar bada emoji. Rajesh ki
+# haan ke baad hi True. Emoji subject ka (jawab kabhi nahi batata); kisi
+# sawaal me "emoji" field ho to wo lagta hai.
+FRAME_V2 = False
+HERO_EMOJI = {"पहेली": "🧩", "दुनिया": "🌍", "भारत": "🪷", "विज्ञान": "🔬",
+              "सामान्य ज्ञान": "💡"}
+
 INTRO_SECONDS = 2.0
 REVEAL_SECONDS = 3.2
 OUTRO_SECONDS = 3.0
