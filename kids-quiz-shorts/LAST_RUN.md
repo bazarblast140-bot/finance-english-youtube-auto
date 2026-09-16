@@ -1,22 +1,22 @@
 # Last run
-- when   : 2026-09-16 19:28 UTC
-- slot   : evening
+- when   : 2026-09-16 21:54 UTC
+- slot   : night
 - privacy: public
 - upload : success
 
 ## metadata
-- title: किस देश का झंडा चौकोर नहीं है? 🤔 | दुनिया क्विज़
-- duration_sec: 21.23
+- title: जितना भरो उतना हल्का — वो क्या है? 🤔 | हिंदी पहेली
+- duration_sec: 22.7
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/IqOWbAmC65U
-- scheduled_for: 2026-09-17T12:00:00Z
+- youtube_url: https://youtube.com/shorts/ntljIdXsQmY
+- scheduled_for: 2026-09-17T15:00:00Z
 
 ## upload output (tail)
 ```
-[upload] evening: YouTube 17:30 IST par khud public karega (2026-09-17T12:00:00Z) — abhi 00:58 IST
-[upload] privacy=private + publishAt=2026-09-17T12:00:00Z
+[upload] night: YouTube 20:30 IST par khud public karega (2026-09-17T15:00:00Z) — abhi 03:24 IST
+[upload] privacy=private + publishAt=2026-09-17T15:00:00Z
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/IqOWbAmC65U
+[upload] done -> https://youtube.com/shorts/ntljIdXsQmY
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
