@@ -1,22 +1,22 @@
 # Last run
-- when   : 2026-09-17 16:14 UTC
-- slot   : noon
+- when   : 2026-09-17 18:26 UTC
+- slot   : paheli
 - privacy: public
 - upload : success
 
 ## metadata
-- title: ऊँट अपने कूबड़ में क्या जमा करता है? 🤔 | सामान्य ज्ञान क्विज़
-- duration_sec: 21.63
+- title: आँखों पर चढ़ जाए तो धुँधला साफ़ हो जाए — वो क्या है? 🤔 | हिंदी पहेली
+- duration_sec: 23.4
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/oev0zO3CabY
-- scheduled_for: 2026-09-18T08:00:00Z
+- youtube_url: https://youtube.com/shorts/VP2ieeam6UI
+- scheduled_for: 2026-09-18T10:30:00Z
 
 ## upload output (tail)
 ```
-[upload] noon: aaj ka time (13:30 IST) nikal chuka (ab 21:44 IST) — KAL 13:30 IST pe schedule (2026-09-18T08:00:00Z)
-[upload] privacy=private + publishAt=2026-09-18T08:00:00Z
+[upload] paheli: aaj ka time (16:00 IST) nikal chuka (ab 23:56 IST) — KAL 16:00 IST pe schedule (2026-09-18T10:30:00Z)
+[upload] privacy=private + publishAt=2026-09-18T10:30:00Z
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/oev0zO3CabY
+[upload] done -> https://youtube.com/shorts/VP2ieeam6UI
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
