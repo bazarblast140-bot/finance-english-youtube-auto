@@ -1,22 +1,22 @@
 # Last run
-- when   : 2026-09-19 17:22 UTC
-- slot   : paheli
+- when   : 2026-09-19 18:32 UTC
+- slot   : evening
 - privacy: public
 - upload : success
 
 ## metadata
-- title: बिना हाथ के ताला खोल दे — वो क्या है? 🤔 | हिंदी पहेली
-- duration_sec: 22.93
+- title: सूरज का असली रंग कैसा है? 🤔 | विज्ञान क्विज़
+- duration_sec: 20.5
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/0XekBw-Y4lo
-- scheduled_for: 2026-09-20T10:30:00Z
+- youtube_url: https://youtube.com/shorts/-XWPMkzcE80
+- scheduled_for: 2026-09-20T12:00:00Z
 
 ## upload output (tail)
 ```
-[upload] paheli: aaj ka time (16:00 IST) nikal chuka (ab 22:52 IST) — KAL 16:00 IST pe schedule (2026-09-20T10:30:00Z)
-[upload] privacy=private + publishAt=2026-09-20T10:30:00Z
+[upload] evening: YouTube 17:30 IST par khud public karega (2026-09-20T12:00:00Z) — abhi 00:02 IST
+[upload] privacy=private + publishAt=2026-09-20T12:00:00Z
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/0XekBw-Y4lo
+[upload] done -> https://youtube.com/shorts/-XWPMkzcE80
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
