@@ -1,22 +1,22 @@
 # Last run
-- when   : 2026-09-21 12:29 UTC
-- slot   : morning
+- when   : 2026-09-21 17:52 UTC
+- slot   : noon
 - privacy: public
 - upload : success
 
 ## metadata
-- title: जल में जन्मे, जल में पले — जल से निकले तो मर जाए। वो कौन है? 🤔 | हिंदी पहेली
-- duration_sec: 26.87
+- title: बिल्ली के पंजों में क्या खास होता है? 🤔 | सामान्य ज्ञान क्विज़
+- duration_sec: 21.67
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/4GuEB-VwRBA
-- scheduled_for: 2026-09-22T02:00:00Z
+- youtube_url: https://youtube.com/shorts/DdxlScrSiZ8
+- scheduled_for: 2026-09-22T08:00:00Z
 
 ## upload output (tail)
 ```
-[upload] morning: aaj ka time (07:30 IST) nikal chuka (ab 17:59 IST) — KAL 07:30 IST pe schedule (2026-09-22T02:00:00Z)
-[upload] privacy=private + publishAt=2026-09-22T02:00:00Z
+[upload] noon: aaj ka time (13:30 IST) nikal chuka (ab 23:22 IST) — KAL 13:30 IST pe schedule (2026-09-22T08:00:00Z)
+[upload] privacy=private + publishAt=2026-09-22T08:00:00Z
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/4GuEB-VwRBA
+[upload] done -> https://youtube.com/shorts/DdxlScrSiZ8
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
