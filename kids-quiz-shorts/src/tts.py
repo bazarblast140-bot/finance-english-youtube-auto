@@ -235,15 +235,16 @@ def answer_script(q: dict) -> str:
 
 
 def cta_script() -> str:
-    """Timer ke turant baad, jawab se PEHLE. Yahi ek jagah hai jahan viewer
-    sach me ruka hua hai — usne 8 second sawaal pe lagaye hain aur ab use
-    jawab chahiye. Isliye subscribe ki baat yahan, video ke ant me nahi:
-    jawab sunte hi log swipe kar dete hain.
-    FAUJI_CTA: fauji + tiranga screen par, female voice ("बताती")."""
+    """Timer ke turant baad, jawab se PEHLE.
+
+    22-Sep-2026: subscribe/like engagement-bait bilkul hata diya.
+    Sirf neutral transition: "अब सुनिए सही जवाब।"
+    FAUJI_CTA ab bhi support hai agar kabhi wapas on karna ho.
+    """
     if getattr(C, "FAUJI_CTA", False):
         # "जय हिंद" nahi bolna (Rajesh, 13-Sep-2026)
         return "अगर आप सच्चे देशभक्त हैं, तो वीडियो को लाइक और चैनल को सब्सक्राइब कीजिए। जवाब अभी बताती हूँ!"
-    return "चैनल सब्सक्राइब कीजिए, और अब सुनिए सही जवाब।"
+    return "अब सुनिए सही जवाब।"
 
 
 if __name__ == "__main__":
