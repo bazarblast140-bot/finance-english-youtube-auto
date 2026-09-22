@@ -1,22 +1,22 @@
 # Last run
-- when   : 2026-09-22 19:40 UTC
-- slot   : evening
+- when   : 2026-09-22 21:47 UTC
+- slot   : night
 - privacy: public
 - upload : success
 
 ## metadata
-- title: ताजमहल बनने में लगभग कितना समय लगा था? 🤔 | भारत + दुनिया क्विज़
-- duration_sec: 33.57
+- title: दुनिया में सबसे ज़्यादा चावल कौन सा देश उगाता है? 🤔 | दुनिया + सामान्य ज्ञान क्विज़
+- duration_sec: 32.83
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/RCUxh9gBg8o
-- scheduled_for: 2026-09-23T12:00:00Z
+- youtube_url: https://youtube.com/shorts/6G8CGhFH2Xs
+- scheduled_for: 2026-09-23T15:00:00Z
 
 ## upload output (tail)
 ```
-[upload] evening: YouTube 17:30 IST par khud public karega (2026-09-23T12:00:00Z) — abhi 01:10 IST
-[upload] privacy=private + publishAt=2026-09-23T12:00:00Z
+[upload] night: YouTube 20:30 IST par khud public karega (2026-09-23T15:00:00Z) — abhi 03:17 IST
+[upload] privacy=private + publishAt=2026-09-23T15:00:00Z
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/RCUxh9gBg8o
+[upload] done -> https://youtube.com/shorts/6G8CGhFH2Xs
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
