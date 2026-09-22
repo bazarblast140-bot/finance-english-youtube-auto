@@ -11,8 +11,9 @@ OUT.mkdir(exist_ok=True)
 # ---------- video ----------
 W, H = 1080, 1920           # YouTube Shorts vertical
 FPS = 30
-QUESTIONS_PER_VIDEO = 1     # 1 sawaal = ~25s video. Top Hindi GK shorts
-                            # 16-30s ke hote hain; 50s wale pe log swipe kar dete hain.
+QUESTIONS_PER_VIDEO = 2     # 2 sawaal ek Short me. Pehle 1 tha (~25s).
+                            # Ab: Q1 (read+timer+answer) → Q2 (read+timer+answer)
+                            # Total ~50-65s, Shorts limit (3 min) ke andar.
 TIMER_SECONDS = 8           # Rajesh spec: 8 second tik-tik
 # Length ke do alag number hain — inhe mat mila dena:
 #   HARD_LIMIT_SECONDS = platform ka asli rule. Oct 2024 se Shorts 3 MINUTE
@@ -21,12 +22,13 @@ TIMER_SECONDS = 8           # Rajesh spec: 8 second tik-tik
 #   TARGET_SECONDS = retention ka target, rule nahi. Shorts ka engagement
 #     sweet spot 30-60s hai, isliye hum yahin rehne ki koshish karte hain.
 HARD_LIMIT_SECONDS = 180.0
-TARGET_SECONDS = 32.0   # ab 1 sawaal hai, video 25-30s me aani chahiye
+TARGET_SECONDS = 55.0   # 2 sawaal ke liye thoda upar (pehle 32 tha 1 sawaal ke liye)
 
 # Jawab se pehle: salute karta fauji + lehrata tiranga + "सच्चे देशभक्त हैं तो
-# लाइक-सब्सक्राइब… जवाब अभी बताती हूँ" (Rajesh, 13-Sep-2026 — top GK shorts ka
-# format). Ye purane "चैनल सब्सक्राइब कीजिए" CTA ki jagah hai. False = purana CTA.
-FAUJI_CTA = True
+# लाइक-सब्सक्राइब… जवाब अभी बताती हूँ" (Rajesh, 13-Sep-2026).
+# 22-Sep-2026: band kiya — repetitive engagement-bait signal impressions
+# throttle kar sakta hai. False = normal CTA_TEXT use hota hai.
+FAUJI_CTA = False
 # "इशारा" segment jawab se pehle. Fauji "जवाब अभी बताती हूँ" bolta hai — uske
 # baad ishara aaye to wada toot-ta hai aur video lamba hota hai, isliye band.
 HINT_BEFORE_ANSWER = False
