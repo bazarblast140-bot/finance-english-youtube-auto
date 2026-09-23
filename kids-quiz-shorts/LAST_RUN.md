@@ -1,22 +1,22 @@
 # Last run
-- when   : 2026-09-23 16:06 UTC
-- slot   : noon
+- when   : 2026-09-23 18:32 UTC
+- slot   : paheli
 - privacy: public
 - upload : success
 
 ## metadata
-- title: पौधे रात में कौन सी गैस छोड़ते हैं? 🤔 | विज्ञान + भारत क्विज़
-- duration_sec: 33.47
+- title: रात को आए, सुबह गायब — पकड़ में कभी न आए। वो क्या है? 🤔 | हिंदी पहेली
+- duration_sec: 37.9
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/nbMqBqnWaN4
-- scheduled_for: 2026-09-24T08:00:00Z
+- youtube_url: https://youtube.com/shorts/axQZclgIosA
+- scheduled_for: 2026-09-24T10:30:00Z
 
 ## upload output (tail)
 ```
-[upload] noon: aaj ka time (13:30 IST) nikal chuka (ab 21:36 IST) — KAL 13:30 IST pe schedule (2026-09-24T08:00:00Z)
-[upload] privacy=private + publishAt=2026-09-24T08:00:00Z
+[upload] paheli: YouTube 16:00 IST par khud public karega (2026-09-24T10:30:00Z) — abhi 00:02 IST
+[upload] privacy=private + publishAt=2026-09-24T10:30:00Z
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/nbMqBqnWaN4
+[upload] done -> https://youtube.com/shorts/axQZclgIosA
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
