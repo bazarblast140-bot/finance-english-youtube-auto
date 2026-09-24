@@ -1,22 +1,22 @@
 # Last run
-- when   : 2026-09-23 22:05 UTC
-- slot   : night
+- when   : 2026-09-24 11:28 UTC
+- slot   : morning
 - privacy: public
 - upload : success
 
 ## metadata
-- title: किस देश का नाम वहाँ की धातु पर पड़ा है? 🤔 | दुनिया + सामान्य ज्ञान क्विज़
-- duration_sec: 32.53
+- title: मधुमक्खियाँ आपस में बात कैसे करती हैं? 🤔 | सामान्य ज्ञान + विज्ञान क्विज़
+- duration_sec: 32.77
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/KsiEFbzAelM
-- scheduled_for: 2026-09-24T15:00:00Z
+- youtube_url: https://youtube.com/shorts/8lfxdAhQtQI
+- scheduled_for: 2026-09-25T02:00:00Z
 
 ## upload output (tail)
 ```
-[upload] night: YouTube 20:30 IST par khud public karega (2026-09-24T15:00:00Z) — abhi 03:35 IST
-[upload] privacy=private + publishAt=2026-09-24T15:00:00Z
+[upload] morning: aaj ka time (07:30 IST) nikal chuka (ab 16:58 IST) — KAL 07:30 IST pe schedule (2026-09-25T02:00:00Z)
+[upload] privacy=private + publishAt=2026-09-25T02:00:00Z
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/KsiEFbzAelM
+[upload] done -> https://youtube.com/shorts/8lfxdAhQtQI
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
