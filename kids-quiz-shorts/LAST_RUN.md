@@ -1,22 +1,22 @@
 # Last run
-- when   : 2026-09-24 18:32 UTC
-- slot   : paheli
+- when   : 2026-09-24 19:54 UTC
+- slot   : evening
 - privacy: public
 - upload : success
 
 ## metadata
-- title: एक थाली में सौ मोती — वो क्या है? 🤔 | हिंदी पहेली
-- duration_sec: 34.3
+- title: भारत का सबसे पुराना बसा शहर कौन सा माना जाता है? 🤔 | भारत + दुनिया क्विज़
+- duration_sec: 35.87
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/dCrOc57UgrE
-- scheduled_for: 2026-09-25T10:30:00Z
+- youtube_url: https://youtube.com/shorts/zdnFghdkUn4
+- scheduled_for: 2026-09-25T12:00:00Z
 
 ## upload output (tail)
 ```
-[upload] paheli: YouTube 16:00 IST par khud public karega (2026-09-25T10:30:00Z) — abhi 00:02 IST
-[upload] privacy=private + publishAt=2026-09-25T10:30:00Z
+[upload] evening: YouTube 17:30 IST par khud public karega (2026-09-25T12:00:00Z) — abhi 01:24 IST
+[upload] privacy=private + publishAt=2026-09-25T12:00:00Z
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/dCrOc57UgrE
+[upload] done -> https://youtube.com/shorts/zdnFghdkUn4
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
