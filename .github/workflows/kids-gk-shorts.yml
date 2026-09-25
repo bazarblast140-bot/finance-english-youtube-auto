@@ -98,7 +98,7 @@ jobs:
       - name: Video banao
         env:
           ELEVENLABS_API_KEY:  ${{ secrets.ELEVENLABS_API_KEY }}
-          ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
+          ELEVENLABS_VOICE_ID: 7qBNUtXRGP0jPi0H4r8k
           ELEVENLABS_MODEL:    ${{ vars.ELEVENLABS_MODEL || 'eleven_multilingual_v2' }}
         run: |
           # pipefail zaroori hai — warna 'python ... | tee' me python crash ho
