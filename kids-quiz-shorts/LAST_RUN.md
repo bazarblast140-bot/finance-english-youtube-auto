@@ -1,22 +1,22 @@
 # Last run
-- when   : 2026-09-26 17:53 UTC
-- slot   : paheli
+- when   : 2026-09-26 19:09 UTC
+- slot   : evening
 - privacy: public
 - upload : success
 
 ## metadata
-- title: मीठा है पर मिठाई नहीं, नन्हीं जान बनाए — वो क्या है? 🤔 | हिंदी पहेली
-- duration_sec: 34.53
+- title: 'सत्यमेव जयते' कहाँ से लिया गया है? 🤔 | भारत + दुनिया क्विज़
+- duration_sec: 32.4
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/gLns63vu7Ss
-- scheduled_for: 2026-09-27T10:30:00Z
+- youtube_url: https://youtube.com/shorts/uJZVF5mgFDY
+- scheduled_for: 2026-09-27T12:00:00Z
 
 ## upload output (tail)
 ```
-[upload] paheli: aaj ka time (16:00 IST) nikal chuka (ab 23:23 IST) — KAL 16:00 IST pe schedule (2026-09-27T10:30:00Z)
-[upload] privacy=private + publishAt=2026-09-27T10:30:00Z
+[upload] evening: YouTube 17:30 IST par khud public karega (2026-09-27T12:00:00Z) — abhi 00:39 IST
+[upload] privacy=private + publishAt=2026-09-27T12:00:00Z
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/gLns63vu7Ss
+[upload] done -> https://youtube.com/shorts/uJZVF5mgFDY
 [upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
 ```
 
