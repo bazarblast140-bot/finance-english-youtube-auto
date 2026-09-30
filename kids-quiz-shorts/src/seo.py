@@ -26,17 +26,29 @@ from datetime import datetime
 
 import config as C
 
+# 30-Sep-2026: "स्कूल जाने से पहले", "होमवर्क से पहले", "90% बच्चे गलत करते हैं"
+# hata diye. (1) Channel 29-Aug ko general Hindi GK par pivot ho chuka hai aur
+# MADE_FOR_KIDS=False hai — metadata me bacchon ko target karna usi label ke
+# khilaaf gawahi hai (COPPA risk). (2) "90%" jaisi nakli statistic viewer ko
+# ek baar hi bewakoof banati hai.
 HOOKS = {
-    "morning": ["सुबह का GK सवाल", "स्कूल जाने से पहले ये बताओ",
-                "आज का पहला सवाल", "क्या तुम्हें पता है?"],
-    "noon":    ["दोपहर का क्विज़ ब्रेक", "लंच टाइम चैलेंज",
-                "ये आसान सा सवाल", "80% बच्चे यहाँ अटक जाते हैं"],
-    "paheli":  ["आज की पहेली बूझो", "दिमागी पहेली — सोचो तो सही",
-                "90% बच्चे ये पहेली गलत करते हैं", "घर वालों से पूछो ये पहेली"],
-    "evening": ["स्कूल के बाद ये सवाल", "होमवर्क से पहले एक सवाल",
-                "शाम का GK चैलेंज", "90% बच्चे गलत करते हैं"],
-    "night":   ["सोने से पहले एक सवाल", "आज का आखिरी सवाल",
-                "रात का क्विज़ चैलेंज", "ये आता है तुम्हें?"],
+    "morning": ["सुबह का GK सवाल", "आज का पहला सवाल", "चाय के साथ एक सवाल"],
+    "noon":    ["दोपहर का क्विज़ ब्रेक", "लंच ब्रेक चैलेंज", "दिमाग़ को 8 सेकंड दो"],
+    "paheli":  ["आज की पहेली बूझो", "दिमाग़ी पहेली — सोचो तो सही",
+                "घर वालों से पूछो ये पहेली"],
+    "evening": ["शाम का GK चैलेंज", "ये सवाल दोस्तों से पूछो"],
+    "night":   ["सोने से पहले एक सवाल", "आज का आख़िरी सवाल", "ये आता है आपको?"],
+}
+
+# Title ki poonchh (tail) — Hinglish keyword jo log sach me search karte hain
+# ("world gk quiz", "science gk"). Pehle "| दुनिया + सामान्य ज्ञान क्विज़" tha:
+# lamba, do subject jode hue, aur search keyword (GK/quiz) Latin me tha hi nahi.
+TITLE_TAIL = {
+    "सामान्य ज्ञान": "GK Quiz Hindi",
+    "विज्ञान":      "Science GK Quiz",
+    "भारत":        "India GK Quiz",
+    "दुनिया":       "World GK Quiz",
+    "पहेली":        "Hindi Paheli",
 }
 
 # Specific -> broad. 8 tags kaafi hain; "class 1 gk ... class 5 gk" jaise
@@ -47,6 +59,7 @@ BASE_TAGS = [
     "gk quiz hindi with answer",
     "general knowledge hindi",
     "gk questions for competitive exams",
+    "hindi quiz",
 ]
 
 SUB_TAGS = {
@@ -83,18 +96,12 @@ def build(questions, slot="morning", date=None):
 
     # --- TITLE: sawaal pehle -------------------------------------------------
     # Mobile Shorts feed me title ki ek line dikhti hai. Isliye sawaal poora
-    # aage, aur context (subject/class) baad me — truncate ho bhi jaaye to
-    # viewer ne asli hook padh liya hota hai.
-    if is_paheli:
-        tail = " | हिंदी पहेली"
-        if len(qtext) + len(tail) > 96:
-            tail = " | पहेली"
-        title = f"{qtext} 🤔{tail}"
-    else:
-        tail = f" | {sub_hi} क्विज़"
-        if len(qtext) + len(tail) > 96:
-            tail = f" | {sub_hi} क्विज़"
-        title = f"{qtext} 🤔{tail}"
+    # aage, aur search keyword baad me — truncate ho bhi jaaye to viewer ne
+    # asli hook padh liya hota hai. Tail sirf Q1 ke subject ka (title me Q1 hi hai).
+    tail = " | " + TITLE_TAIL.get(q1.get("sub"), "GK Quiz Hindi")
+    if len(qtext) + len(tail) + 2 > 100:
+        tail = " | GK Quiz" if not is_paheli else " | पहेली"
+    title = f"{qtext} 🤔{tail}"
     if len(title) > 100:
         title = f"{qtext[:100 - len(tail) - 4]}…{tail}"
 
@@ -115,16 +122,19 @@ def build(questions, slot="morning", date=None):
     # video me "इशारा" band ho (fauji CTA) to वजह sirf neeche description me hai
     tail = ("फिर सही जवाब और वजह।" if getattr(C, "HINT_BEFORE_ANSWER", True)
             else "फिर सही जवाब — वजह नीचे।")
+    more = ""
+    if len(questions) > 1:
+        more = " बोनस: " + " • ".join(q["q"].strip() for q in questions[1:])
     if is_paheli:
-        first = (f"दिमाग़ घुमाने वाली हिंदी पहेली — {qtext} "
+        first = (f"दिमाग़ घुमाने वाली हिंदी पहेली — {qtext}{more} "
                  f"{C.TIMER_SECONDS} सेकंड का टाइमर, {tail}")
     else:
-        first = (f"{sub_hi} क्विज़ हिंदी में — {qtext} "
+        first = (f"{sub_hi} क्विज़ हिंदी में (GK Quiz in Hindi) — {qtext}{more} "
                  f"हर सवाल पर {C.TIMER_SECONDS} सेकंड का टाइमर, {tail}")
 
     description = f"""{first}
 
-{hook} रोज़ {C.VIDEOS_PER_DAY} नए सवाल — {C.BRAND} को सब्सक्राइब करो! 🔔
+{hook} 👉 रोज़ {C.VIDEOS_PER_DAY} नए सवाल — {C.BRAND} को सब्सक्राइब करो! 🔔
 
 {q_block}
 
@@ -140,27 +150,42 @@ def build(questions, slot="morning", date=None):
     # --- TAGS ----------------------------------------------------------------
     tags = list(BASE_TAGS)
     if is_paheli:
+        # "hindi riddles for class 1 to 5" hataya — MADE_FOR_KIDS=False ke
+        # saath bacchon ki class wala tag ulta signal tha.
         tags = ["paheli in hindi with answer", "दिमागी पहेलियाँ हिंदी",
-                "hindi riddles for class 1 to 5"] + tags
+                "hindi riddles with answer"] + tags
     if any(q.get("topic") == "सबसे" for q in questions):
         tags = ["duniya me sabse bada kaun sa hai", "sabse uncha lamba gehra"] + tags
     for c in subs:
         tags += SUB_TAGS.get(c, [])
+    # Optional: competitor research (data/competitor_insights.json) se 1-2
+    # relevant tag. Sirf allowlist wale shabd (gk/quiz/paheli...) — kisi
+    # doosre channel ka naam/brand kabhi nahi. File na ho to kuch nahi hota.
+    try:
+        from competitor_research import insight_tags
+        tags += insight_tags(max_n=2)
+    except Exception:
+        pass
     seen, out_tags, total = set(), [], 0
     for t in tags:
         if t in seen or total + len(t) + 1 > 460:
             continue
         seen.add(t); out_tags.append(t); total += len(t) + 1
-        if len(out_tags) == 8:        # volume nahi, relevance — 8 pe rok do
+        if len(out_tags) == 10:       # volume nahi, relevance — 10 pe rok do
             break
 
     # NOTE: kisi bhi question count ke saath chalna chahiye. Pehle yahan
     # hardcoded questions[1] tha, jo QUESTIONS_PER_VIDEO=1 hote hi IndexError
     # de raha tha — video ban jaata tha par metadata.json likha hi nahi jaata.
-    ans_line = "  ".join(f"{i+1}) {labels[q['ans']]}" for i, q in enumerate(questions))
+    # Pehle pinned comment me seedha "जवाब: 1) C 2) A" tha — comments kholte hi
+    # jawab mil jaata tha, to kisi ko apna jawab likhne ki wajah nahi bachti
+    # thi. Ab sawaal poochte hain (comment = engagement signal), jawab video me.
+    n_q = len(questions)
+    ask = ("आपका जवाब क्या है? A, B, C या D — कमेंट करो 👇" if n_q == 1 else
+           f"{n_q} में से कितने सही हुए? अपना स्कोर कमेंट करो 👇")
     pinned = None if C.MADE_FOR_KIDS else (
-        f"जवाब: {ans_line}\n"
-        f"दोनों सही? रोज़ {C.VIDEOS_PER_DAY} नए सवाल आते हैं 🔔\n"
+        f"{ask}\n"
+        f"रोज़ {C.VIDEOS_PER_DAY} नए सवाल आते हैं — सब्सक्राइब करके रोज़ खेलो 🔔\n"
         f"किस विषय के सवाल और चाहिए — भारत, विज्ञान, दुनिया या पहेली?"
     )
 

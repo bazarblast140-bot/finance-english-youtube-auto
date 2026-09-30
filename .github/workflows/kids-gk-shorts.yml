@@ -15,6 +15,15 @@ name: Kids GK Quiz Shorts
 #   4. Har slot alag concurrency group — queue me block nahi hote
 #
 # CHANNEL: QUIZ PATHSHALA (YOUTUBE_* secrets)
+#
+# Optional repo VARIABLES (Settings > Secrets and variables > Actions > Variables):
+#   QUIZ_ACTIVE_SLOTS   e.g. "morning,paheli,night" — baaki slot bina upload skip
+#                       (khaali = saare 5). Upload frequency yahin se badlo.
+#   QUIZ_SUBSCRIBE_CTA  end (default) | before_answer | off
+# Optional SECRET:
+#   YT_DATA_API_KEY     competitor research (src/competitor_research.py). Na ho to skip.
+# Pinned comment ke liye YOUTUBE_REFRESH_TOKEN me youtube.force-ssl scope chahiye
+# (README: "Pinned comment ke liye token").
 
 on:
   schedule:
@@ -78,8 +87,18 @@ jobs:
             echo "privacy=public" >> $GITHUB_OUTPUT
           fi
           echo "decided slot=$(cat $GITHUB_OUTPUT | grep slot=) privacy=$(cat $GITHUB_OUTPUT | grep privacy=)"
+          # QUIZ_ACTIVE_SLOTS (repo variable) — manual run hamesha chalta hai
+          ACTIVE="${{ vars.QUIZ_ACTIVE_SLOTS }}"
+          S=$(grep '^slot=' $GITHUB_OUTPUT | tail -1 | cut -d= -f2)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ -z "$ACTIVE" ] || echo ",$ACTIVE," | tr -d ' ' | grep -q ",$S,"; then
+            echo "active=true" >> $GITHUB_OUTPUT
+          else
+            echo "active=false" >> $GITHUB_OUTPUT
+            echo "::notice::slot $S QUIZ_ACTIVE_SLOTS ($ACTIVE) me nahi — is run me kuch nahi banega"
+          fi
 
       - name: System deps (ffmpeg + Devanagari + emoji fonts)
+        if: steps.slot.outputs.active == 'true'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg fonts-noto-core fonts-indic libraqm0 \
@@ -90,16 +109,21 @@ jobs:
           fc-list | grep -qi emoji && echo "emoji font OK" || echo "::warning::emoji font missing - option icons nahi dikhenge"
 
       - uses: actions/setup-python@v5
+        if: steps.slot.outputs.active == 'true'
         with:
           python-version: "3.11"
 
       - run: pip install -r requirements.txt
+        if: steps.slot.outputs.active == 'true'
 
       - name: Video banao
+        if: steps.slot.outputs.active == 'true'
         env:
           ELEVENLABS_API_KEY:  ${{ secrets.ELEVENLABS_API_KEY }}
           ELEVENLABS_VOICE_ID: 7qBNUtXRGP0jPi0H4r8k
           ELEVENLABS_MODEL:    ${{ vars.ELEVENLABS_MODEL || 'eleven_multilingual_v2' }}
+          QUIZ_ACTIVE_SLOTS:   ${{ vars.QUIZ_ACTIVE_SLOTS }}
+          QUIZ_SUBSCRIBE_CTA:  ${{ vars.QUIZ_SUBSCRIBE_CTA || 'end' }}
         run: |
           # pipefail zaroori hai — warna 'python ... | tee' me python crash ho
           # jaaye to bhi tee ka exit 0 aata hai aur step GREEN dikhta hai.
@@ -113,6 +137,7 @@ jobs:
           fi
 
       - name: Voice check — silent video upload mat hone do
+        if: steps.slot.outputs.active == 'true'
         run: |
           DIR=$(ls -td out/*/ | head -1)
           MEAN=$(ffmpeg -i "$DIR"/*.mp4 -af volumedetect -f null - 2>&1 \
@@ -121,13 +146,34 @@ jobs:
           python -c "import sys; m=float('$MEAN'); sys.exit('VOICE MISSING - TTS fail hua, upload rok diya.') if m < -34 else None"
 
       - uses: actions/upload-artifact@v4
+        if: steps.slot.outputs.active == 'true'
         with:
           name: kids-short-${{ steps.slot.outputs.slot }}-${{ github.run_number }}
           path: kids-quiz-shorts/out/*/
           retention-days: 14
 
+      - name: Competitor research (optional, read-only)
+        if: steps.slot.outputs.active == 'true'
+        continue-on-error: true
+        env:
+          YT_DATA_API_KEY:  ${{ secrets.YT_DATA_API_KEY }}
+          YT_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: python src/competitor_research.py --max-age-hours 20
+
+      - name: Pending comments (public ho chuki videos par)
+        if: steps.slot.outputs.active == 'true'
+        continue-on-error: true
+        env:
+          YT_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: python src/upload.py --post-pending-comments
+
       - name: YouTube pe upload
         id: up
+        if: steps.slot.outputs.active == 'true'
         continue-on-error: true
         env:
           YT_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
@@ -141,7 +187,7 @@ jobs:
             --publish-slot "${{ steps.slot.outputs.slot }}" 2>&1 | tee upload_out.txt
 
       - name: Telegram pe batao
-        if: always()
+        if: always() && steps.slot.outputs.active == 'true'
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -156,7 +202,7 @@ jobs:
       # CI logs Azure blob pe hote hain jo har network se readable nahi. Isliye
       # last run ka nateeja repo me hi likh dete hain — mobile se bhi dikh jaaye.
       - name: Last run ka status repo me likho
-        if: always()
+        if: always() && steps.slot.outputs.active == 'true'
         run: |
           DIR=$(ls -td out/*/ | head -1)
           {
@@ -174,6 +220,11 @@ jobs:
             tail -n 40 upload_out.txt 2>/dev/null || echo "(upload step chala hi nahi)"
             echo '```'
             echo
+            echo '## pick / hook (repeat + bank stock)'
+            echo '```'
+            grep -E '^\[pick\]|^\[hook\]' build_out.txt 2>/dev/null | head -12 || echo '(none)'
+            echo '```'
+            echo
             echo '## voice'
             echo '```'
             grep -E '^\[tts\]|voice:' build_out.txt 2>/dev/null | head -12 || echo '(none)'
@@ -186,7 +237,7 @@ jobs:
           } > LAST_RUN.md
 
       - name: used.json + LAST_RUN.md commit karo
-        if: always()
+        if: always() && steps.slot.outputs.active == 'true'
         run: |
           git config user.name  "quiz-bot"
           git config user.email "quiz-bot@users.noreply.github.com"
@@ -198,12 +249,17 @@ jobs:
             git checkout -- data/used.json || true
           fi
           git add LAST_RUN.md
+          # uploads.json = upload ledger (video id, slot, pending comment) —
+          # competitor_research.py isi se hamare slot/subject ka performance nikalta hai.
+          for f in data/uploads.json data/competitor_insights.json; do
+            [ -e "$f" ] && git add "$f"
+          done
           git diff --staged --quiet || git commit -m "chore(kids-gk): ${{ steps.slot.outputs.slot }} run — upload ${{ steps.up.outcome }} [skip ci]"
           git pull --rebase --autostash || true
           git push
 
       - name: Upload fail hua to job fail karo
-        if: steps.up.outcome != 'success'
+        if: steps.slot.outputs.active == 'true' && steps.up.outcome != 'success'
         run: |
           echo "Upload fail hua. Detail: kids-quiz-shorts/LAST_RUN.md"
           exit 1

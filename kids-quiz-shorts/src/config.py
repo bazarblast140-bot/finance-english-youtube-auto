@@ -46,11 +46,22 @@ HANDLE = "@QuizPathshalaIndia"
 # Rajesh ne False choose kiya taaki comments chaalu rahein (engagement CTA
 # kaam kare, aur personalized ads se RPM bacha rahe).
 #
-# Iska matlab: tum YouTube ko bata rahe ho ki ye video bacchon ke liye
-# "directed" NAHI hai — audience parents/teachers hai jo bacchon ko padhate
-# hain. Content khud bacchon ke syllabus ka hai, isliye ye grey area hai.
-# Ye compliance call tumhara hai. Galat label pe FTC/YouTube action ka risk
-# rehta hai. Channel-level "audience" setting bhi isi ke saath match rakhna.
+# !! RISK (30-Sep-2026 review) !! Ye sirf "grey area" nahi hai:
+#   - README, purane tags ("hindi riddles for class 1 to 5"), hooks
+#     ("स्कूल जाने से पहले", "90% बच्चे...") aur cartoon-style design sab
+#     bacchon ko target karte dikhte the. YouTube ke rule me label CONTENT
+#     aur INTENDED AUDIENCE se tay hota hai, creator ki marzi se nahi.
+#     YouTube khud video ko "made for kids" set kar sakta hai, aur galat
+#     label par channel pe action / FTC (COPPA) penalty ka risk hai.
+#   - Is PR ne kids-signal wale tags/hooks hata diye hain taaki metadata
+#     "general Hindi GK (teens + adults, competitive exam)" wale pivot se
+#     match kare. Par ASLI faisla Rajesh ka hai — code ye flag chupke se
+#     nahi badalta. Dekho README "Made for Kids" section.
+#   - True karne ka asar: comments band, pinned comment nahi, personalized
+#     ads nahi (RPM kam), notification bell / Shorts remix jaise features
+#     band. Monetization (YPP) phir bhi possible hai.
+# Channel-level "audience" setting (YouTube Studio > Settings > Channel >
+# Advanced) bhi isi ke saath match rakhna.
 MADE_FOR_KIDS = False
 
 CTA_TEXT = ("घर में सबको ये सवाल पूछो!" if MADE_FOR_KIDS
@@ -184,3 +195,44 @@ SLOTS = {
 }
 VIDEOS_PER_DAY = len(SLOT_ORDER)
 PAHELI_SUB = "पहेली"
+
+
+# ---------- growth knobs (30-Sep-2026 review) ----------
+# Pehle 1-2 second ka ON-SCREEN hook. Sirf Q1 ke "read" segment me:
+#   - top banner me brand ki jagah challenge line (brand YouTube khud
+#     channel row me dikhata hai, frame 0 par wo jagah bekaar thi)
+#   - "ध्यान से सुनिए…" pill ki jagah bada challenge pill
+# Voice / timing nahi badalti — sawaal frame 0 se hi bolna shuru hota hai.
+# Line sach honi chahiye: nakli "90% log galat" statistics nahi.
+HOOK_ON_SCREEN = True
+HOOK_LINES = {
+    "quiz":   ["8 सेकंड में जवाब दो!", "सोचो, फिर बताओ!", "ये आता है आपको?",
+               "आज का GK चैलेंज", "पक्का पता है?"],
+    "paheli": ["बूझो तो जानें!", "8 सेकंड में बूझो!", "दिमाग़ लगाओ!",
+               "आज की पहेली"],
+}
+# Q1 ka jawab aane ke baad viewer swipe kar deta hai (Q2 title me hai hi
+# nahi). Isliye Q1 reveal par "अगला सवाल…" teaser — open loop, zero seconds.
+NEXT_QUESTION_TEASER = True
+# Subscribe CTA:
+#   "end"           -> sirf AAKHRI reveal par ek chhota visual pill (value dene
+#                      ke baad, koi extra second nahi, koi bolne wali line nahi)
+#   "before_answer" -> purana: har sawaal me jawab se pehle "सब्सक्राइब करें"
+#                      banner (22-Sep ko voice hata di thi par banner reh gaya tha)
+#   "off"           -> kahin nahi
+SUBSCRIBE_CTA = os.getenv("QUIZ_SUBSCRIBE_CTA", "end")
+
+# Repeat control (pick.py). Pehle paheli pool khatam hote hi poore riddle
+# bank se RANDOM uthata tha — "एक थाली में सौ मोती" 3 din me do baar gaya.
+# Ab: fresh pehle, phir sabse PURANA use hua (least-recently-used). Cooldown
+# se kam purana sawaal tabhi aata hai jab aur koi rasta na ho (aur log me
+# WARNING aati hai).
+REPEAT_COOLDOWN_DAYS = 30
+BANK_LOW_DAYS = 7          # itne din se kam ka fresh stock bacha to WARNING
+
+# Kaunse slot sach me banenge. Default sab 5. GitHub repo variable
+# QUIZ_ACTIVE_SLOTS="morning,paheli,night" set karo to baaki slot ke run
+# bina upload ke skip ho jaate hain — workflow file edit kiye bina
+# upload frequency kam/zyada kar sakte ho.
+ACTIVE_SLOTS = [s.strip() for s in os.getenv("QUIZ_ACTIVE_SLOTS", "").split(",")
+                if s.strip()] or list(SLOT_ORDER)

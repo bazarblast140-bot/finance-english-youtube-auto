@@ -1,4 +1,9 @@
-# Bacchon Ka GK — Hindi Quiz Shorts (Class 1-5)
+# QUIZ PATHSHALA — Hindi GK Quiz Shorts
+
+> **Audience note (30-Sep-2026):** 29-Aug ko channel "class 1-5 bacche" se
+> **general Hindi GK** par pivot hua tha, par ye README aur kuch metadata
+> purana hi reh gaya tha. Neeche ka "Class 1-5" wala text itihaas hai.
+> Made-for-kids ka faisla: dekho **"Made for Kids — risk"** (neeche).
 
 > Ye `finance-english-youtube-auto` repo ke andar ek alag subfolder hai.
 > Root ka finance long-form pipeline (`run_pipeline.py`) isse bilkul untouched hai.
@@ -62,22 +67,39 @@ Output `out/YYYYMMDD_morning/` me milega — MP4 + `metadata.json`.
 
 ### YouTube auth (ek baar, laptop pe — CI me nahi hoga)
 
-1. Google Cloud Console → naya project → **YouTube Data API v3** enable karo
-2. OAuth client banao, type **Desktop app** → `client_secret.json` download
-3. `python src/upload.py --auth` chalao, browser me channel se login karo
-4. Terminal pe jo 3 values print hongi, unhe GitHub repo → Settings → Secrets me daalo:
-   `YT_CLIENT_ID`, `YT_CLIENT_SECRET`, `YT_REFRESH_TOKEN`
+1. Google Cloud Console → **YouTube Data API v3** enable → OAuth client
+   type **Desktop app** → `client_secret.json` download (wahi client jiske
+   ID/secret `YOUTUBE_CLIENT_ID` / `YOUTUBE_CLIENT_SECRET` me hain).
+2. OAuth consent screen **"In production"** ho — "Testing" me refresh token
+   7 din me mar jaata hai (Paise Ki Pathshala ke saath yahi hua tha).
+3. `python src/upload.py --auth --set-github-secret` — browser me QUIZ
+   PATHSHALA channel chuno, **saare checkbox allow karo**. Token terminal me
+   print nahi hota; seedha secret `YOUTUBE_REFRESH_TOKEN` me jaata hai
+   (`gh` login chahiye). Bina flag ke `.yt_refresh_token` file (gitignored)
+   me likhta hai.
 
-Secrets me ye naam use karo (finance channel wale `YOUTUBE_*` se alag rakhna
-zaroori hai):
+Workflow ye secrets padhta hai: `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`,
+`YOUTUBE_REFRESH_TOKEN`, `ELEVENLABS_API_KEY`, `TELEGRAM_*`, optional
+`YT_DATA_API_KEY`. (Purane docs ke `KIDS_YT_*` naam kahin use nahi hote.)
 
-| Secret | Kyun |
-|---|---|
-| `KIDS_YT_CLIENT_ID` | Kids channel ka OAuth client |
-| `KIDS_YT_CLIENT_SECRET` | ,, |
-| `KIDS_YT_REFRESH_TOKEN` | Kids channel se login karke banaya |
-| `ELEVENLABS_API_KEY` | Female Hindi voice — **`sk_` se shuru hona chahiye** |
-| `ELEVENLABS_VOICE_ID` | ,, |
+### Pinned comment ke liye token (`youtube.force-ssl`)
+
+`commentThreads.insert` **sirf** `https://www.googleapis.com/auth/youtube.force-ssl`
+scope se chalta hai ([docs](https://developers.google.com/youtube/v3/docs/commentThreads/insert)).
+Abhi ke token me ye scope nahi hai, isliye har upload ke baad log me aata tha
+`403 insufficientPermissions — Request had insufficient authentication scopes`
+aur **ek bhi video par comment nahi gaya**. Ab:
+
+- `SCOPES` me force-ssl joda (refresh par scope nahi bheja jaata, isliye
+  purana token upload ke liye chalta rahega).
+- Upload se pehle token ke asli scopes check hote hain; force-ssl na ho to
+  comment saaf message ke saath skip hota hai (403 spam nahi) aur ledger
+  (`data/uploads.json`) me **pending** rehta hai.
+- Scheduled (private + publishAt) video par comment reject ho to agla run
+  `python src/upload.py --post-pending-comments` se video public hone ke baad
+  daal deta hai (max 5/run, 50 quota units each). API pin nahi kar sakta —
+  Studio me pin karna padta hai.
+- **Rajesh ko karna hai:** upar wala `--auth --set-github-secret` ek baar.
 
 `ELEVENLABS_*` na daalo to script `hi-IN-SwaraNeural` (edge-tts, free) pe fall
 back kar jaati hai — video phir bhi banega, bas voice alag hogi.
@@ -319,3 +341,52 @@ nahi.
 Glow kaise banta hai: text ko teen alag radius par blur karke jodte hain,
 phir upar crisp safed core. Ye sirf **base panel** par hota hai (video me
 5 baar), har frame par nahi — isliye render time sirf ~42 second hai.
+
+
+---
+
+## Growth review (30-Sep-2026) — kyun nahi badh raha, aur kya badla
+
+**Asli public data (30-Sep ~15:05 IST, channel page):** 70 subscribers,
+188 videos. Aakhri 47 Shorts (19–29 Sep): kul 1,852 views, **median 15**.
+Ek paheli (897 views) aur ek GK (151) ke alawa zyadatar 2–25. Slot ke hisaab
+se median: paheli 25, night 21, morning 16, noon 12, evening 10 (9–10 video
+each — chhota sample). YouTube Analytics (impressions, swipe rate, APV) repo
+se readable nahi — ye diagnosis code + public counts par hai.
+
+Code me mili wajahein aur fix:
+
+| Problem | Saboot | Fix |
+|---|---|---|
+| Paheli repeat | Pool khatam hote hi poore bank se random; `used.json` me ph14/ph53 3-3 baar, 8 aur 2-2 baar; channel par "एक थाली में सौ मोती", "मीठा है…" do-do baar | `pick.py`: fresh → 30 din cooldown ke baad sabse purana (LRU) → majboori me (WARNING). Stock ka "kitne din bacha" log + LAST_RUN.md |
+| Bank khatam | 30-Sep: 12 quiz + 1 paheli fresh bache the (~1.5 din) | 40 GK + 24 paheli naye (292 total). Warning 7 din se kam stock par |
+| Frame 0 par koi hook nahi | Frame 0 = brand + sawaal | Q1 read me top ribbon par challenge line (`HOOK_LINES`), timer shuru hote hi brand wapas (visual badlaav). Voice/timing same |
+| Q1 ke baad swipe | Title me sirf Q1; Q1 reveal ke baad video ka aadha hissa bacha | Q1 reveal par ribbon "रुको! अगला सवाल…"; description ki pehli line me bonus sawaal |
+| Subscribe CTA gadbad | 22-Sep ko voice hata di, par "सब्सक्राइब करें" banner har sawaal me (2x) reh gaya; reveal ka CTA pill jagah na hone se kabhi render hi nahi hota tha | `SUBSCRIBE_CTA="end"`: sirf aakhri reveal par ribbon me ek line. `before_answer`/`off` bhi |
+| Pinned comment kabhi nahi gaya | 403 insufficient scopes | Upar dekho (force-ssl) + comment ab jawab nahi batata, score poochta hai |
+| Kids-signal metadata vs MFK=false | tag "hindi riddles for class 1 to 5", hooks "स्कूल/होमवर्क/90% बच्चे" | Hata diye |
+| Title keyword | "… \| दुनिया + सामान्य ज्ञान क्विज़" | "… \| World GK Quiz" / "GK Quiz Hindi" / "Hindi Paheli" |
+| 5 upload/din | Har video ko chhota test audience; median 15 | Code default wahi; repo variable `QUIZ_ACTIVE_SLOTS` se bina code badle kam karo (sujhav: `morning,paheli,night` 2 hafte) |
+
+**Optional competitor research:** `src/competitor_research.py`, config
+`data/research_sources.json` (competitor `channel_id` khud daalo — koi
+fake ID nahi daali), secret `YT_DATA_API_KEY`. Na ho to step skip. Hamare
+apne uploads ka slot/subject performance bhi nikalta hai (`data/uploads.json`
+ledger — 204 purane uploads LAST_RUN.md git history se backfill kiye).
+
+## Made for Kids — risk (Rajesh ka faisla)
+
+`MADE_FOR_KIDS = False` hai jabki content/design (cartoon look, aasaan
+sawaal, paheliyan) bacchon ko bhi appeal karta hai aur channel ka itihaas
+"class 1-5" ka hai. YouTube label **content + intended audience** se tay
+karta hai; galat label par YouTube khud label badal sakta hai aur COPPA
+(FTC) action / channel strike ka risk hai. Options:
+
+1. **General audience rakhna hai** (current): metadata, thumbnails, hooks,
+   voice me bacchon ko target mat karo (is PR ne tags/hooks saaf kiye);
+   sawaal teen/adult/competitive-exam level ke rakho.
+2. **Bacche hi audience hain:** `MADE_FOR_KIDS=True` + Studio me channel
+   audience "Yes, made for kids". Asar: comments/pinned comment band,
+   personalized ads nahi (RPM kam), kuch features band — YPP phir bhi possible.
+
+Code ye flag apne aap nahi badalta.

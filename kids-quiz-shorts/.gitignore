@@ -3,3 +3,4 @@ out/
 __pycache__/
 .env
 client_secret.json
+.yt_refresh_token

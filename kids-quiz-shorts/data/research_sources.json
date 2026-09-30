@@ -1,0 +1,16 @@
+{
+ "_comment": "Optional competitor research (src/competitor_research.py). Read-only YouTube Data API. Needs secret YT_DATA_API_KEY (ya YOUTUBE_* OAuth). Na ho to step chup-chaap skip hota hai. Channel ID 'UC...' hota hai — handle nahi. Competitor titles/scripts kabhi copy nahi hote; sirf aggregate pattern (keywords, length, upload hour) padhe jaate hain.",
+ "enabled": true,
+ "lookback_days": 30,
+ "max_videos_per_channel": 25,
+ "competitors": [],
+ "_competitors_example": [
+  {"name": "<Hindi GK Shorts channel>", "channel_id": "UCxxxxxxxxxxxxxxxxxxxxxx", "role": "reference_only"}
+ ],
+ "search_keywords": ["gk quiz in hindi", "hindi paheli", "gk question shorts"],
+ "max_search_keywords": 3,
+ "region_code": "IN",
+ "relevance_language": "hi",
+ "include_own_channel": true,
+ "tag_allowlist": ["gk", "quiz", "paheli", "पहेली", "सामान्य", "ज्ञान", "general knowledge", "riddle", "samanya", "gyan", "science", "vigyan", "india", "world", "duniya", "competitive", "ssc", "upsc", "exam"]
+}
