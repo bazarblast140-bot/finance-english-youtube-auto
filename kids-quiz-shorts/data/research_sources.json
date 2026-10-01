@@ -12,5 +12,22 @@
  "region_code": "IN",
  "relevance_language": "hi",
  "include_own_channel": true,
- "tag_allowlist": ["gk", "quiz", "paheli", "पहेली", "सामान्य", "ज्ञान", "general knowledge", "riddle", "samanya", "gyan", "science", "vigyan", "india", "world", "duniya", "competitive", "ssc", "upsc", "exam"]
+ "tag_allowlist": ["gk", "quiz", "paheli", "पहेली", "सामान्य", "ज्ञान", "general knowledge", "riddle", "samanya", "gyan", "science", "vigyan", "india", "world", "duniya", "competitive", "ssc", "upsc", "exam"],
+ "_trends_comment": "Daily job: src/trend_research.py + .github/workflows/quiz-trends.yml. search.list=100 units. Typical ~405/day. daily_quota_budget is a cap (default 800); code never spends more than 1200. Needs secret YT_DATA_API_KEY from a SEPARATE Google Cloud project. OAuth is refused. Key absent = skip.",
+ "trends": {
+  "enabled": true,
+  "lookback_days": 7,
+  "daily_quota_budget": 800,
+  "max_search_calls": 4,
+  "max_results_per_search": 15,
+  "search_queries": ["gk quiz in hindi", "hindi paheli", "current affairs quiz hindi", "ssc gk quiz hindi"],
+  "region_code": "IN",
+  "relevance_language": "hi",
+  "stale_after_days": 8,
+  "rss_urls": [
+   "https://trends.google.com/trending/rss?geo=IN",
+   "https://trends.google.com/trends/trendingsearches/daily/rss?geo=IN",
+   "https://news.google.com/rss?hl=hi&gl=IN&ceid=IN:hi"
+  ]
+ }
 }

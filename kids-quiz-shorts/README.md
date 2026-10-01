@@ -393,6 +393,16 @@ fake ID nahi daali), secret `YT_DATA_API_KEY`. Na ho to step skip. Hamare
 apne uploads ka slot/subject performance bhi nikalta hai (`data/uploads.json`
 ledger — 204 purane uploads LAST_RUN.md git history se backfill kiye).
 
+**Daily trend research** (upload se alag workflow: *Quiz Pathshala trend
+research*, `.github/workflows/quiz-trends.yml`, roz 07:45 IST): last 7 din
+ke Hindi GK / paheli / current-affairs Shorts, rank by views/day, plus
+keyless Google Trends / News RSS. Likhta hai `data/trends.json` aur hafta-war
+`reports/trends-YYYY-WW.md` (Hinglish). `pick.py` fresh sawaal ko soft-weight
+karta hai; file na ho ya 8 din se purani ho to purana order. Naye sawaal
+`data/question_candidates.json` mein review ke liye — live bank mein auto-add
+nahi. Typical ~405 API units, hard cap 1,200. Sirf `YT_DATA_API_KEY`
+(alag Google Cloud project). OAuth use nahi hota, key na ho to skip.
+
 ## Audience / Made for Kids (faisla: 01-Oct-2026)
 
 Rajesh ka faisla: QUIZ PATHSHALA **kids channel nahi** hai. `MADE_FOR_KIDS =
