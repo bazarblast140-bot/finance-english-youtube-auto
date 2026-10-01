@@ -1,0 +1,65 @@
+{
+  "_comment": "QUIZ PATHSHALA channel profile. Audience: GENERAL (teens, adults, competitive-exam & GK fans) — NOT made for kids. Used by .github/workflows/channel-settings.yml (dry-run default; apply writes channels.update). Never uploads videos.",
+  "channel_id": "UCSIJMHyB_h02gHc5HZkmYqg",
+  "expected_title": "QUIZ PATHSHALA",
+  "handle": "@QuizPathshalaIndia",
+  "brandingSettings": {
+    "channel": {
+      "description": "8 सेकंड में जवाब दे पाओगे? 🧠⏱️\nQUIZ PATHSHALA — हिंदी में GK Quiz: सामान्य ज्ञान (General Knowledge) के रोचक सवाल, रोज़ 5 नए Shorts।\n\nहर Short: सवाल → 4 विकल्प (A B C D) → 8 सेकंड का टाइमर → सही जवाब, साथ में एक लाइन में \"क्यों\" — सिर्फ़ रटना नहीं, समझना।\n\n📚 विषय:\n• सामान्य ज्ञान — GK questions in Hindi\n• विज्ञान — रोचक तथ्य और खोज\n• भारत — संविधान, राष्ट्रीय प्रतीक, राज्य\n• दुनिया — देश, महासागर, रिकॉर्ड\n• पहेली — दिमाग़ घुमाने वाली हिंदी पहेलियाँ\n\n🎯 SSC, Railway, Police और UPSC/State PSC की तैयारी करने वालों के लिए static GK का quick revision — और हर GK और quiz के शौक़ीन के लिए रोज़ का दिमाग़ी workout।\n\n⏰ रोज़ नए Shorts (IST): सुबह 7:30 • दोपहर 1:30 • पहेली 4:00 • शाम 5:30 • रात 8:30\n\n👇 अपना जवाब कमेंट में लिखो, दोस्तों को challenge करो — और QUIZ PATHSHALA को Subscribe करके 🔔 दबाओ!",
+      "keywords": "\"gk in hindi\" \"gk quiz\" \"gk quiz hindi\" \"general knowledge\" \"general knowledge hindi\" \"samanya gyan\" \"सामान्य ज्ञान\" \"gk questions and answers\" \"competitive exam gk\" \"ssc gk\" \"railway gk\" \"upsc gk\" \"static gk\" \"hindi quiz\" \"science gk\" \"india gk\" \"world gk\" \"hindi paheli\" \"QUIZ PATHSHALA\"",
+      "defaultLanguage": "hi",
+      "country": "IN"
+    }
+  },
+  "status": {
+    "selfDeclaredMadeForKids": false
+  },
+  "upload_defaults_reference": {
+    "_comment": "Reference only — NOT applied by the channel workflow. YouTube API has no per-upload-defaults endpoint; these are enforced in kids-quiz-shorts/src/upload.py + seo.py (owned by PR #1 / fix/quiz-growth).",
+    "categoryId": "27",
+    "defaultLanguage": "hi",
+    "defaultAudioLanguage": "hi",
+    "selfDeclaredMadeForKids": false,
+    "title_template": "{q1_question} 🤔 | {subject_tail}",
+    "subject_tail": {
+      "सामान्य ज्ञान": "GK Quiz Hindi",
+      "विज्ञान": "Science GK Quiz",
+      "भारत": "India GK Quiz",
+      "दुनिया": "World GK Quiz",
+      "पहेली": "Hindi Paheli"
+    },
+    "description_template": "{subject} क्विज़ हिंदी में (GK Quiz in Hindi) — {q1_question} बोनस: {q2_question} हर सवाल पर 8 सेकंड का टाइमर, फिर सही जवाब — वजह नीचे।\n\n{hook} 👉 रोज़ 5 नए सवाल — QUIZ PATHSHALA को सब्सक्राइब करो! 🔔\n\n{question_blocks_with_answer_and_why}\n\nकितने सही हुए? कमेंट में लिखो 👇\n\nइस चैनल पर मिलेगा:\n• सामान्य ज्ञान, विज्ञान, भारत, दुनिया और पहेलियाँ\n• हर जवाब के साथ एक लाइन में \"क्यों\" — सिर्फ़ रटना नहीं, समझना\n• रोज़ 5 नए शॉर्ट्स — 07:30 IST, 13:30 IST, 16:00 IST, 17:30 IST, 20:30 IST\n\n{4_hashtags e.g. #GKInHindi #GKQuestion #ScienceGK #QuizPathshala}",
+    "base_tags": [
+      "gk question in hindi",
+      "सामान्य ज्ञान के सवाल",
+      "gk quiz hindi with answer",
+      "general knowledge hindi",
+      "gk questions for competitive exams",
+      "hindi quiz"
+    ],
+    "subject_tags": {
+      "सामान्य ज्ञान": [
+        "samanya gyan quiz",
+        "gk ke sawal hindi"
+      ],
+      "विज्ञान": [
+        "science gk in hindi",
+        "vigyan ke rochak tathya"
+      ],
+      "भारत": [
+        "india gk in hindi",
+        "bharat samanya gyan"
+      ],
+      "दुनिया": [
+        "world gk in hindi",
+        "duniya ke rochak tathya"
+      ],
+      "पहेली": [
+        "paheli in hindi with answer",
+        "दिमागी पहेलियाँ हिंदी",
+        "hindi riddles with answer"
+      ]
+    },
+    "max_tags": 10
+  }
+}
