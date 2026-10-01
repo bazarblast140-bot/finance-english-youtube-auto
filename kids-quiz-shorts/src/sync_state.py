@@ -16,6 +16,11 @@ dobara try. Sab attempt fail to exit 1 (job laal, GitHub mail).
 
 Sirf CI (actions/checkout ki working copy) me chalao — ye `git reset --hard`
 karta hai.
+
+`--extra data/trends.json` koi aur file bhi isi retry se push hoti hai
+(trend research). `--text-files false` LAST_RUN / insights ko is run se
+mat chhedo — warna research job upload ke naye LAST_RUN ko purane copy se
+overwrite kar sakti hai.
 """
 from __future__ import annotations
 
@@ -87,6 +92,28 @@ def merge_ledger(remote, changed):
     return out
 
 
+def normalize_extra(rel: str) -> str:
+    """Repo-relative path under kids-quiz-shorts/. `..` aur absolute mana."""
+    rel = (rel or "").strip().replace("\\", "/")
+    if rel.startswith("./"):
+        rel = rel[2:]
+    parts = []
+    for p in rel.split("/"):
+        if p in ("", "."):
+            continue
+        if p == "..":
+            raise SystemExit(f"[sync] extra path mana hai: {rel}")
+        parts.append(p)
+    if not parts:
+        raise SystemExit("[sync] extra path khaali hai")
+    rel = "/".join(parts)
+    dest = (HERE / rel).resolve()
+    root = HERE.resolve()
+    if dest != root and root not in dest.parents:
+        raise SystemExit(f"[sync] extra path mana hai: {rel}")
+    return rel
+
+
 # ------------------------------------------------------------ main
 def main(argv=None):
     ap = argparse.ArgumentParser()
@@ -94,6 +121,10 @@ def main(argv=None):
     ap.add_argument("--message", required=True)
     ap.add_argument("--include-used", choices=["true", "false"], default="false",
                     help="true sirf tab jab upload sach me hua ho")
+    ap.add_argument("--text-files", choices=["true", "false"], default="true",
+                    help="false = LAST_RUN.md aur insights ko is run se mat chhedo")
+    ap.add_argument("--extra", action="append", default=[],
+                    help="aur file (kids-quiz-shorts/ se relative), jaise data/trends.json")
     ap.add_argument("--attempts", type=int, default=5)
     a = ap.parse_args(argv)
 
@@ -104,8 +135,17 @@ def main(argv=None):
     ours_led = _load((HERE / LEDGER).read_text(encoding="utf-8") if (HERE / LEDGER).exists() else "", [])
     base_led = _load(_show(f"HEAD:{prefix}{LEDGER}"), [])
     changed_led = changed_ledger_rows(base_led, ours_led)
-    texts = {f: (HERE / f).read_text(encoding="utf-8") for f in TEXT_FILES if (HERE / f).exists()}
-    print(f"[sync] used +{len(added_used)}, ledger ~{len(changed_led)}, files {sorted(texts)}")
+    texts = {}
+    if a.text_files == "true":
+        texts = {f: (HERE / f).read_text(encoding="utf-8") for f in TEXT_FILES if (HERE / f).exists()}
+    extras = {}
+    for rel in a.extra or []:
+        rel = normalize_extra(rel)
+        p = HERE / rel
+        if p.is_file():
+            extras[rel] = p.read_text(encoding="utf-8")
+    print(f"[sync] used +{len(added_used)}, ledger ~{len(changed_led)}, "
+          f"files {sorted(texts)}, extra {sorted(extras)}")
 
     for attempt in range(1, a.attempts + 1):
         try:
@@ -120,7 +160,15 @@ def main(argv=None):
                                                       ensure_ascii=False, indent=1), encoding="utf-8")
             for f, t in texts.items():
                 (HERE / f).write_text(t, encoding="utf-8")
-            git("add", USED, *[f for f in [LEDGER, *texts] if (HERE / f).exists()])
+            for rel, text in extras.items():
+                dest = HERE / rel
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_text(text, encoding="utf-8")
+            add_paths = [USED]
+            for f in [LEDGER, *texts, *extras]:
+                if (HERE / f).exists():
+                    add_paths.append(f)
+            git("add", "--", *add_paths)
             if git("diff", "--staged", "--quiet", check=False).returncode == 0:
                 print("[sync] kuch badla nahi — push ki zaroorat nahi")
                 return 0
@@ -134,7 +182,7 @@ def main(argv=None):
             print(f"[sync] attempt {attempt}/{a.attempts} fail: {err[0][:200]} — {wait}s baad dobara")
             if attempt < a.attempts:
                 time.sleep(wait)
-    print("::error::used.json/uploads.json push nahi hua — agla run sawaal repeat kar sakta hai. "
+    print("::error::git push nahi hua — used.json, uploads.json, ya trend files remote par nahi gaye. "
           "LAST_RUN/used.json manually check karo.")
     return 1
 

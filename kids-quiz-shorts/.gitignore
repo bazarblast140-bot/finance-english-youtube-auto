@@ -4,3 +4,5 @@ __pycache__/
 .env
 client_secret.json
 .yt_refresh_token
+# local list of files the trend job should commit; not a source of truth
+data/trend_manifest.txt

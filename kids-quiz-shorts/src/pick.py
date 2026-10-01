@@ -4,6 +4,10 @@ used.json me har use ki hui id + date store hoti hai. Order: kabhi use na hue
 (fresh) -> REPEAT_COOLDOWN_DAYS se purane, sabse purana pehle -> majboori me
 baaki (WARNING ke saath). Isse repeat hamesha sabse door wala hota hai.
 Ek video ke 2 sawaal alag-alag category se aate hain — variety ke liye.
+
+data/trends.json (daily research) sirf FRESH pool ko halka sa aage-peeche
+karta hai. Cooldown / LRU nahi badalta. File na ho, kharab ho, ya purani ho
+to bilkul purana order.
 """
 import json
 import random
@@ -73,6 +77,35 @@ def rank_pool(pool, last, rng, now, cooldown_days):
     return fresh, cooled, hot
 
 
+def apply_trend_bias(fresh, rng, now):
+    """Fresh list me trend-matching sawaal ko thoda aage lao.
+
+    Cooled/hot ko yahan se nahi guzarte — repeat kabhi trend ki wajah se
+    jaldi nahi aata. Trends missing/stale/kharab hon to `fresh` jaisa hai
+    waisa hi lautata hai (rank_pool ka shuffle bana rehta hai).
+    """
+    if not fresh:
+        return fresh
+    try:
+        from trend_research import (TREND_WEIGHT_BONUS, load_active_trends,
+                                    question_trend_score, weighted_shuffle)
+        trends = load_active_trends(now)
+    except Exception as e:  # noqa: BLE001 — bias optional hai, pick rukna nahi chahiye
+        print(f"[pick] trends skip: {type(e).__name__}")
+        return fresh
+    if not trends:
+        return fresh
+    scores = [question_trend_score(q, trends) for q in fresh]
+    if not any(s > 0 for s in scores):
+        print("[pick] trends taaza hain, in fresh sawaal me topic match nahi")
+        return fresh
+    weights = [1.0 + TREND_WEIGHT_BONUS * s for s in scores]
+    ordered = weighted_shuffle(fresh, weights, rng)
+    print(f"[pick] trend bias: {sum(1 for s in scores if s > 0)}/{len(fresh)} "
+          f"fresh match, top {ordered[0]['id']}")
+    return ordered
+
+
 def stock_report(bank, last, n):
     """Kitne din ka FRESH stock bacha hai — LAST_RUN.md / Actions log me dikhta hai."""
     from config import (PAHELI_SUB, PAHELI_SLOTS, QUIZ_SLOTS, ACTIVE_SLOTS,
@@ -114,6 +147,7 @@ def pick(n=2, dry_run=False, seed=None, slot="morning", now=None):
     is_paheli = slot in PAHELI_SLOTS
     pool = [q for q in bank if (q.get("sub") == PAHELI_SUB) == is_paheli]
     fresh, cooled, hot = rank_pool(pool, last, rng, now, REPEAT_COOLDOWN_DAYS)
+    fresh = apply_trend_bias(fresh, rng, now)
     ordered = fresh + cooled + hot
 
     if is_paheli:

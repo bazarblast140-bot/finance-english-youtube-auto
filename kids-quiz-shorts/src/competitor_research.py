@@ -24,6 +24,10 @@ Credentials (kuch na ho to saaf skip, exit 0):
   YT_CLIENT_ID/SECRET/REFRESH_TOKEN    sirf RESEARCH_ALLOW_OAUTH=1 par (default band:
                                         upload ke saath quota share hota hai)
 Quota: ~3-6 units/channel + 100 per search keyword (max 3) + 1 per 50 own videos.
+
+Roz ka 7-din trend snapshot alag job hai: src/trend_research.py
+(.github/workflows/quiz-trends.yml) -> data/trends.json. Ye file 30-din ka
+optional insights snapshot rehti hai; seo tags yahin se aate hain.
 """
 from __future__ import annotations
 
