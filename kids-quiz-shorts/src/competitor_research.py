@@ -18,9 +18,11 @@ Kya karta hai (sirf READ-ONLY YouTube Data API calls — upload/edit kuch nahi):
      shabd; kisi channel ka naam/brand kabhi nahi). Competitor ka title/script
      kabhi copy nahi hota.
 
-Credentials (pehla jo mile; kuch na ho to saaf skip, exit 0):
-  YT_DATA_API_KEY                      (GitHub secret; sabse aasaan, 10k units/day)
-  YT_CLIENT_ID/SECRET/REFRESH_TOKEN    (upload wala OAuth — readonly scope kaafi hai)
+Credentials (kuch na ho to saaf skip, exit 0):
+  YT_DATA_API_KEY                      (GitHub secret, ALAG Google Cloud project ki key —
+                                        upload quota se alag 10k units/day)
+  YT_CLIENT_ID/SECRET/REFRESH_TOKEN    sirf RESEARCH_ALLOW_OAUTH=1 par (default band:
+                                        upload ke saath quota share hota hai)
 Quota: ~3-6 units/channel + 100 per search keyword (max 3) + 1 per 50 own videos.
 """
 from __future__ import annotations
@@ -115,7 +117,13 @@ def get_client():
     key = (os.environ.get("YT_DATA_API_KEY") or "").strip()
     if key:
         return build("youtube", "v3", developerKey=key, cache_discovery=False), "api_key"
-    if all(os.environ.get(k) for k in ("YT_CLIENT_ID", "YT_CLIENT_SECRET", "YT_REFRESH_TOKEN")):
+    # Quota guard (01-Oct-2026): upload wala OAuth client usi Google Cloud
+    # project ka 10,000 units/din ka quota share karta hai, aur 5 upload hi
+    # ~8,000 kha jaate hain. search.list 100 units/keyword hai — isliye OAuth
+    # fallback DEFAULT BAND. Sirf alag project ki YT_DATA_API_KEY, ya jaan-boojh
+    # kar RESEARCH_ALLOW_OAUTH=1.
+    allow_oauth = os.environ.get("RESEARCH_ALLOW_OAUTH", "").strip() == "1"
+    if allow_oauth and all(os.environ.get(k) for k in ("YT_CLIENT_ID", "YT_CLIENT_SECRET", "YT_REFRESH_TOKEN")):
         try:
             from google.oauth2.credentials import Credentials
             creds = Credentials(None, refresh_token=os.environ["YT_REFRESH_TOKEN"],
@@ -125,7 +133,7 @@ def get_client():
             return build("youtube", "v3", credentials=creds, cache_discovery=False), "oauth"
         except Exception as e:  # noqa: BLE001
             return None, f"oauth unavailable ({type(e).__name__})"
-    return None, "no YT_DATA_API_KEY and no YouTube OAuth env"
+    return None, "no YT_DATA_API_KEY (OAuth fallback off: upload quota bachane ke liye)"
 
 
 def channel_uploads(yt, channel_id, since, limit):

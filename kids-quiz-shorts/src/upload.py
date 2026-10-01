@@ -137,6 +137,24 @@ def granted_scopes(creds):
     return None
 
 
+GITHUB_REPO = "bazarblast140-bot/finance-english-youtube-auto"
+COMMENT_MAX_ATTEMPTS = 3      # pending comment itni baar fail ho to chhod do (50 units/try)
+
+
+def set_github_secret_value(secret_name, value, repo=GITHUB_REPO):
+    """Secret value stdin se `gh` ko do — `--body` ke BINA.
+
+    `gh secret set NAME --body -` value ko literal "-" bana deta hai (gh me
+    --body ka "-" stdin nahi hota), aur us din se har upload invalid_grant se
+    fail hota. Bina --body ke gh value stdin se padhta hai. Value kabhi
+    print/log nahi hoti, aur repo hamesha explicit (-R) hai taaki galti se
+    kisi aur repo (cwd) me na chali jaaye."""
+    import subprocess
+    subprocess.run(["gh", "secret", "set", secret_name, "-R", repo],
+                   input=value.encode(), check=True,
+                   stdout=subprocess.DEVNULL)
+
+
 def do_auth(client_secret="client_secret.json", set_github_secret=False,
             secret_name="YOUTUBE_REFRESH_TOKEN"):
     """Local machine pe chalao. client_secret.json Google Cloud Console se
@@ -168,10 +186,8 @@ def do_auth(client_secret="client_secret.json", set_github_secret=False,
     if input(f"Kya '{title}' hi QUIZ PATHSHALA hai? [y/N] ").strip().lower() != "y":
         raise SystemExit("Kuch nahi likha. Dobara chalao aur sahi channel chuno.")
     if set_github_secret:
-        import subprocess
-        subprocess.run(["gh", "secret", "set", secret_name, "--body", "-"],
-                       input=creds.refresh_token.encode(), check=True)
-        print(f"GitHub secret {secret_name} update ho gaya (value print nahi ki).")
+        set_github_secret_value(secret_name, creds.refresh_token)
+        print(f"GitHub secret {secret_name} ({GITHUB_REPO}) update ho gaya (value print nahi ki).")
     else:
         path = Path(".yt_refresh_token")
         path.write_text(creds.refresh_token, encoding="utf-8")
@@ -209,6 +225,7 @@ def post_pending_comments(max_n=5):
     rows = _ledger()
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     todo = [r for r in rows if r.get("pinned_comment") and not r.get("comment_posted")
+            and int(r.get("comment_attempts") or 0) < COMMENT_MAX_ATTEMPTS
             and (r.get("publish_at") or "") <= now][-max_n:]
     if not todo:
         print("[comments] koi pending comment nahi")
@@ -230,9 +247,27 @@ def post_pending_comments(max_n=5):
             print(f"[comments] posted on {r['video_id']} (Studio me pin karo)")
         except Exception as e:
             r["comment_error"] = str(e)[:200]
-            print(f"[comments] {r['video_id']} fail: {str(e)[:200]}")
+            r["comment_attempts"] = int(r.get("comment_attempts") or 0) + 1
+            print(f"[comments] {r['video_id']} fail "
+                  f"({r['comment_attempts']}/{COMMENT_MAX_ATTEMPTS}): {str(e)[:200]}")
+            if "quotaExceeded" in str(e) or "dailyLimitExceeded" in str(e):
+                # Quota khatam — baaki try karke agle upload ka quota mat khao
+                print("[comments] quota khatam — baaki pending comments agle run me")
+                break
     _save_ledger(rows)
     return done
+
+
+def video_status(meta, privacy):
+    """videos.insert ka status block.
+
+    made_for_kids fallback C.MADE_FOR_KIDS (False): channel general audience
+    ka hai (01-Oct-2026 faisla). Pehle default True tha — metadata me key na
+    ho to video galti se "made for kids" ban jaata (comments band, RPM kam)."""
+    return {
+        "privacyStatus": privacy,
+        "selfDeclaredMadeForKids": bool(meta.get("made_for_kids", C.MADE_FOR_KIDS)),
+    }
 
 
 def upload(meta_path: Path, privacy="public", publish_at=None):
@@ -246,10 +281,7 @@ def upload(meta_path: Path, privacy="public", publish_at=None):
         video = meta_path.parent / video.name
     assert video.exists(), f"MP4 nahi mila: {video}"
 
-    status = {
-        "privacyStatus": privacy,
-        "selfDeclaredMadeForKids": bool(meta.get("made_for_kids", True)),
-    }
+    status = video_status(meta, privacy)
     if publish_at:
         # YouTube: private + publishAt = exact time pe public
         status["privacyStatus"] = "private"
@@ -307,7 +339,9 @@ def upload(meta_path: Path, privacy="public", publish_at=None):
 
     pinned = meta.get("pinned_comment")
     posted = None
-    if pinned and not meta.get("made_for_kids"):
+    attempts = 0
+    mfk = bool(meta.get("made_for_kids", C.MADE_FOR_KIDS))
+    if pinned and not mfk:
         if scopes is not None and FORCE_SSL not in scopes:
             print("[upload] comment skip: token me youtube.force-ssl scope nahi hai. "
                   "`python src/upload.py --auth --set-github-secret` se naya token banao "
@@ -320,6 +354,7 @@ def upload(meta_path: Path, privacy="public", publish_at=None):
             except Exception as e:
                 # Scheduled/private video par comment reject ho sakta hai —
                 # agla run public hone ke baad post_pending_comments() se daalega.
+                attempts = 1
                 print(f"[upload] comment abhi nahi gaya (baad me retry): {str(e)[:300]}")
 
     rows = _ledger()
@@ -330,9 +365,10 @@ def upload(meta_path: Path, privacy="public", publish_at=None):
         "subject": (meta.get("subjects") or [None])[0],
         "question_ids": meta.get("question_ids"), "hook_line": meta.get("hook_line"),
         "duration_sec": meta.get("duration_sec"), "channel_id": channel_id,
-        "made_for_kids": bool(meta.get("made_for_kids")),
-        "pinned_comment": pinned if not meta.get("made_for_kids") else None,
+        "made_for_kids": mfk,
+        "pinned_comment": pinned if not mfk else None,
         "comment_posted": posted,
+        "comment_attempts": attempts,
     })
     _save_ledger(rows)
 

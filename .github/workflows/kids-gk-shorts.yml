@@ -1,10 +1,12 @@
-name: Kids GK Quiz Shorts
+name: Quiz Pathshala GK Shorts
 
 # IST = UTC + 5:30 — roz 5 video
-#   07:30 IST -> 02:00 UTC  (morning: school jaane se pehle)
-#   13:30 IST -> 08:00 UTC  (noon:    lunch / ghar pe)
-#   16:00 IST -> 10:30 UTC  (paheli:  school ke baad, riddle)
-#   17:30 IST -> 12:00 UTC  (evening: homework se pehle)
+# Audience: general — teens, adults, competitive-exam / GK fans.
+# MADE_FOR_KIDS = False (Rajesh ka faisla, 01-Oct-2026).
+#   07:30 IST -> 02:00 UTC  (morning: subah ki chai / commute)
+#   13:30 IST -> 08:00 UTC  (noon:    lunch break)
+#   16:00 IST -> 10:30 UTC  (paheli:  shaam se pehle, riddle)
+#   17:30 IST -> 12:00 UTC  (evening: office / padhai ke baad)
 #   20:30 IST -> 15:00 UTC  (night:   khaane ke baad)
 #
 # GitHub cron on-time NAHI hai — regularly 10-20 ghante late chal raha hai.
@@ -19,9 +21,13 @@ name: Kids GK Quiz Shorts
 # Optional repo VARIABLES (Settings > Secrets and variables > Actions > Variables):
 #   QUIZ_ACTIVE_SLOTS   e.g. "morning,paheli,night" — baaki slot bina upload skip
 #                       (khaali = saare 5). Upload frequency yahin se badlo.
+#                       Slot step me padha jaata hai + build step ko env me jaata hai.
 #   QUIZ_SUBSCRIBE_CTA  end (default) | before_answer | off
 # Optional SECRET:
 #   YT_DATA_API_KEY     competitor research (src/competitor_research.py). Na ho to skip.
+#                       ALAG Google Cloud project ki key ho — upload OAuth ka quota
+#                       (10k/din, 5 upload = ~8k) research me kabhi nahi jaata.
+# Quota order: upload PEHLE; research + pending comments sirf upload success ke BAAD.
 # Pinned comment ke liye YOUTUBE_REFRESH_TOKEN me youtube.force-ssl scope chahiye
 # (README: "Pinned comment ke liye token").
 
@@ -52,7 +58,7 @@ permissions:
 
 # Har slot alag group — ek late night run morning ko block na kare
 concurrency:
-  group: kids-quiz-${{ github.event.schedule || inputs.slot || github.run_id }}
+  group: quiz-pathshala-${{ github.event.schedule || inputs.slot || github.run_id }}
   cancel-in-progress: false
 
 defaults:
@@ -148,28 +154,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: steps.slot.outputs.active == 'true'
         with:
-          name: kids-short-${{ steps.slot.outputs.slot }}-${{ github.run_number }}
+          name: quiz-short-${{ steps.slot.outputs.slot }}-${{ github.run_number }}
           path: kids-quiz-shorts/out/*/
           retention-days: 14
-
-      - name: Competitor research (optional, read-only)
-        if: steps.slot.outputs.active == 'true'
-        continue-on-error: true
-        env:
-          YT_DATA_API_KEY:  ${{ secrets.YT_DATA_API_KEY }}
-          YT_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YT_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YT_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-        run: python src/competitor_research.py --max-age-hours 20
-
-      - name: Pending comments (public ho chuki videos par)
-        if: steps.slot.outputs.active == 'true'
-        continue-on-error: true
-        env:
-          YT_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
-          YT_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
-          YT_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-        run: python src/upload.py --post-pending-comments
 
       - name: YouTube pe upload
         id: up
@@ -185,6 +172,24 @@ jobs:
           python src/upload.py --dir "${DIR%/}" \
             --privacy ${{ steps.slot.outputs.privacy }} \
             --publish-slot "${{ steps.slot.outputs.slot }}" 2>&1 | tee upload_out.txt
+
+      # Quota guard: ye dono upload ke BAAD, aur sirf jab upload success hua.
+      # Upload fail (jaise quotaExceeded) hua to aur units nahi jalate.
+      - name: Competitor research (optional, read-only, sirf API key se)
+        if: steps.slot.outputs.active == 'true' && steps.up.outcome == 'success'
+        continue-on-error: true
+        env:
+          YT_DATA_API_KEY:  ${{ secrets.YT_DATA_API_KEY }}
+        run: python src/competitor_research.py --max-age-hours 20
+
+      - name: Pending comments (public ho chuki videos par, max 3 try/video)
+        if: steps.slot.outputs.active == 'true' && steps.up.outcome == 'success'
+        continue-on-error: true
+        env:
+          YT_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: python src/upload.py --post-pending-comments
 
       - name: Telegram pe batao
         if: always() && steps.slot.outputs.active == 'true'
@@ -236,27 +241,21 @@ jobs:
             echo '```'
           } > LAST_RUN.md
 
-      - name: used.json + LAST_RUN.md commit karo
+      - name: used.json + uploads.json + LAST_RUN.md push karo (retry)
         if: always() && steps.slot.outputs.active == 'true'
         run: |
           git config user.name  "quiz-bot"
           git config user.email "quiz-bot@users.noreply.github.com"
           # Sawaal tabhi "use ho gaya" mana jaaye jab upload sach me hua ho —
           # warna fail hue run ke sawaal hamesha ke liye bank se gayab ho jaate.
-          if [ "${{ steps.up.outcome }}" = "success" ]; then
-            git add data/used.json
-          else
-            git checkout -- data/used.json || true
-          fi
-          git add LAST_RUN.md
-          # uploads.json = upload ledger (video id, slot, pending comment) —
-          # competitor_research.py isi se hamare slot/subject ka performance nikalta hai.
-          for f in data/uploads.json data/competitor_insights.json; do
-            [ -e "$f" ] && git add "$f"
-          done
-          git diff --staged --quiet || git commit -m "chore(kids-gk): ${{ steps.slot.outputs.slot }} run — upload ${{ steps.up.outcome }} [skip ci]"
-          git pull --rebase --autostash || true
-          git push
+          # sync_state.py: remote ka taaza state + is run ke naye entries ka
+          # JSON merge, 500/non-fast-forward par 5 baar backoff ke saath retry.
+          # (30-Sep: ek push 500 se fail hua, used.json gaya, sawaal repeat hue.)
+          INCLUDE_USED=false
+          [ "${{ steps.up.outcome }}" = "success" ] && INCLUDE_USED=true
+          python src/sync_state.py --branch "${{ github.ref_name }}" \
+            --include-used "$INCLUDE_USED" --attempts 5 \
+            --message "chore(quiz): ${{ steps.slot.outputs.slot }} run — upload ${{ steps.up.outcome }} [skip ci]"
 
       - name: Upload fail hua to job fail karo
         if: steps.slot.outputs.active == 'true' && steps.up.outcome != 'success'
