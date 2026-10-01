@@ -194,23 +194,74 @@ def options_script(q: dict) -> str:
     return f"{opts}। सोचिए।"
 
 
+_DEVA_WORD = r"[\u0900-\u097F\w]"
+# Hindi me shabd ka roop badalta hai: "कछुआ" -> "कछुए", "गाय" -> "गायों".
+_SUFFIXES = ("ों", "ें", "ों", "े", "ए", "ओं", "ी", "ं")
+
+
+def _variants(word: str):
+    """Jawab ke shabd ke aam inflected roop (sabse lambe pehle)."""
+    out = {word}
+    for end in ("ा", "आ"):
+        if word.endswith(end):
+            stem = word[: -len(end)]
+            out |= {stem + "े", stem + "ए", stem + "ों", stem + "ओं"}
+    out |= {word + suf for suf in _SUFFIXES}
+    return sorted(out, key=len, reverse=True)
+
+
 def mask_answer(why: str, q: dict, blank: str) -> str:
     """Hint me se jawab ka naam hata do.
 
     Zyadatar 'why' lines jawab ke naam se hi shuru hoti hain
     ("प्रशांत महासागर धरती से bada hai") — agar aise hi bol diya to hint hi
-    jawab de deta hai aur aakhri beat bekaar ho jaati hai."""
+    jawab de deta hai aur aakhri beat bekaar ho jaati hai.
+
+    01-Oct-2026 fix: pehle sirf 3+ akshar wale shabd chhupte the, isliye
+    "11 खिलाड़ी", "52 हफ़्ते", "मकड़ी के 8" jaise chhote/number jawab hint me
+    seedhe bol diye jaate the; "कछुए" (कछुआ ka roop) aur "सात" (7 shabdon me)
+    bhi bach jaate the; aur "गायों" -> "येों", "सरदार वल्लभभाई पटेल" -> "ये ये ने"
+    jaise toote vaakya bante the. Ab: poora shabd (word boundary) match,
+    inflected roop, number shabdon me bhi, aur lagatar "ये ये" ek ho jaata hai."""
     ans = q["opts"][q["ans"]].strip()
+    digits = ans.replace(",", "").replace(" ", "")
+    is_num = digits.isdigit()
     # Numeric jawab (saal, sankhya) ko "ये" se badalne par vaakya toot jaata
     # hai — "16 अप्रैल 1853 को" banta tha "सोलह अप्रैल ये को". Aise me shabd
     # ko hata dena behtar padhta hai: "सोलह अप्रैल को".
-    if blank == "ये" and ans.replace(",", "").replace(" ", "").isdigit():
+    if blank == "ये" and is_num:
         blank = ""
+    words = [w for w in ans.split() if w != ans]
+    if any(ch.isdigit() for ch in ans):
+        # "1.3 सेकंड" -> sirf number chhupao; "सेकंड" jaise unit shabd har
+        # jagah se gayab hoke vaakya tod dete the.
+        words = [w for w in words if w[0].isdigit()]
+    else:
+        # chhote jod-shabd ("में", "जब", "एक") multi-word jawab me mat chhupao
+        words = [w for w in words if len(w) >= 3]
+    targets = [ans] + words
+    if is_num:
+        n = int(digits)
+        targets.append(digits)
+        try:
+            from numwords import number_words
+            targets.append(number_words(n))
+        except Exception:  # noqa: BLE001 — number shabd optional
+            pass
     out = why
-    for word in sorted({ans, *ans.split()}, key=len, reverse=True):
-        if len(word) >= 3:
-            out = out.replace(word, blank)
+    for t in targets:
+        t = t.strip("()'\"")
+        if not t:
+            continue
+        for v in _variants(t) if not t[0].isdigit() else [t]:
+            pat = rf"(?<!{_DEVA_WORD}){re.escape(v)}(?!{_DEVA_WORD})"
+            if v[0].isdigit():
+                pat = rf"(?<![\d.,]){re.escape(v)}(?![\d.,]*\d)"
+            # number tukda ("26 जनवरी" ka "26") -> hata do; "ये जनवरी" bura padhta hai
+            out = re.sub(pat, "" if (v[0].isdigit() and t != ans) else blank, out)
     out = " ".join(out.split())
+    if blank:
+        out = re.sub(rf"(?:{re.escape(blank)}\s+)+{re.escape(blank)}(?!{_DEVA_WORD})", blank, out)
     # Mask ke baad bache hue akele comma/dash — "तेरह अप्रैल , बैसाखी" jaisa
     out = out.replace(" ,", ",").replace(" —,", " —").replace(",,", ",")
     return out.strip(" ,-—")
