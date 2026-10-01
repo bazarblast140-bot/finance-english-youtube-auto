@@ -1,0 +1,74 @@
+name: Pipeline health check
+
+# Read-only preflight for QUIZ PATHSHALA. Does not upload and does not write
+# to YouTube (no video insert, video update, channel update, or comments).
+#
+# Upload *build* crons (kids-gk-shorts.yml, UTC) — these start the upload.
+# IST publish is later, via publishAt, and does not call our token again.
+#   morning  0 6 * * *     noon    0 12 * * *
+#   paheli   30 14 * * *   evening 0 16 * * *    night 0 19 * * *
+#
+# This workflow runs 3x daily, shortly before those clusters. Lead time is
+# 45–75 minutes so a typical GitHub slip (often 5–30 min) still lands first.
+# Cron is UTC. A multi-hour slip cannot be outrun by a "shortly before"
+# schedule; missed runs are detected after a 22h grace (the upload crons
+# themselves are often 10–20h late, which is why they fire ~20h early).
+#
+#   45 4 * * *    04:45 UTC / 10:15 IST   before morning
+#   15 11 * * *   11:15 UTC / 16:45 IST   before noon and paheli
+#   15 15 * * *   15:15 UTC / 20:45 IST   before evening and night
+#
+# On a problem, src/healthcheck.py opens or updates one issue labelled
+# health-alert (Hinglish + English). When the checks pass again it comments
+# and closes that issue. Secret values are never printed.
+#
+# Exact YouTube quota remaining is only in the GCP console
+# (project quiz-pathshala-yt → APIs & Services → YouTube Data API v3 → Quotas).
+# The probe is channels.list, 1 unit.
+
+on:
+  schedule:
+    - cron: "45 4 * * *"
+    - cron: "15 11 * * *"
+    - cron: "15 15 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Report only — do not open, update, or close a GitHub issue"
+        type: boolean
+        default: false
+
+permissions:
+  issues: write
+  contents: read
+  actions: read
+
+concurrency:
+  group: quiz-pathshala-health
+  cancel-in-progress: false
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Read-only health check
+        env:
+          PYTHONUNBUFFERED: "1"
+          PYTHONIOENCODING: utf-8
+          YT_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          DEEPSEEK_BASE_URL: ${{ secrets.DEEPSEEK_BASE_URL }}
+          QUIZ_ACTIVE_SLOTS: ${{ vars.QUIZ_ACTIVE_SLOTS }}
+          GH_TOKEN: ${{ github.token }}
+          HEALTH_DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == true && 'true' || 'false' }}
+        run: python kids-quiz-shorts/src/healthcheck.py
