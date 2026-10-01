@@ -1,23 +1,31 @@
 # Last run
-- when   : 2026-10-01 12:51 UTC
+- when   : 2026-10-01 14:37 UTC
 - slot   : morning
-- privacy: public
+- privacy: unlisted
 - upload : success
 
 ## metadata
-- title: कौन सा पक्षी उल्टा भी उड़ सकता है? 🤔 | सामान्य ज्ञान + विज्ञान क्विज़
-- duration_sec: 31.0
+- title: पहली घड़ी किस चीज़ से चलती थी? 🤔 | GK Quiz Hindi
+- duration_sec: 30.73
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/05QV7urnt9g
-- scheduled_for: 2026-10-02T02:00:00Z
+- youtube_url: https://youtube.com/shorts/3uKYVJZ8sG0
+- scheduled_for: immediate (unlisted)
 
 ## upload output (tail)
 ```
-[upload] morning: aaj ka time (07:30 IST) nikal chuka (ab 18:21 IST) — KAL 07:30 IST pe schedule (2026-10-02T02:00:00Z)
-[upload] privacy=private + publishAt=2026-10-02T02:00:00Z
+[upload] privacy=unlisted (no schedule — turant)
+[upload] token scopes: youtube, youtube.force-ssl, youtube.readonly, youtube.upload
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/05QV7urnt9g
-[upload] comment skip: <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "Request had insufficient authentication scopes.". Details: "[{'message': 'Insufficient Permission', 'domain': 'global', 'reason': 'insufficientPermissions'}]">
+[upload] done -> https://youtube.com/shorts/3uKYVJZ8sG0
+[upload] comment posted (pin manually — API pin nahi karta)
+```
+
+## pick / hook (repeat + bank stock)
+```
+[pick] stock quiz: 44/200 fresh (~5.5 din) — WARNING: 7 din se kam. Naye sawaal data/questions.json me jodo; tab tak sabse purane sawaal (least-recently-used) dobara jaayenge.
+[pick] stock paheli: 25/92 fresh (~12.5 din)
+[pick] सामान्य ज्ञान/g134: पहली घड़ी किस चीज़ से चलती थी? || विज्ञान/g167: खाने वाले नमक का रासायनिक नाम क्या है?
+[hook] on-screen: 8 सेकंड में जवाब दीजिए!
 ```
 
 ## voice
