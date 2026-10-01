@@ -117,7 +117,18 @@ def plan_segments(questions):
 
 
 # ---------------------------------------------------------------- render
-def render_video(segs, frames_dir: Path):
+def hook_line(questions, slot, date=None):
+    """Pehle 1-2 second ki on-screen challenge line (deterministic: din+slot)."""
+    import random
+    if not getattr(C, "HOOK_ON_SCREEN", False):
+        return None
+    date = date or datetime.now()
+    is_ph = slot in C.PAHELI_SLOTS or any(q.get("sub") == C.PAHELI_SUB for q in questions)
+    lines = C.HOOK_LINES["paheli" if is_ph else "quiz"]
+    return random.Random(f"{date:%Y%m%d}{slot}hook").choice(lines)
+
+
+def render_video(segs, frames_dir: Path, hook=None):
     if frames_dir.exists():
         shutil.rmtree(frames_dir)
     frames_dir.mkdir(parents=True)
@@ -139,7 +150,8 @@ def render_video(segs, frames_dir: Path):
                 # Chaaron option shuru se dikhte hain — Rajesh ka faisla.
                 # (Progressive reveal try kiya tha retention ke liye, par wo
                 # hata diya gaya.)
-                base, opt_end = render.question_panel(q, qn, tot)
+                base, opt_end = render.question_panel(
+                    q, qn, tot, hook=hook if (kind == "read" and qn == 1) else None)
                 render.footer(base, "ध्यान से सुनिए…" if kind == "read" else C.CTA_TEXT,
                               y=max(render.FOOTER_Y, opt_end + 34))
 
@@ -264,7 +276,10 @@ def main():
               "ELEVEN_SPEED badhao ya 'why' chhota karo.")
 
     frames_dir = outdir / "frames"
-    total_frames = render_video(segs, frames_dir)
+    hook = hook_line(questions, args.slot)
+    if hook:
+        print(f"[hook] on-screen: {hook}")
+    total_frames = render_video(segs, frames_dir, hook=hook)
     track = render_audio(segs, total_frames)
     wav = sfx.write_wav(outdir / "audio.wav", track)
 
@@ -273,6 +288,7 @@ def main():
 
     meta = build_seo(questions, args.slot)
     meta["video_file"] = str(mp4)
+    meta["hook_line"] = hook
     meta["subjects"] = [q.get("sub", "GK") for q in questions]
     meta["duration_sec"] = round(total_frames / C.FPS, 2)
     # voice_engines metadata WRITE se PEHLE set hona chahiye — pehle ye baad me

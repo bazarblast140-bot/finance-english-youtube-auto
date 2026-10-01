@@ -292,14 +292,31 @@ def card(img, box, radius=44, fill=(255, 255, 255), shadow=True, outline=None, w
 
 
 # ---------------------------------------------------------------- chrome
-def banner(img, qnum=None, total=None, subject=None):
+def banner(img, qnum=None, total=None, subject=None, hook=None):
     """Top ribbon + left me 'सवाल 1/2' chip. Right side timer ke liye khaali
-    chhoda hai — isliye chip center me nahi hai."""
+    chhoda hai — isliye chip center me nahi hai.
+
+    hook = pehle 1-2 second ki challenge line (sirf Q1 read segment). Frame 0
+    par brand ka naam sirf jagah gherta tha — YouTube channel ka naam waise
+    bhi neeche channel row me dikhata hai. Hook laal ribbon par, taaki timer
+    shuru hote hi (brand wapas) ek visual badlaav bhi ho."""
     d = ImageDraw.Draw(img)
-    d.rounded_rectangle([0, -60, C.W, 210], 60, fill=C.COLORS["banner"])
-    f = F(70)
-    w = text_w(d, C.BRAND, f)
-    d.text(((C.W - w) // 2, 62), C.BRAND, font=f, fill=C.COLORS["banner_text"],
+    text = C.BRAND
+    fill = C.COLORS["banner"]
+    if hook:
+        for ch in EMOJI_STRIP:
+            hook = hook.replace(ch, "")
+        text = " ".join(hook.split())
+        fill = C.COLORS["timer_ring"]
+    d.rounded_rectangle([0, -60, C.W, 210], 60, fill=fill)
+    f = F(78 if hook else 70)
+    while text_w(d, text, f) > C.W - 120 and f.size > 44:
+        f = F(f.size - 2)
+    w = text_w(d, text, f)
+    b = d.textbbox((0, 0), text, font=f)
+    ty = 105 - (b[3] + b[1]) // 2 if hook else 62
+    d.text(((C.W - w) // 2, ty), text, font=f,
+           fill=(255, 255, 255) if hook else C.COLORS["banner_text"],
            stroke_width=3, stroke_fill=(90, 8, 42))
     # 1 sawaal wali video me "सवाल 1/1" bekaar hai — sirf subject chip dikhao
     if qnum and total > 1:
@@ -419,7 +436,7 @@ OPT_PAD = 34            # card ke neeche se options tak ka gap
 
 
 def question_panel(q, qnum, total, highlight=None, dim_others=False,
-                   show_options=4):
+                   show_options=4, hook=None):
     """show_options: kitne option dikhane hain (0-4).
 
     Shorts me sabse bada dushman STATIC screen hai. Pehle sawaal aur chaaron
@@ -431,7 +448,7 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False,
     Ye base image hai; timer per-frame iske upar paste hota hai.
     Return: (image, options_block_end_y) — reveal badge/footer isi se position hote hain."""
     img = background(qnum).convert("RGB")
-    banner(img, qnum, total, q.get("sub"))
+    banner(img, qnum, total, q.get("sub"), hook=hook)
 
     d = ImageDraw.Draw(img)
     inner_w = C.W - 2 * CARD_X - 96
@@ -521,6 +538,12 @@ def cta_panel(q, qnum, total):
     """Timer khatam, jawab abhi nahi. Options wahi rehte hain (viewer abhi bhi
     soch raha hai) aur upar se subscribe ka banner aata hai."""
     img, opt_end = question_panel(q, qnum, total)
+    if getattr(C, "SUBSCRIBE_CTA", "end") != "before_answer":
+        # 22-Sep ko bolne wali subscribe line hata di thi, par ye banner har
+        # sawaal me reh gaya tha (2 sawaal = 2 baar). Ab default me subscribe
+        # sirf aakhri reveal par (reveal_panel), yahan sirf intezaar ka pill.
+        footer(img, "जवाब आ रहा है…", y=max(FOOTER_Y, opt_end + 34), after=opt_end)
+        return img
     d = ImageDraw.Draw(img)
     t = "सब्सक्राइब करें"
     f = F(68)
@@ -611,8 +634,27 @@ def hint_panel(q, qnum, total):
     return img
 
 
+def reveal_banner_text(qnum, total):
+    """Reveal ke waqt top ribbon me kya likha ho (None = brand).
+
+    Neeche jagah nahi hai: 4 option + "सही जवाब!" badge 1330px tak jaate hain
+    aur safe zone 1420 par khatam — isliye reveal ka footer pill kabhi render
+    hi nahi hota tha (CTA_TEXT chup-chaap drop). Top ribbon hamesha khaali hai.
+
+    - Beech wala sawaal (Q1 of 2): "अगला सवाल…" teaser. Title me sirf Q1
+      hota hai, isliye Q1 ka jawab milte hi log swipe kar dete the.
+    - Aakhri sawaal + SUBSCRIBE_CTA="end": ek hi subscribe line — value dene
+      ke BAAD, bina extra second aur bina bolne wali line ke."""
+    if qnum < total and getattr(C, "NEXT_QUESTION_TEASER", True):
+        return "रुकिए! अगला सवाल आ रहा है…"
+    if qnum == total and getattr(C, "SUBSCRIBE_CTA", "end") == "end":
+        return f"रोज़ {C.VIDEOS_PER_DAY} नए क्विज़ — सब्सक्राइब कीजिए"
+    return None
+
+
 def reveal_panel(q, qnum, total):
-    img, opt_end = question_panel(q, qnum, total, highlight=q["ans"], dim_others=True)
+    img, opt_end = question_panel(q, qnum, total, highlight=q["ans"], dim_others=True,
+                                  hook=reveal_banner_text(qnum, total))
     d = ImageDraw.Draw(img)
 
     t = "सही जवाब!"

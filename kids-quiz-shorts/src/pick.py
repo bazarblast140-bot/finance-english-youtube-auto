@@ -1,12 +1,13 @@
 """Sawaal chunta hai aur repeat nahi hone deta.
 
-used.json me har use ki hui id + date store hoti hai. Jab saare sawaal khatam
-ho jayein, cycle reset hota hai (sabse purane wale phir se eligible).
+used.json me har use ki hui id + date store hoti hai. Order: kabhi use na hue
+(fresh) -> REPEAT_COOLDOWN_DAYS se purane, sabse purana pehle -> majboori me
+baaki (WARNING ke saath). Isse repeat hamesha sabse door wala hota hai.
 Ek video ke 2 sawaal alag-alag category se aate hain — variety ke liye.
 """
 import json
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from config import DATA
 
@@ -41,82 +42,121 @@ def load_used():
     return {"history": []}
 
 
-def pick(n=2, dry_run=False, seed=None, slot="morning"):
+def last_used_map(history):
+    """id -> sabse recent use ka ISO timestamp."""
+    last = {}
+    for h in history:
+        i, at = h.get("id"), h.get("at", "")
+        if i and at >= last.get(i, ""):
+            last[i] = at
+    return last
+
+
+def rank_pool(pool, last, rng, now, cooldown_days):
+    """(fresh, cooled, hot) lautata hai.
+
+    fresh  = kabhi use nahi hue (shuffle)
+    cooled = cooldown se purane, SABSE PURANA pehle (least-recently-used)
+    hot    = cooldown ke andar use hue, sabse purana pehle — sirf majboori me
+
+    Pehle paheli pool khatam hote hi poore riddle bank ko random shuffle
+    karke uthate the, bina ye dekhe ki kal hi kaunsa gaya tha. Isi wajah se
+    "एक थाली में सौ मोती", "मीठा है पर मिठाई नहीं" jaisi paheliyan kuch hi
+    din me dobara live ho gayin (public channel par dono do-do baar dikhti hain).
+    """
+    fresh = [q for q in pool if q["id"] not in last]
+    rng.shuffle(fresh)
+    used = sorted((q for q in pool if q["id"] in last), key=lambda q: last[q["id"]])
+    cutoff = (now - timedelta(days=cooldown_days)).isoformat(timespec="seconds")
+    cooled = [q for q in used if last[q["id"]] <= cutoff]
+    hot = [q for q in used if last[q["id"]] > cutoff]
+    return fresh, cooled, hot
+
+
+def stock_report(bank, last, n):
+    """Kitne din ka FRESH stock bacha hai — LAST_RUN.md / Actions log me dikhta hai."""
+    from config import (PAHELI_SUB, PAHELI_SLOTS, QUIZ_SLOTS, ACTIVE_SLOTS,
+                        BANK_LOW_DAYS)
+    out = []
+    for name, is_ph, slots in (("quiz", False, QUIZ_SLOTS), ("paheli", True, PAHELI_SLOTS)):
+        per_day = n * len([s for s in slots if s in ACTIVE_SLOTS])
+        pool = [q for q in bank if (q.get("sub") == PAHELI_SUB) == is_ph]
+        fresh = sum(1 for q in pool if q["id"] not in last)
+        days = fresh / per_day if per_day else float("inf")
+        line = f"[pick] stock {name}: {fresh}/{len(pool)} fresh" + (
+            f" (~{days:.1f} din)" if per_day else " (slot band)")
+        if per_day and days < BANK_LOW_DAYS:
+            line += (f" — WARNING: {BANK_LOW_DAYS} din se kam. Naye sawaal "
+                     "data/questions.json me jodo; tab tak sabse purane sawaal "
+                     "(least-recently-used) dobara jaayenge.")
+        out.append(line)
+    return out
+
+
+def pick(n=2, dry_run=False, seed=None, slot="morning", now=None):
+    from config import (QUIZ_SLOTS, PAHELI_SLOTS, PAHELI_SUB,
+                        REPEAT_COOLDOWN_DAYS)
+    now = now or datetime.now()
     bank = load_bank()
     used = load_used()
-    used_ids = [h["id"] for h in used["history"]]
-    fresh = [q for q in bank if q["id"] not in used_ids]
-
-    if len(fresh) < n:
-        # Cycle poora ho gaya — sabse purane n*6 sawaal wapas eligible kar do
-        recycle = used_ids[: max(0, len(used_ids) - n * 6)]
-        fresh = [q for q in bank if q["id"] not in used_ids[len(recycle):]]
-        print(f"[pick] bank cycle reset — {len(fresh)} sawaal wapas available")
+    last = last_used_map(used["history"])
+    for line in stock_report(bank, last, n):
+        print(line)
 
     # Seed me slot bhi hona zaroori hai. Pehle sirf date+ghanta tha, jo tab
-    # theek tha jab din me ek hi paheli banti thi. Ab teen paheli slot hain
-    # aur GitHub ke late/bunched cron ki wajah se do build ek hi ghante me
-    # chal sakte hain — us soorat me dono ko bilkul same riddle mil jaata
-    # (used.json tabhi update hota hai jab pehla upload push kar chuka ho).
+    # theek tha jab din me ek hi paheli banti thi. GitHub ke late/bunched cron
+    # ki wajah se do build ek hi ghante me chal sakte hain — us soorat me dono
+    # ko bilkul same sawaal mil jaata (used.json tabhi update hota hai jab
+    # pehla upload push kar chuka ho).
     rng = random.Random(seed if seed is not None
-                        else datetime.now().strftime("%Y%m%d%H") + slot)
-    rng.shuffle(fresh)
+                        else now.strftime("%Y%m%d%H") + slot)
 
-    # Paheli slots: sirf riddles. Baaki slot GK/Science/Bharat/Duniya rotate
-    # karte hain aur paheli bank ko chhoote nahi — warna riddle jaldi khatam.
-    # 10-Sep-2026 se teen slot paheli ke hain (config.PAHELI_SLOTS) — isliye
-    # yahan naam se match mat karna, list se karna.
-    from config import QUIZ_SLOTS, PAHELI_SLOTS, PAHELI_SUB
+    is_paheli = slot in PAHELI_SLOTS
+    pool = [q for q in bank if (q.get("sub") == PAHELI_SUB) == is_paheli]
+    fresh, cooled, hot = rank_pool(pool, last, rng, now, REPEAT_COOLDOWN_DAYS)
+    ordered = fresh + cooled + hot
 
-    if slot in PAHELI_SLOTS:
-        pool = [q for q in fresh if q.get("sub") == PAHELI_SUB]
-        if len(pool) < n:
-            pool = [q for q in bank if q.get("sub") == PAHELI_SUB]
-            rng.shuffle(pool)
-        chosen = pool[:n]
-        if not dry_run:
-            stamp = datetime.now().isoformat(timespec="seconds")
-            used["history"] += [{"id": q["id"], "at": stamp} for q in chosen]
-            USED.write_text(json.dumps(used, ensure_ascii=False, indent=1), encoding="utf-8")
-        return chosen
-
-    fresh = [q for q in fresh if q.get("sub") != PAHELI_SUB]
-
-    # Subject rotation: har video me 2 alag subject, aur har slot alag jodi se
-    # shuru hota hai — taaki hafte bhar me chaaron subject barabar aayein.
-    order = ["सामान्य ज्ञान", "विज्ञान", "भारत", "दुनिया"]
-    # Din ka number * quiz-slots + is slot ka index. Paheli is count me nahi,
-    # warna 5th slot rotation ko shift kar deta.
-    si = QUIZ_SLOTS.index(slot) if slot in QUIZ_SLOTS else 0
-    shift = int(datetime.now().strftime("%j")) * len(QUIZ_SLOTS) + si
-    wanted = [order[(shift + k) % 4] for k in range(n)]
-
-    chosen, used_now = [], set()
-    for want in wanted:
-        for q in fresh:
-            if q["id"] in used_now:
-                continue
-            if q.get("sub") == want:
-                chosen.append(q)
-                used_now.add(q["id"])
+    if is_paheli:
+        # Paheli slots: sirf riddles. Baaki slot paheli bank ko chhoote nahi.
+        chosen = ordered[:n]
+    else:
+        # Subject rotation: har video me alag subject, aur har slot alag jodi
+        # se shuru hota hai — taaki hafte bhar me chaaron subject barabar aayein.
+        order = ["सामान्य ज्ञान", "विज्ञान", "भारत", "दुनिया"]
+        si = QUIZ_SLOTS.index(slot) if slot in QUIZ_SLOTS else 0
+        shift = int(now.strftime("%j")) * len(QUIZ_SLOTS) + si
+        wanted = [order[(shift + k) % 4] for k in range(n)]
+        chosen, taken = [], set()
+        # Pehle: wanted subject, sirf fresh/cooled me se
+        for want in wanted:
+            for q in fresh + cooled:
+                if q["id"] not in taken and q.get("sub") == want:
+                    chosen.append(q); taken.add(q["id"]); break
+        subs_taken = {q.get("sub") for q in chosen}
+        for q in fresh + cooled:            # gap bharo, subject repeat se bachte hue
+            if len(chosen) >= n:
                 break
-    subs_taken = {q.get("sub") for q in chosen}
-    for q in fresh:                      # gap bhar do, subject repeat se bachte hue
-        if len(chosen) == n:
-            break
-        if q["id"] not in used_now and q.get("sub") not in subs_taken:
-            chosen.append(q); used_now.add(q["id"]); subs_taken.add(q.get("sub"))
-    for q in fresh:                      # phir bhi kam pade to kuch bhi
-        if len(chosen) == n:
-            break
-        if q["id"] not in used_now:
-            chosen.append(q); used_now.add(q["id"])
+            if q["id"] not in taken and q.get("sub") not in subs_taken:
+                chosen.append(q); taken.add(q["id"]); subs_taken.add(q.get("sub"))
+        for q in ordered:                   # phir bhi kam pade to LRU order me kuch bhi
+            if len(chosen) >= n:
+                break
+            if q["id"] not in taken:
+                chosen.append(q); taken.add(q["id"])
+
+    hot_ids = {q["id"] for q in hot}
+    for q in chosen:
+        if q["id"] in hot_ids:
+            print(f"[pick] WARNING repeat: {q['id']} pichhli baar {last[q['id']][:10]} "
+                  f"ko gaya tha ({REPEAT_COOLDOWN_DAYS} din cooldown ke andar) — "
+                  "bank chhota pad raha hai.")
+        elif q["id"] in last:
+            print(f"[pick] reuse (cooldown poora): {q['id']} last {last[q['id']][:10]}")
 
     if not dry_run:
-        stamp = datetime.now().isoformat(timespec="seconds")
+        stamp = now.isoformat(timespec="seconds")
         used["history"] += [{"id": q["id"], "at": stamp} for q in chosen]
         USED.write_text(json.dumps(used, ensure_ascii=False, indent=1), encoding="utf-8")
-
     return chosen
 
 

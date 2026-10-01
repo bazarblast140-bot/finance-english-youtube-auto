@@ -3,7 +3,8 @@ possible nahi hai, isliye token pehle ek baar local machine pe banao
 (neeche `--auth` wala mode).
 
 Usage:
-    python src/upload.py --auth                      # ek baar, laptop pe
+    python src/upload.py --auth --set-github-secret  # ek baar, laptop pe (force-ssl ke saath)
+    python src/upload.py --post-pending-comments     # CI: public ho chuki videos par pending comment
     python src/upload.py --dir out/20260825_morning  # CI me
     python src/upload.py --dir ... --privacy private # test upload
 
@@ -69,42 +70,204 @@ def resolve_publish_at(slot: str):
     return target.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-# IMPORTANT: ye list repo ke youtube_auth.py se EXACT match honi chahiye.
-# Refresh ke waqt aisa scope maanga jo grant nahi hua tha, to Google
-# invalid_scope/403 deta hai — video ban jaata hai par upload fail hota hai.
-# force-ssl yahan JAAN-BOOJH KE nahi hai: wo kabhi grant nahi hua tha.
-# commentThreads.insert full "youtube" scope se bhi chal jaata hai.
+# Auth ke waqt ye scopes maange jaate hain (python src/upload.py --auth).
+# Refresh ke waqt scope param NAHI bhejte (_creds) — Google jo granted hai
+# wahi deta hai, isliye yahan naya scope jodne se purana token toot-ta nahi.
+#
+# force-ssl KYUN: commentThreads.insert ke docs me SIRF
+# https://www.googleapis.com/auth/youtube.force-ssl likha hai
+# (https://developers.google.com/youtube/v3/docs/commentThreads/insert).
+# Purana comment "full youtube scope se bhi chal jaata hai" galat tha — har
+# upload ke baad log me aata tha:
+#   commentThreads 403 insufficientPermissions
+#   "Request had insufficient authentication scopes"
+# Yaani pinned comment AAJ TAK ek bhi video par nahi gaya. Fix: naya token
+# is list ke saath banao (README: "Pinned comment ke liye token").
 SCOPES = [
     "https://www.googleapis.com/auth/youtube.upload",
     "https://www.googleapis.com/auth/youtube.readonly",
     "https://www.googleapis.com/auth/youtube",
+    "https://www.googleapis.com/auth/youtube.force-ssl",
 ]
+FORCE_SSL = "https://www.googleapis.com/auth/youtube.force-ssl"
+LEDGER = C.DATA / "uploads.json"
 
 
 def _creds():
+    """Refresh-token se credentials. Token mara hua ho (invalid_grant) to saaf
+    message ke saath fail — pehle raw traceback aata tha."""
     from google.oauth2.credentials import Credentials
+    from google.auth.transport.requests import Request
+    from google.auth.exceptions import RefreshError
     cid = os.environ["YT_CLIENT_ID"]
     csec = os.environ["YT_CLIENT_SECRET"]
     rtok = os.environ["YT_REFRESH_TOKEN"]
     # scopes JAAN-BOOJH KE nahi bhej rahe. Refresh ke waqt scope param bhejne se
     # Google use granted set se match karta hai; zara sa farq bhi ho to
     # invalid_scope aata hai. Bina param ke wo jo granted hai wahi de deta hai.
-    return Credentials(
+    creds = Credentials(
         None, refresh_token=rtok, client_id=cid, client_secret=csec,
         token_uri="https://oauth2.googleapis.com/token",
     )
+    try:
+        creds.refresh(Request())
+    except RefreshError as e:
+        msg = str(e)
+        if "invalid_grant" in msg:
+            raise SystemExit(
+                "[upload] YouTube token mar chuka hai (invalid_grant: expired/revoked). "
+                "Laptop par `python src/upload.py --auth --set-github-secret` chalao. "
+                "Agar har 7 din me marta hai to Google Cloud Console > OAuth consent "
+                "screen ko 'Testing' se 'In production' karo.") from None
+        raise
+    return creds
 
 
-def do_auth():
+def granted_scopes(creds):
+    """Access token ke asli granted scopes (tokeninfo endpoint, read-only).
+    Fail ho to None — tab comment try karke dekh lenge."""
+    try:
+        import requests
+        r = requests.get("https://oauth2.googleapis.com/tokeninfo",
+                         params={"access_token": creds.token}, timeout=15)
+        if r.ok:
+            return set(r.json().get("scope", "").split())
+    except Exception:
+        pass
+    return None
+
+
+GITHUB_REPO = "bazarblast140-bot/finance-english-youtube-auto"
+COMMENT_MAX_ATTEMPTS = 3      # pending comment itni baar fail ho to chhod do (50 units/try)
+
+
+def set_github_secret_value(secret_name, value, repo=GITHUB_REPO):
+    """Secret value stdin se `gh` ko do — `--body` ke BINA.
+
+    `gh secret set NAME --body -` value ko literal "-" bana deta hai (gh me
+    --body ka "-" stdin nahi hota), aur us din se har upload invalid_grant se
+    fail hota. Bina --body ke gh value stdin se padhta hai. Value kabhi
+    print/log nahi hoti, aur repo hamesha explicit (-R) hai taaki galti se
+    kisi aur repo (cwd) me na chali jaaye."""
+    import subprocess
+    subprocess.run(["gh", "secret", "set", secret_name, "-R", repo],
+                   input=value.encode(), check=True,
+                   stdout=subprocess.DEVNULL)
+
+
+def do_auth(client_secret="client_secret.json", set_github_secret=False,
+            secret_name="YOUTUBE_REFRESH_TOKEN"):
     """Local machine pe chalao. client_secret.json Google Cloud Console se
-    download karo (OAuth client type: Desktop app)."""
+    download karo (OAuth client type: Desktop app) — YOUTUBE_CLIENT_ID/SECRET
+    wala hi client, warna token us client ke saath nahi chalega.
+
+    Token terminal me PRINT nahi hota (screen share / shell history me leak
+    ho jaata tha). Ya to seedha GitHub secret me jaata hai (--set-github-secret,
+    `gh` login chahiye) ya .yt_refresh_token file me (gitignored, chmod 600)."""
     from google_auth_oauthlib.flow import InstalledAppFlow
-    flow = InstalledAppFlow.from_client_secrets_file("client_secret.json", SCOPES)
-    creds = flow.run_local_server(port=0)
-    print("\n=== Ye teen values GitHub repo Secrets me daalo ===")
-    print("YT_CLIENT_ID     =", creds.client_id)
-    print("YT_CLIENT_SECRET =", creds.client_secret)
-    print("YT_REFRESH_TOKEN =", creds.refresh_token)
+    from googleapiclient.discovery import build
+    flow = InstalledAppFlow.from_client_secrets_file(client_secret, SCOPES)
+    # prompt=consent + offline: har baar naya refresh token milta hai, aur
+    # consent screen par force-ssl (comments) wala checkbox bhi dikhta hai.
+    creds = flow.run_local_server(port=0, prompt="consent", access_type="offline")
+    if not creds.refresh_token:
+        raise SystemExit("Google ne refresh token nahi diya. https://myaccount.google.com/permissions "
+                         "se app ka access hatao aur dobara chalao.")
+    got = set(creds.scopes or [])
+    missing = [x for x in SCOPES if got and x not in got]
+    yt = build("youtube", "v3", credentials=creds, cache_discovery=False)
+    items = yt.channels().list(part="snippet", mine=True).execute().get("items") or []
+    title = items[0]["snippet"]["title"] if items else "(koi channel nahi!)"
+    print(f"\nAuthorised channel: {title}  (id {items[0]['id'] if items else '-'})")
+    if missing:
+        print("WARNING: ye scopes grant NAHI hue (consent screen par checkbox chhoot gaya?):")
+        for m in missing:
+            print("   -", m)
+    if input(f"Kya '{title}' hi QUIZ PATHSHALA hai? [y/N] ").strip().lower() != "y":
+        raise SystemExit("Kuch nahi likha. Dobara chalao aur sahi channel chuno.")
+    if set_github_secret:
+        set_github_secret_value(secret_name, creds.refresh_token)
+        print(f"GitHub secret {secret_name} ({GITHUB_REPO}) update ho gaya (value print nahi ki).")
+    else:
+        path = Path(".yt_refresh_token")
+        path.write_text(creds.refresh_token, encoding="utf-8")
+        os.chmod(path, 0o600)
+        print(f"Refresh token {path.resolve()} me likha (gitignored). GitHub secret "
+              f"{secret_name} me paste karo, phir ye file mita do.")
+    print("YOUTUBE_CLIENT_ID / YOUTUBE_CLIENT_SECRET badalne ki zaroorat nahi agar wahi client use kiya.")
+
+
+def post_comment(yt, video_id, channel_id, text):
+    """Top-level comment (API pin nahi kar sakta — Studio me pin karna padta hai).
+    Docs ke hisaab se snippet.channelId bhi zaroori hai; pehle ye nahi bhejte the."""
+    body = {"snippet": {"videoId": video_id,
+                        "topLevelComment": {"snippet": {"textOriginal": text}}}}
+    if channel_id:
+        body["snippet"]["channelId"] = channel_id
+    return yt.commentThreads().insert(part="snippet", body=body).execute()
+
+
+def _ledger():
+    try:
+        return json.loads(LEDGER.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+
+
+def _save_ledger(rows):
+    LEDGER.write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
+
+
+def post_pending_comments(max_n=5):
+    """Scheduled (private + publishAt) video par upload ke turant baad comment
+    ho sake ya na ho — isliye jo reh gaye, unhe video public hone ke BAAD agle
+    run me daalte hain. 50 quota units/comment, isliye max_n."""
+    rows = _ledger()
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    todo = [r for r in rows if r.get("pinned_comment") and not r.get("comment_posted")
+            and int(r.get("comment_attempts") or 0) < COMMENT_MAX_ATTEMPTS
+            and (r.get("publish_at") or "") <= now][-max_n:]
+    if not todo:
+        print("[comments] koi pending comment nahi")
+        return 0
+    creds = _creds()
+    scopes = granted_scopes(creds)
+    if scopes is not None and FORCE_SSL not in scopes:
+        print("[comments] SKIP: token me youtube.force-ssl scope nahi hai — README "
+              "'Pinned comment ke liye token' dekho. (Ye 403 insufficientPermissions ka asli kaaran hai.)")
+        return 0
+    from googleapiclient.discovery import build
+    yt = build("youtube", "v3", credentials=creds, cache_discovery=False)
+    done = 0
+    for r in todo:
+        try:
+            post_comment(yt, r["video_id"], r.get("channel_id"), r["pinned_comment"])
+            r["comment_posted"] = now
+            done += 1
+            print(f"[comments] posted on {r['video_id']} (Studio me pin karo)")
+        except Exception as e:
+            r["comment_error"] = str(e)[:200]
+            r["comment_attempts"] = int(r.get("comment_attempts") or 0) + 1
+            print(f"[comments] {r['video_id']} fail "
+                  f"({r['comment_attempts']}/{COMMENT_MAX_ATTEMPTS}): {str(e)[:200]}")
+            if "quotaExceeded" in str(e) or "dailyLimitExceeded" in str(e):
+                # Quota khatam — baaki try karke agle upload ka quota mat khao
+                print("[comments] quota khatam — baaki pending comments agle run me")
+                break
+    _save_ledger(rows)
+    return done
+
+
+def video_status(meta, privacy):
+    """videos.insert ka status block.
+
+    made_for_kids fallback C.MADE_FOR_KIDS (False): channel general audience
+    ka hai (01-Oct-2026 faisla). Pehle default True tha — metadata me key na
+    ho to video galti se "made for kids" ban jaata (comments band, RPM kam)."""
+    return {
+        "privacyStatus": privacy,
+        "selfDeclaredMadeForKids": bool(meta.get("made_for_kids", C.MADE_FOR_KIDS)),
+    }
 
 
 def upload(meta_path: Path, privacy="public", publish_at=None):
@@ -118,10 +281,7 @@ def upload(meta_path: Path, privacy="public", publish_at=None):
         video = meta_path.parent / video.name
     assert video.exists(), f"MP4 nahi mila: {video}"
 
-    status = {
-        "privacyStatus": privacy,
-        "selfDeclaredMadeForKids": bool(meta.get("made_for_kids", True)),
-    }
+    status = video_status(meta, privacy)
     if publish_at:
         # YouTube: private + publishAt = exact time pe public
         status["privacyStatus"] = "private"
@@ -144,11 +304,16 @@ def upload(meta_path: Path, privacy="public", publish_at=None):
 
     creds = _creds()
     yt = build("youtube", "v3", credentials=creds, cache_discovery=False)
+    scopes = granted_scopes(creds)
+    if scopes is not None:
+        print(f"[upload] token scopes: {', '.join(sorted(x.rsplit('/', 1)[-1] for x in scopes))}")
 
     # Galat channel pe upload sabse mehnga error hai — pehle naam padh lo.
+    channel_id = None
     try:
         ch = yt.channels().list(part="snippet", mine=True).execute()
         if ch.get("items"):
+            channel_id = ch["items"][0]["id"]
             print(f"[upload] channel: {ch['items'][0]['snippet']['title']}")
     except Exception as e:
         print(f"[upload] channel naam nahi padh paaya (upload phir bhi try karenge): {e}")
@@ -173,15 +338,39 @@ def upload(meta_path: Path, privacy="public", publish_at=None):
     print(f"[upload] done -> https://youtube.com/shorts/{vid}")
 
     pinned = meta.get("pinned_comment")
-    if pinned and not meta.get("made_for_kids"):
-        try:
-            yt.commentThreads().insert(part="snippet", body={"snippet": {
-                "videoId": vid,
-                "topLevelComment": {"snippet": {"textOriginal": pinned}},
-            }}).execute()
-            print("[upload] pinned comment posted (pin manually — API pin nahi karta)")
-        except Exception as e:
-            print(f"[upload] comment skip: {e}")
+    posted = None
+    attempts = 0
+    mfk = bool(meta.get("made_for_kids", C.MADE_FOR_KIDS))
+    if pinned and not mfk:
+        if scopes is not None and FORCE_SSL not in scopes:
+            print("[upload] comment skip: token me youtube.force-ssl scope nahi hai. "
+                  "`python src/upload.py --auth --set-github-secret` se naya token banao "
+                  "(README: 'Pinned comment ke liye token'). Comment ledger me pending rahega.")
+        else:
+            try:
+                post_comment(yt, vid, channel_id, pinned)
+                posted = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                print("[upload] comment posted (pin manually — API pin nahi karta)")
+            except Exception as e:
+                # Scheduled/private video par comment reject ho sakta hai —
+                # agla run public hone ke baad post_pending_comments() se daalega.
+                attempts = 1
+                print(f"[upload] comment abhi nahi gaya (baad me retry): {str(e)[:300]}")
+
+    rows = _ledger()
+    rows.append({
+        "video_id": vid, "slot": meta.get("slot"), "date": meta.get("date"),
+        "uploaded_ist": datetime.now(timezone.utc).astimezone(IST).strftime("%Y-%m-%d %H:%M"),
+        "publish_at": publish_at, "privacy": privacy, "title": meta.get("title"),
+        "subject": (meta.get("subjects") or [None])[0],
+        "question_ids": meta.get("question_ids"), "hook_line": meta.get("hook_line"),
+        "duration_sec": meta.get("duration_sec"), "channel_id": channel_id,
+        "made_for_kids": mfk,
+        "pinned_comment": pinned if not mfk else None,
+        "comment_posted": posted,
+        "comment_attempts": attempts,
+    })
+    _save_ledger(rows)
 
     meta["youtube_id"] = vid
     meta["youtube_url"] = f"https://youtube.com/shorts/{vid}"
@@ -193,6 +382,11 @@ def upload(meta_path: Path, privacy="public", publish_at=None):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--auth", action="store_true")
+    ap.add_argument("--client-secret-file", default="client_secret.json")
+    ap.add_argument("--set-github-secret", action="store_true",
+                    help="--auth ke baad token seedha GitHub secret YOUTUBE_REFRESH_TOKEN me (gh CLI)")
+    ap.add_argument("--post-pending-comments", action="store_true",
+                    help="ledger ke jo comments reh gaye (video ab public), unhe post karo")
     ap.add_argument("--dir", type=Path)
     ap.add_argument("--privacy", default="public",
                     choices=["public", "private", "unlisted"])
@@ -203,7 +397,14 @@ if __name__ == "__main__":
                          "YouTube khud public karega (GitHub cron late ho tab bhi)")
     a = ap.parse_args()
     if a.auth:
-        do_auth()
+        do_auth(a.client_secret_file, a.set_github_secret)
+    elif a.post_pending_comments:
+        try:
+            post_pending_comments()
+        except SystemExit as e:
+            print(e)
+        except Exception as e:
+            print(f"[comments] skip: {type(e).__name__}: {str(e)[:200]}")
     elif a.dir:
         pub_at = a.publish_at
         # publishAt sirf tab jab video public hone wali ho. unlisted/private
