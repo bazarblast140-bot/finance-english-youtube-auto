@@ -1,0 +1,72 @@
+name: QUIZ PATHSHALA Channel Settings
+
+# Sirf CHANNEL PROFILE (About description, keywords, default language,
+# country, channel-level "made for kids" = false). KABHI upload nahi karta,
+# kisi video ko nahi chhoota.
+#
+#   mode = dry-run (default) -> current channel padho, BEFORE + PROPOSED + diff
+#                               dikhao. Kuch nahi likhta.
+#   mode = apply             -> channels.update (brandingSettings) + status
+#                               selfDeclaredMadeForKids=false try karta hai.
+#
+# Proposed text: kids-quiz-shorts/channel/channel_profile.json
+# Secrets: wahi YOUTUBE_* jo kids-gk-shorts.yml upload ke liye use karta hai.
+# Token me youtube / youtube.force-ssl scope chahiye — warna log me
+# "needs re-auth with youtube.force-ssl" aayega.
+# Quota: list 1 unit + har update 50 units.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "dry-run = sirf dikhao, apply = sach me channel update karo"
+        type: choice
+        options: [dry-run, apply]
+        default: dry-run
+
+permissions:
+  contents: read
+
+concurrency:
+  group: channel-settings
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: kids-quiz-shorts
+
+jobs:
+  channel-settings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install google-api-python-client google-auth requests
+
+      - name: Channel settings (${{ inputs.mode }})
+        env:
+          YT_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          set -o pipefail
+          python src/channel_settings.py --mode "${{ inputs.mode }}" \
+            --config channel/channel_profile.json 2>&1 | tee channel_out.txt
+
+      # CI logs har jagah se readable nahi — nateeja run ke Summary tab me.
+      # Repo me commit NAHI karte (contents: read).
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## QUIZ PATHSHALA channel settings — mode: ${{ inputs.mode }}"
+            echo
+            echo '```'
+            cat channel_out.txt 2>/dev/null || echo "(script chala hi nahi)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
