@@ -767,8 +767,8 @@ def reveal_panel(q, qnum, total):
     return reveal_at(q, qnum, total, 1.0)
 
 
-def hook_panel(line: str):
-    """Pehle 2 second. Badi challenge line + brand (Latin glyphs zaroori)."""
+def hook_panel(line: str, question: str = ""):
+    """Pehle ~2 second. Topic teaser + khud sawaal (jawab nahi)."""
     img = background(3).convert("RGB")
     d = ImageDraw.Draw(img)
     d.rounded_rectangle([0, -40, C.W, 200], 40, fill=C.COLORS["banner"])
@@ -780,17 +780,25 @@ def hook_panel(line: str):
     d.text(((C.W - bw) // 2, 58), brand, font=bf, fill=C.COLORS["banner_text"])
 
     text = " ".join((line or "").split())
-    card(img, [70, 460, C.W - 70, 980], fill=(255, 255, 255))
+    qtext = " ".join((question or "").split())
+    card(img, [70, 260, C.W - 70, 720], fill=(255, 255, 255))
     d = ImageDraw.Draw(img)
-    f, lines, lh = fit_lines(d, text, C.W - 220, 380, start=92, min_size=48, max_lines=3)
-    top = 520 + (300 - len(lines) * lh) // 2
+    f, lines, lh = fit_lines(d, text, C.W - 220, 340, start=80, min_size=44, max_lines=3)
+    top = 320 + (280 - len(lines) * lh) // 2
     centered(d, lines, f, lh, C.W // 2, top, C.COLORS["q_text"])
+    if qtext:
+        card(img, [70, 780, C.W - 70, 1240], fill=(255, 255, 255))
+        d = ImageDraw.Draw(img)
+        d.text((110, 810), "सवाल", font=F(36), fill=C.COLORS["opt_label"])
+        qf, qlines, qlh = fit_lines(d, qtext, C.W - 220, 300, start=64, min_size=40, max_lines=4)
+        centered(d, qlines, qf, qlh, C.W // 2, 900, C.COLORS["q_text"])
     sub = f"{C.TIMER_SECONDS} सेकंड  ·  4 विकल्प"
     sf = F(42)
     sw = text_w(d, sub, sf)
-    d.rounded_rectangle([C.W // 2 - sw // 2 - 36, 1040, C.W // 2 + sw // 2 + 36, 1124],
+    chip_y = 1320 if qtext else 1040
+    d.rounded_rectangle([C.W // 2 - sw // 2 - 36, chip_y, C.W // 2 + sw // 2 + 36, chip_y + 84],
                         36, fill=C.COLORS["timer_ring"])
-    d.text((C.W // 2 - sw // 2, 1054), sub, font=sf, fill=(255, 255, 255))
+    d.text((C.W // 2 - sw // 2, chip_y + 14), sub, font=sf, fill=(255, 255, 255))
     return img
 
 

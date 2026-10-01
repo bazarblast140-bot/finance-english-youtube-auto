@@ -179,14 +179,35 @@ def hook_seed(questions, slot, date=None, nonce=0) -> str:
 
 
 def hook_line(questions, slot, date=None, nonce=0):
-    """Pehle 2 second ki challenge line. date+slot+question id se badalti hai."""
+    """Pehle 2 second: is sawaal ka topic, jawab ke bina.
+
+    Stock lines (HOOK_LINES) generic hain — score unhe fail karta hai.
+    Nakli "90% log" statistic nahi; hamare paas aisa data nahi hai.
+    """
     import random
-    if not getattr(C, "HOOK_ON_SCREEN", False):
+    if not getattr(C, "HOOK_ON_SCREEN", False) or not questions:
         return None
-    date = date or datetime.now()
-    is_ph = slot in C.PAHELI_SLOTS or any(q.get("sub") == C.PAHELI_SUB for q in questions)
-    lines = C.HOOK_LINES["paheli" if is_ph else "quiz"]
-    return random.Random(hook_seed(questions, slot, date, nonce)).choice(lines)
+    q = questions[0]
+    topic = quality.topic_phrase(q)
+    is_ph = slot in C.PAHELI_SLOTS or any(item.get("sub") == C.PAHELI_SUB for item in questions)
+    if is_ph:
+        variants = [
+            f"बूझिए: {topic}",
+            f"सोचिए — {topic}",
+            f"{topic}? 8 सेकंड",
+        ]
+    else:
+        variants = [
+            f"बताइए: {topic}",
+            f"सोचिए — {topic}",
+            f"{topic}? 8 सेकंड",
+            f"पता है? {topic}",
+        ]
+    line = random.Random(hook_seed(questions, slot, date, nonce)).choice(variants)
+    if len(line) > 46:
+        short = " ".join(topic.split()[:3])
+        line = f"बूझिए: {short}" if is_ph else f"बताइए: {short}"
+    return line
 
 
 def _save_still(stills_dir, name, img):
@@ -226,7 +247,7 @@ def render_video(segs, frames_dir: Path, stills_dir: Path | None = None):
         q, qn, tot = payload
 
         if kind == "hook":
-            base = render.hook_panel(s.get("hook") or "")
+            base = render.hook_panel(s.get("hook") or "", (q or {}).get("q") or "")
             _save_still(stills_dir, "01_hook", base)
             start = idx
             idx = _write_frame(frames_dir, idx, base)
@@ -375,12 +396,14 @@ def prepare(args):
         print(f"[quality] content try {attempt + 1}: "
               f"hook={pre['scores']['hook']} trend={pre['scores']['trend']} "
               f"fact={pre['scores']['fact']} source={(pre.get('fact') or {}).get('source')}")
+        for note in pre["notes"].get("fact") or []:
+            if str(note).startswith("WARN:"):
+                print(f"::warning::{note}")
+            print(f"[quality] {note}")
         if not pre["pass_content"]:
             last = pre
             banned |= set(pre.get("bad_ids") or [])
             print(f"[quality] content fail ({pre['reason']}) — doosra sawaal")
-            for note in pre["notes"].get("fact") or []:
-                print(f"[quality] {note}")
             continue
 
         segs = plan_segments(questions, hook)

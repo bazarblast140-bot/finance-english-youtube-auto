@@ -198,10 +198,10 @@ PAHELI_SUB = "पहेली"
 
 
 # ---------- growth knobs (30-Sep-2026 review) ----------
-# Pehle 2 second: alag hook segment. On-screen badi line + wahi line voice mein.
-# Seed = date + slot + pehle sawaal ki id, taaki videos ek jaise na khulen.
-# Line sach honi chahiye: nakli "90% log galat" statistics nahi.
-# Register "आप" (दीजिए / बताइए / सोचिए). Tum-imperative (करो/बताओ) nahi.
+# Pehle 2 second: sawaal-specific teaser (topic words, jawab nahi) + wahi
+# line voice mein. Frame par sawaal ka text bhi dikhta hai.
+# HOOK_LINES ab stock/generic denylist hai — score_hook inhe fail karta hai.
+# Nakli "90% log galat" nahi (aapka data nahi hai). Register "आप".
 HOOK_ON_SCREEN = True
 HOOK_LINES = {
     "quiz":   ["8 सेकंड में जवाब दीजिए!", "सोचिए, फिर बताइए!", "ये आता है आपको?",

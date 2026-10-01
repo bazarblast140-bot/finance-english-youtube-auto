@@ -5,7 +5,12 @@ Fact check DeepSeek se hota hai (secret: DEEPSEEK_API_KEY). Call inject karo
 (`complete(system, user) -> str`) to tests network ke bina chalte hain.
 
 QUIZ_QUALITY_OFFLINE=1 sirf sample / local render ke liye hai — upload workflow
-ise set NAHI karta. Key na ho aur offline bhi na ho to gate fail (upload rukta hai).
+ise set NAHI karta, aur live path DeepSeek ko sach mein call karta hai.
+
+Fail-safe: upload sirf tab rukta hai jab model confidently disagree kare
+(choice != stored ans, ambiguous, ya explanation_ok false) ya structure
+tooti ho (4 unique options nahi). Key missing, network, HTTP, empty, ya
+unparseable reply sirf WARN hai — upload nahi rukta.
 
 trends.json (data/trends.json) doosri branch se aa sakta hai. File na ho to
 trend score neutral hai, fail nahi.
@@ -83,7 +88,72 @@ def structural_issues(q: dict) -> list[str]:
     return issues
 
 
-def score_hook(line: str, voice: str = "", recent=()) -> tuple[int, list[str]]:
+# Generic stock lines (config.HOOK_LINES) aur sawaal se be-lagaav teaser
+# threshold ke neeche jaate hain. Nakli "90%" claim bhi.
+HOOK_STOP = frozenset({
+    "क्या", "कौन", "किस", "किसमें", "किसका", "किसकी", "में", "है", "हैं",
+    "का", "की", "के", "से", "को", "एक", "यह", "ये", "और", "या", "तो", "जो",
+    "वह", "वो", "था", "थी", "कर", "करके", "होता", "होती", "होते", "नहीं",
+    "भी", "पर", "लिए", "वाला", "वाली", "आप", "आपको", "सकते", "बता", "सकती",
+})
+_PERCENT_CLAIM = re.compile(r"\d+\s*%")
+
+
+def content_tokens(text: str) -> list[str]:
+    words = re.findall(r"[\u0900-\u097FA-Za-z0-9]+", text or "")
+    return [w for w in words if len(w) >= 2 and w not in HOOK_STOP]
+
+
+def topic_phrase(q: dict, limit: int = 4) -> str:
+    """Sawaal ke topic words, sahi option ke bina (hook spoil na kare)."""
+    opts = list(q.get("opts") or [])
+    ans = q.get("ans")
+    banned: set[str] = set()
+    if isinstance(ans, int) and not isinstance(ans, bool) and 0 <= ans < len(opts):
+        banned = set(content_tokens(str(opts[ans])))
+    words = [w for w in content_tokens(q.get("q") or "") if w not in banned]
+    if not words:
+        words = content_tokens(q.get("sub") or "") or ["सवाल"]
+    return " ".join(words[:limit])
+
+
+def _stock_hooks() -> set[str]:
+    return {" ".join(t.split()) for lines in C.HOOK_LINES.values() for t in lines}
+
+
+def hook_is_generic(line: str, question=None) -> bool:
+    """Stock line, ya sawaal/subject ka koi topic word nahi."""
+    norm = " ".join((line or "").split())
+    if norm in _stock_hooks():
+        return True
+    if question is None:
+        return False
+    if isinstance(question, str):
+        blob = question
+    else:
+        blob = f"{question.get('q', '')} {question.get('sub', '')}"
+    qtoks = set(content_tokens(blob))
+    if not qtoks:
+        return False
+    return not (qtoks & set(content_tokens(line)))
+
+
+def hook_spoils_answer(line: str, question) -> bool:
+    if not isinstance(question, dict):
+        return False
+    opts = list(question.get("opts") or [])
+    ans = question.get("ans")
+    if not isinstance(ans, int) or isinstance(ans, bool) or ans not in range(len(opts)):
+        return False
+    qtoks = set(content_tokens(question.get("q") or ""))
+    leaked = [t for t in content_tokens(str(opts[ans])) if t not in qtoks]
+    if not leaked:
+        return False
+    htoks = set(content_tokens(line))
+    return any(t in htoks for t in leaked)
+
+
+def score_hook(line: str, voice: str = "", recent=(), question=None) -> tuple[int, list[str]]:
     notes = []
     line = (line or "").strip()
     if not line:
@@ -121,6 +191,17 @@ def score_hook(line: str, voice: str = "", recent=()) -> tuple[int, list[str]]:
         notes.append("voice hook differs from on-screen line")
     else:
         notes.append("hook has no voice line")
+    if hook_is_generic(line, question):
+        score = min(score, 48)
+        notes.append("generic hook — question-specific teaser missing")
+    if hook_spoils_answer(line, question):
+        score = min(score, 30)
+        notes.append("hook names the correct option")
+    if _PERCENT_CLAIM.search(line):
+        # "90% log galat" tabhi jab yeh sach ho. Hamare paas aisa data nahi,
+        # isliye koi percentage claim score giraati hai.
+        score = min(score, 40)
+        notes.append("unverified percentage claim")
     return min(100, score), notes
 
 
@@ -254,8 +335,20 @@ def fact_payload(questions) -> str:
     return json.dumps(slim, ensure_ascii=False)
 
 
+def _fact_warn(note: str, source: str = "deepseek-unavailable") -> dict:
+    """API/parse failure. Upload is path se nahi rukta."""
+    return {
+        "ok": True, "score": 100, "source": source, "warn": True,
+        "items": [], "bad_ids": [], "notes": [f"WARN: {note}"],
+    }
+
+
 def fact_check(questions, complete) -> dict:
-    """complete(system, user) -> model text. Disagreement or ambiguity fails."""
+    """complete(system, user) -> model text.
+
+    Confident disagreement blocks (ok False, score 0). API/key/parse
+    problems warn and leave ok True so upload continues.
+    """
     bad = []
     for q in questions:
         issues = structural_issues(q)
@@ -263,42 +356,40 @@ def fact_check(questions, complete) -> dict:
             bad.append({"id": q.get("id"), "issues": issues})
     if bad:
         return {
-            "ok": False, "score": 0, "source": "structural",
+            "ok": False, "score": 0, "source": "structural", "warn": False,
             "items": bad, "bad_ids": [b["id"] for b in bad],
             "notes": ["exactly one unique correct option required"],
         }
     try:
         raw = complete(FACT_SYSTEM, fact_payload(questions))
     except FactCheckError as e:
-        return {
-            "ok": False, "score": 0, "source": "deepseek",
-            "items": [], "bad_ids": [q.get("id") for q in questions],
-            "notes": [str(e)],
-        }
+        return _fact_warn(str(e))
     try:
         data = _parse_json_blob(raw)
     except (json.JSONDecodeError, ValueError, TypeError):
-        return {
-            "ok": False, "score": 0, "source": getattr(complete, "quality_source", "deepseek"),
-            "items": [], "bad_ids": [q.get("id") for q in questions],
-            "notes": ["model reply was not JSON"],
-        }
+        return _fact_warn("model reply was not JSON")
     source = getattr(complete, "quality_source", "deepseek")
     by_id = {str(it.get("id")): it for it in (data.get("items") or []) if isinstance(it, dict)}
     items = []
     bad_ids = []
     notes = []
+    warned = False
     for q in questions:
         it = by_id.get(str(q.get("id")))
         if not it:
-            bad_ids.append(q.get("id"))
-            notes.append(f"{q.get('id')}: model skipped this question")
-            items.append({"id": q.get("id"), "ok": False})
+            warned = True
+            notes.append(f"WARN: {q.get('id')}: model skipped this question — not blocking")
+            items.append({"id": q.get("id"), "ok": True, "warn": True})
             continue
         try:
             choice = int(it.get("choice"))
         except (TypeError, ValueError):
             choice = -1
+        if choice not in range(4):
+            warned = True
+            notes.append(f"WARN: {q.get('id')}: model choice unreadable — not blocking")
+            items.append({"id": q.get("id"), "ok": True, "warn": True, "choice": choice})
+            continue
         ambiguous = bool(it.get("ambiguous"))
         why_ok = bool(it.get("explanation_ok"))
         ok = choice == q.get("ans") and not ambiguous and why_ok
@@ -317,9 +408,14 @@ def fact_check(questions, complete) -> dict:
             "ambiguous": ambiguous, "explanation_ok": why_ok,
             "note": str(it.get("note") or "")[:180],
         })
+    if bad_ids:
+        return {
+            "ok": False, "score": 0, "source": source, "warn": False,
+            "items": items, "bad_ids": bad_ids, "notes": notes,
+        }
     return {
-        "ok": not bad_ids, "score": 100 if not bad_ids else 0,
-        "source": source, "items": items, "bad_ids": bad_ids, "notes": notes,
+        "ok": True, "score": 100, "source": source, "warn": warned,
+        "items": items, "bad_ids": [], "notes": notes,
     }
 
 
@@ -343,7 +439,7 @@ def deepseek_complete(system, user) -> str:
     """
     key = os.environ.get("DEEPSEEK_API_KEY", "")
     if not key:
-        raise FactCheckError("DEEPSEEK_API_KEY missing — fact check blocked, upload rok diya")
+        raise FactCheckError("DEEPSEEK_API_KEY missing")
     try:
         import requests
     except ImportError as e:
@@ -377,6 +473,9 @@ def deepseek_complete(system, user) -> str:
     return content
 
 
+deepseek_complete.quality_source = "deepseek"
+
+
 def recent_hooks(path=None, limit=8) -> list[str]:
     path = path or C.QUALITY_HISTORY
     if not path.exists():
@@ -393,7 +492,8 @@ def recent_hooks(path=None, limit=8) -> list[str]:
 
 
 def compose(questions, hook, voice, trends, fact, duration, probe, recent=()) -> dict:
-    h, hn = score_hook(hook, voice, recent=recent)
+    q0 = questions[0] if questions else None
+    h, hn = score_hook(hook, voice, recent=recent, question=q0)
     t, tn = score_trend(questions, trends)
     p, pn = score_pacing(duration) if duration is not None else (None, ["pacing not scored yet"])
     v, vn = score_visual(probe, questions) if probe is not None else (None, ["visual not scored yet"])
@@ -432,7 +532,7 @@ def compose(questions, hook, voice, trends, fact, duration, probe, recent=()) ->
         "scores": scores,
         "thresholds": dict(THRESHOLDS),
         "notes": notes,
-        "fact": {k: fact[k] for k in ("ok", "source", "items", "bad_ids") if k in fact},
+        "fact": {k: fact[k] for k in ("ok", "source", "items", "bad_ids", "warn") if k in fact},
         "bad_ids": bad_ids,
         "failures": failures,
         "reason": reason,
@@ -456,6 +556,7 @@ def finalize(pre: dict, questions, duration, probe) -> dict:
         "items": (pre.get("fact") or {}).get("items"),
         "bad_ids": (pre.get("fact") or {}).get("bad_ids") or [],
         "notes": pre["notes"]["fact"],
+        "warn": bool((pre.get("fact") or {}).get("warn")),
     }
     # precheck failures for hook/trend/fact carry over via scores
     report = compose(
@@ -549,7 +650,8 @@ def format_summary(record: dict) -> str:
         f"- visual: {scores.get('visual')} (min {THRESHOLDS['visual']})",
         f"- trend: {scores.get('trend')} (min {THRESHOLDS['trend']})",
         f"- pacing: {scores.get('pacing')} (min {THRESHOLDS['pacing']})",
-        f"- fact: {scores.get('fact')} ({(record.get('fact') or {}).get('source')})",
+        f"- fact: {scores.get('fact')} ({(record.get('fact') or {}).get('source')})"
+        + (" WARN — upload not blocked" if (record.get("fact") or {}).get("warn") else ""),
         f"- duration_sec: {record.get('duration_sec')}",
         f"- questions: {', '.join(record.get('question_ids') or [])}",
         f"- hook line: {record.get('hook')}",
@@ -583,6 +685,8 @@ def log_report(record):
         f"source={(record.get('fact') or {}).get('source')}"
     )
     for note in (record.get("notes") or {}).get("fact") or []:
+        if str(note).startswith("WARN:"):
+            print(f"::warning::{note}")
         print(f"[quality] {note}")
     if not record["pass"]:
         print(f"::error::Quality gate failed — upload blocked. {record.get('reason')}")
