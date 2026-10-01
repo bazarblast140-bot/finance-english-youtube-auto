@@ -24,6 +24,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).parent))
 
 import config as C
+import hooktype
 import quality
 import render
 import sfx
@@ -95,7 +96,8 @@ def plan_segments(questions, hook=None):
         ENGINES.append(eng)
         print(f"[voice] hook {d:.2f}s via {eng}")
         segs.append(_seg("hook", max(float(C.HOOK_SECONDS), d + 0.12), d,
-                         [(0.0, v, C.VOICE_VOLUME)],
+                         [(0.0, v, C.VOICE_VOLUME),
+                          (0.0, "KEYCLICKS", C.KEYCLICK_VOLUME)],
                          (questions[0], 1, n), hook=hook))
 
     for i, q in enumerate(questions):
@@ -268,11 +270,31 @@ def render_video(segs, frames_dir: Path, stills_dir: Path | None = None):
         q, qn, tot = payload
 
         if kind == "hook":
-            base = render.hook_panel(s.get("hook") or "", (q or {}).get("q") or "")
-            _save_still(stills_dir, "01_hook", base)
+            qtext = (q or {}).get("q") or ""
+            line = s.get("hook") or ""
             start = idx
-            idx = _write_frame(frames_dir, idx, base)
-            idx = _hardlink_rest(frames_dir, start, nf) if nf > 1 else idx
+            full = None
+            for f in range(nf):
+                t = f / C.FPS
+                img = render.hook_frame(line, qtext, t)
+                idx = _write_frame(frames_dir, idx, img)
+                if t + 1e-4 >= hooktype.TYPE_SECONDS:
+                    full = img
+                    break
+            if full is None and nf:
+                full = img
+            _save_still(stills_dir, "01_hook", full if full is not None else render.hook_panel(line, qtext))
+            written = idx - start
+            if nf > written:
+                # Baaki frames usi poori line ke hain — koi fade nahi.
+                full_jpg = frames_dir / f"f{idx - 1:06d}.jpg"
+                for _ in range(nf - written):
+                    dst = frames_dir / f"f{idx:06d}.jpg"
+                    try:
+                        dst.hardlink_to(full_jpg)
+                    except OSError:
+                        shutil.copyfile(full_jpg, dst)
+                    idx += 1
         elif kind == "reveal":
             for f in range(nf):
                 progress = 0.0 if nf == 1 else f / (nf - 1)
@@ -347,6 +369,8 @@ def render_audio(segs, total_frames) -> np.ndarray:
                 at_extra = int(lead * C.SAMPLE_RATE)
                 mix(track, clip, seg_start + at_extra, gain)
                 continue
+            elif src == "KEYCLICKS":
+                clip = sfx.keyclick_bed(s.get("hook") or "", s["frames"] / C.FPS)
             elif src == "DING":
                 clip = ding
             else:

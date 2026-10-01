@@ -1,0 +1,11 @@
+keyclick.wav
+
+Original mechanical key-click, synthesized in this repository
+(kids-quiz-shorts/src/sfx.py, _synth_key_click). It is not sampled from a
+commercial sound library or from a recording of someone else's keyboard.
+
+Released under the CC0 1.0 Universal public domain dedication:
+https://creativecommons.org/publicdomain/zero/1.0/
+
+You can copy, modify, and use this sound for any purpose, including
+commercial YouTube Shorts, with no attribution required.

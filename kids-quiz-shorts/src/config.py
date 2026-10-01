@@ -148,6 +148,8 @@ FONT_CANDIDATES_REG = [
 SAMPLE_RATE = 44100
 TICK_VOLUME = 0.20   # voice ab timer ke dauran chalti hai, tick dabna nahi chahiye
 VOICE_VOLUME = 1.0
+# Hook typewriter clicks. Voice 1.0 ke neeche — awaaz saaf rahe.
+KEYCLICK_VOLUME = 0.18
 
 # ---------- ElevenLabs ----------
 # Voice ID env se aata hai — female Hindi voice jo tumne set ki hai.

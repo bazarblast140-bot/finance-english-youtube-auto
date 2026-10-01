@@ -3,7 +3,11 @@ koi download nahi. numpy se banate hain, WAV likhte hain."""
 import math
 import wave
 import numpy as np
-from config import SAMPLE_RATE, OUT
+from config import ASSETS, SAMPLE_RATE, OUT
+
+# Bundled click. Same synthesis as _synth_key_click, written to disk so the
+# Short ships a real sample. License: assets/sfx/LICENSE.txt (CC0).
+C_ASSETS_CLICK = ASSETS / "sfx" / "keyclick.wav"
 
 
 def _env(n, attack=0.005, decay=0.12):
@@ -60,6 +64,56 @@ def whoosh():
     noise = np.random.default_rng(7).uniform(-1, 1, n) * 0.35
     env = np.sin(math.pi * t / dur) ** 2
     return ((sweep * 0.6 + noise) * env * 0.5).astype(np.float32)
+
+
+def _synth_key_click() -> np.ndarray:
+    """Short mechanical click. Original synthesis — not a sampled recording."""
+    dur = 0.032
+    n = int(SAMPLE_RATE * dur)
+    t = np.arange(n) / SAMPLE_RATE
+    rng = np.random.default_rng(11)
+    noise = rng.uniform(-1, 1, n)
+    noise = np.diff(noise, prepend=noise[0])
+    tick = np.sin(2 * math.pi * 2100 * t) * np.exp(-t * 220)
+    body = np.sin(2 * math.pi * 180 * t) * np.exp(-t * 80)
+    env = np.exp(-t * 95)
+    sig = (0.62 * noise + 0.28 * tick + 0.22 * body) * env
+    peak = float(np.max(np.abs(sig))) + 1e-9
+    return (sig / peak * 0.9).astype(np.float32)
+
+
+def key_click() -> np.ndarray:
+    """Bundled CC0 click if the wav is there, warna yahi synthesis."""
+    path = C_ASSETS_CLICK
+    if path.exists():
+        with wave.open(str(path), "rb") as w:
+            pcm = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16)
+            if w.getnchannels() == 2:
+                pcm = pcm.reshape(-1, 2).mean(axis=1)
+        return (pcm.astype(np.float32) / 32767.0)
+    return _synth_key_click()
+
+
+def keyclick_bed(text: str, seconds: float = 2.0) -> np.ndarray:
+    """One click per non-space grapheme, at the same times the letters appear.
+
+    Returned peak is about 0.9. Caller multiplies by KEYCLICK_VOLUME so the
+    voiceover stays louder.
+    """
+    import hooktype
+    clusters = hooktype.grapheme_clusters(" ".join((text or "").split()))
+    n = len(clusters)
+    total = max(1, int(SAMPLE_RATE * seconds))
+    bed = np.zeros(total, dtype=np.float32)
+    click = key_click()
+    for i, cluster in enumerate(clusters):
+        if cluster.isspace():
+            continue
+        start = int(hooktype.cluster_time(i, n) * SAMPLE_RATE)
+        end = min(start + len(click), total)
+        if end > start:
+            bed[start:end] += click[: end - start]
+    return bed
 
 
 def build_timer_bed(seconds: int, volume: float) -> np.ndarray:

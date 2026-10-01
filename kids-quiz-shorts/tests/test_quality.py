@@ -156,6 +156,115 @@ class HookTests(unittest.TestCase):
         self.assertIn("कमेंट कीजिए", tts.comment_cta_script())
         self.assertNotIn("करो", tts.comment_cta_script())
 
+    def test_grapheme_safe_typing_order(self):
+        import unicodedata
+        import hooktype
+        self.assertEqual(hooktype.grapheme_clusters("कि"), ["कि"])
+        self.assertEqual(hooktype.grapheme_clusters("क्ष"), ["क्ष"])
+        self.assertEqual(hooktype.grapheme_clusters("कच्छ"), ["क", "च्छ"])
+        fed = hooktype.grapheme_clusters("सफ़ेद")
+        self.assertEqual(fed, ["स", "फ़े", "द"])
+        self.assertEqual("".join(fed), "सफ़ेद")
+        line = "नमक का सफ़ेद रेगिस्तान — किस राज्य में?"
+        clusters = hooktype.grapheme_clusters(line)
+        self.assertEqual("".join(clusters), line)
+        self.assertGreater(len(clusters), 8)
+        for cluster in clusters:
+            self.assertNotEqual(cluster, "\u094d")
+            if len(cluster) == 1:
+                self.assertNotIn(unicodedata.category(cluster), ("Mn", "Mc", "Me"))
+        self.assertEqual(hooktype.visible_text(line, 0.0), "")
+        self.assertEqual(hooktype.visible_text(line, hooktype.TYPE_SECONDS), line)
+        self.assertEqual(hooktype.visible_text(line, 2.5), line)
+        n = len(clusters)
+        last = hooktype.cluster_time(n - 1, n)
+        self.assertGreaterEqual(last, 1.2)
+        self.assertLessEqual(last, 1.5)
+        self.assertAlmostEqual(last, hooktype.TYPE_SECONDS)
+        prev = ""
+        for i, cluster in enumerate(clusters):
+            got = hooktype.visible_text(line, hooktype.cluster_time(i, n))
+            self.assertEqual(got, "".join(clusters[: i + 1]))
+            self.assertTrue(got.startswith(prev))
+            self.assertFalse(got.endswith("\u094d"))
+            self.assertTrue(got.endswith(cluster))
+            prev = got
+        before = hooktype.cluster_time(0, n) - 0.02
+        self.assertEqual(hooktype.visible_text(line, before), "")
+
+    def test_final_hook_frame_is_fully_opaque(self):
+        import numpy as np
+        import render
+        line = "नमक का सफ़ेद रेगिस्तान — किस राज्य में?"
+        question = "कच्छ का रण किस राज्य में है?"
+        box = (80, 250, 1000, 690)
+
+        def ink_count(t):
+            img = render.hook_frame(line, question, t)
+            self.assertEqual(img.mode, "RGB")
+            crop = np.asarray(img.crop(box))
+            exact = int(np.all(crop == np.array(render.HOOK_INK), axis=2).sum())
+            return exact, crop
+
+        import hooktype
+        early, _ = ink_count(0.0)
+        mid, _ = ink_count(0.45)
+        full, full_px = ink_count(1.5)
+        later, later_px = ink_count(2.0)
+        end, end_px = ink_count(2.5)
+        panel, panel_px = ink_count(hooktype.TYPE_SECONDS)
+        self.assertEqual(early, 0)
+        self.assertGreater(mid, 200)
+        self.assertGreater(full, mid + 400)
+        self.assertEqual(full, later)
+        self.assertEqual(later, end)
+        self.assertEqual(end, panel)
+        self.assertTrue(np.array_equal(full_px, later_px))
+        self.assertTrue(np.array_equal(later_px, end_px))
+        self.assertTrue(np.array_equal(end_px, panel_px))
+
+    def test_hook_audio_contains_click_layer(self):
+        import numpy as np
+        import build
+        import hooktype
+        import sfx
+        line = "नमक का सफ़ेद रेगिस्तान — किस राज्य में?"
+        bed = sfx.keyclick_bed(line, 2.0)
+        sr = C.SAMPLE_RATE
+        head = bed[: int(1.5 * sr)]
+        tail = bed[int(1.55 * sr):]
+        self.assertGreater(float(np.max(np.abs(head))), 0.3)
+        self.assertLess(float(np.max(np.abs(tail))), 0.05)
+        # Voice in this fixture is a steady 0.55. Clicks must sit under it.
+        self.assertLess(float(np.max(np.abs(bed))) * C.KEYCLICK_VOLUME, 0.55)
+        clusters = hooktype.grapheme_clusters(line)
+        click = sfx.key_click()
+        self.assertGreater(len(click), 100)
+        for i, cluster in enumerate(clusters):
+            if cluster.isspace():
+                continue
+            start = int(hooktype.cluster_time(i, len(clusters)) * sr)
+            window = bed[start:start + min(len(click), 200)]
+            self.assertGreater(float(np.max(np.abs(window))), 0.2, cluster)
+        voice = np.full(int(2.2 * sr), 0.55, dtype=np.float32)
+        folder = Path(tempfile.mkdtemp())
+        path = folder / "voice.wav"
+        sfx.write_wav(path, voice)
+        frames = round(2.0 * C.FPS)
+
+        def seg(audio):
+            return {"kind": "hook", "frames": frames, "audio": audio, "hook": line,
+                    "payload": ({}, 1, 1)}
+
+        with_clicks = build.render_audio([seg([
+            (0.0, str(path), C.VOICE_VOLUME),
+            (0.0, "KEYCLICKS", C.KEYCLICK_VOLUME),
+        ])], frames)
+        voice_only = build.render_audio([seg([
+            (0.0, str(path), C.VOICE_VOLUME),
+        ])], frames)
+        self.assertGreater(float(np.max(np.abs(with_clicks - voice_only))), 0.01)
+
 
 class FactTests(unittest.TestCase):
     def test_structural_duplicate_blocks_without_llm(self):
@@ -429,6 +538,8 @@ class SeoAndPlanTests(unittest.TestCase):
             dur = build.tighten(segs, C.LENGTH_MAX_SECONDS)
         kinds = [s["kind"] for s in segs]
         self.assertEqual(kinds[0], "hook")
+        self.assertIn("KEYCLICKS", [src for _, src, _ in segs[0]["audio"]])
+        self.assertGreaterEqual(segs[0]["dur"], C.HOOK_SECONDS)
         self.assertEqual(kinds[-1], "comment")
         self.assertNotIn("cta", kinds)
         self.assertGreaterEqual(dur, 28)

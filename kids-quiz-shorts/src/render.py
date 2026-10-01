@@ -14,6 +14,7 @@ from pathlib import Path
 from PIL import Image, ImageChops, ImageDraw, ImageFont, ImageFilter
 
 import config as C
+import hooktype
 
 LABELS = ["A", "B", "C", "D"]
 
@@ -851,8 +852,83 @@ def reveal_panel(q, qnum, total):
     return reveal_at(q, qnum, total, 1.0)
 
 
-def hook_panel(line: str, question: str = ""):
-    """Pehle ~2 second. Topic teaser + khud sawaal (jawab nahi)."""
+# Hook line: solid crimson, no alpha and no stroke. A stroke fills Devanagari
+# counters (स, म, भ). The shadow is a hard offset in a darker solid colour.
+# Coverage below the threshold stays the card; everything else is the exact ink,
+# so antialiasing cannot leave a washed-out fringe once a cluster is shown.
+HOOK_INK = (186, 18, 36)
+HOOK_SHADOW = (42, 6, 14)
+_HOOK_SHADOW_DX = 4
+_HOOK_SHADOW_DY = 5
+_HOOK_COVER = 96
+_hook_chrome_cache = {}
+
+
+def _paint_opaque(img, xy, text, font, fill):
+    """Glyph coverage snaps to a solid RGB fill. No alpha on the frame."""
+    if not text:
+        return
+    b = ImageDraw.Draw(img).textbbox(xy, text, font=font)
+    pad = 6
+    box = (max(0, int(b[0]) - pad), max(0, int(b[1]) - pad),
+           min(img.width, int(math.ceil(b[2])) + pad),
+           min(img.height, int(math.ceil(b[3])) + pad))
+    if box[2] <= box[0] or box[3] <= box[1]:
+        return
+    w, h = box[2] - box[0], box[3] - box[1]
+    mask = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(mask).text((xy[0] - box[0], xy[1] - box[1]), text, font=font, fill=255)
+    bw = mask.point(lambda v: 255 if v >= _HOOK_COVER else 0)
+    if bw.getbbox() is None:
+        ImageDraw.Draw(img).text(xy, text, font=font, fill=fill)
+        return
+    solid = Image.new("RGB", (w, h), fill)
+    region = img.crop(box)
+    if region.mode != "RGB":
+        region = region.convert("RGB")
+    region.paste(solid, (0, 0), bw)
+    img.paste(region, box)
+
+
+def _draw_hook_line(img, line: str, t: float):
+    """Typewriter. Clusters stay in their final x, so the line does not jump."""
+    text = " ".join((line or "").split())
+    if not text:
+        return img
+    d = ImageDraw.Draw(img)
+    font, lines, lh = fit_lines(d, text, C.W - 220, 360, start=78, min_size=46, max_lines=4)
+    top = 280 + (340 - len(lines) * lh) // 2
+    shown = hooktype.visible_text(text, t)
+    rest = shown
+    y = top
+    cx = C.W // 2
+    for ln in lines:
+        line_w = text_w(d, ln, font)
+        x0 = cx - line_w / 2
+        take = ""
+        if rest:
+            if rest.startswith(ln):
+                take = ln
+                rest = rest[len(ln):]
+                if rest.startswith(" "):
+                    rest = rest[1:]
+            else:
+                take = rest
+                rest = ""
+        if take:
+            _paint_opaque(img, (x0 + _HOOK_SHADOW_DX, y + _HOOK_SHADOW_DY),
+                          take, font, HOOK_SHADOW)
+            _paint_opaque(img, (x0, y), take, font, HOOK_INK)
+        y += lh
+    return img
+
+
+def _hook_chrome(question: str = ""):
+    """Banner, cards, question, chip. The hook line is drawn on a copy."""
+    qtext = " ".join((question or "").split())
+    cached = _hook_chrome_cache.get(qtext)
+    if cached is not None:
+        return cached.copy()
     img = background(3).convert("RGB")
     d = ImageDraw.Draw(img)
     d.rounded_rectangle([0, -40, C.W, 200], 40, fill=C.COLORS["banner"])
@@ -862,17 +938,9 @@ def hook_panel(line: str, question: str = ""):
         bf = F(bf.size - 2)
     bw = text_w(d, brand, bf)
     d.text(((C.W - bw) // 2, 58), brand, font=bf, fill=C.COLORS["banner_text"])
-
-    text = " ".join((line or "").split())
-    qtext = " ".join((question or "").split())
     card(img, [70, 240, C.W - 70, 700], fill=(255, 255, 255))
     d = ImageDraw.Draw(img)
-    f, lines, lh = fit_lines(d, text, C.W - 220, 360, start=72, min_size=42, max_lines=4)
-    top = 280 + (340 - len(lines) * lh) // 2
-    centered(d, lines, f, lh, C.W // 2, top, C.COLORS["q_text"])
     if qtext:
-        # Neeche ka card right rail se pehle rukta hai, aur khaali neeche
-        # hissa bharata hai (safe zone ~1670).
         card(img, [COL_L, 740, RAIL_X, 1480], fill=(255, 255, 255))
         d = ImageDraw.Draw(img)
         d.text((COL_L + 36, 770), "सवाल", font=F(36), fill=C.COLORS["opt_label"])
@@ -886,7 +954,24 @@ def hook_panel(line: str, question: str = ""):
     d.rounded_rectangle([cx - sw // 2 - 36, chip_y, cx + sw // 2 + 36, chip_y + 84],
                         36, fill=C.COLORS["timer_ring"])
     d.text((cx - sw // 2, chip_y + 14), sub, font=sf, fill=(255, 255, 255))
+    if img.mode != "RGB":
+        img = img.convert("RGB")
+    _hook_chrome_cache[qtext] = img
+    return img.copy()
+
+
+def hook_frame(line: str, question: str = "", t: float = 0.0):
+    """Hook at time t. t >= TYPE_SECONDS is the full, solid line. No fade."""
+    img = _hook_chrome(question)
+    _draw_hook_line(img, line, t)
+    if img.mode != "RGB":
+        img = img.convert("RGB")
     return img
+
+
+def hook_panel(line: str, question: str = ""):
+    """Pehle ~2 second, line poori dikh chuki ho. Topic teaser + sawaal (jawab nahi)."""
+    return hook_frame(line, question, hooktype.TYPE_SECONDS)
 
 
 def comment_panel(questions=None):
