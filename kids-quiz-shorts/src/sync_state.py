@@ -30,6 +30,7 @@ HERE = Path(__file__).resolve().parent.parent          # kids-quiz-shorts/
 USED = "data/used.json"
 LEDGER = "data/uploads.json"
 TEXT_FILES = ["LAST_RUN.md", "data/competitor_insights.json"]
+QUALITY = "data/quality_history.jsonl"
 
 
 def git(*args, check=True, cwd=None):
@@ -72,6 +73,22 @@ def changed_ledger_rows(base, ours):
     return [r for r in ours if isinstance(r, dict) and by.get(r.get("video_id")) != r]
 
 
+def new_quality_lines(base_text, ours_text):
+    """Is run ne jo nayi quality-history lines jodi."""
+    base = set((base_text or "").splitlines())
+    return [ln for ln in (ours_text or "").splitlines() if ln and ln not in base]
+
+
+def merge_quality(remote_text, added_lines):
+    lines = [ln for ln in (remote_text or "").splitlines() if ln]
+    have = set(lines)
+    for ln in added_lines:
+        if ln and ln not in have:
+            lines.append(ln)
+            have.add(ln)
+    return ("\n".join(lines) + "\n") if lines else ""
+
+
 def merge_ledger(remote, changed):
     out = [dict(r) for r in remote if isinstance(r, dict)]
     idx = {r.get("video_id"): i for i, r in enumerate(out)}
@@ -105,7 +122,11 @@ def main(argv=None):
     base_led = _load(_show(f"HEAD:{prefix}{LEDGER}"), [])
     changed_led = changed_ledger_rows(base_led, ours_led)
     texts = {f: (HERE / f).read_text(encoding="utf-8") for f in TEXT_FILES if (HERE / f).exists()}
-    print(f"[sync] used +{len(added_used)}, ledger ~{len(changed_led)}, files {sorted(texts)}")
+    ours_q = (HERE / QUALITY).read_text(encoding="utf-8") if (HERE / QUALITY).exists() else ""
+    base_q = _show(f"HEAD:{prefix}{QUALITY}") or ""
+    added_q = new_quality_lines(base_q, ours_q)
+    print(f"[sync] used +{len(added_used)}, ledger ~{len(changed_led)}, "
+          f"quality +{len(added_q)}, files {sorted(texts)}")
 
     for attempt in range(1, a.attempts + 1):
         try:
@@ -120,7 +141,12 @@ def main(argv=None):
                                                       ensure_ascii=False, indent=1), encoding="utf-8")
             for f, t in texts.items():
                 (HERE / f).write_text(t, encoding="utf-8")
-            git("add", USED, *[f for f in [LEDGER, *texts] if (HERE / f).exists()])
+            if added_q or (HERE / QUALITY).exists():
+                remote_q = (HERE / QUALITY).read_text(encoding="utf-8") if (HERE / QUALITY).exists() else ""
+                merged_q = merge_quality(remote_q, added_q)
+                if merged_q:
+                    (HERE / QUALITY).write_text(merged_q, encoding="utf-8")
+            git("add", USED, *[f for f in [LEDGER, QUALITY, *texts] if (HERE / f).exists()])
             if git("diff", "--staged", "--quiet", check=False).returncode == 0:
                 print("[sync] kuch badla nahi — push ki zaroorat nahi")
                 return 0
