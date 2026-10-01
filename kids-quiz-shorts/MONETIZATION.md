@@ -45,14 +45,15 @@ Subscribers are the first gate for both: 21 and 70 today, against 500 and 1,000 
 | Regular public uploads | 3 Shorts/day plus long format | 5 Shorts/day | Yes, but Paise's token died on 28-Sep (see PR #2). Uploads stop until you re-auth |
 | Original / non-repetitive content (the "reused/repetitive content" policy) | topic bank, one-time use | LRU, no-repeat picker + 64 new questions (quiz PR) | Partly. Quiz repeated riddles until this PR, and a template channel making 5 near-identical videos a day is a YPP review risk |
 | Long-form watch hours | long format exists | none | Paise: yes (1/topic). Quiz: no |
-| Audience / made-for-kids label correct | general (finance) | **False, but the history and design point to kids. Risk** | No. Your decision (see the quiz README) |
+| Audience / made-for-kids label correct | general (finance) | General audience (teens, adults, exam/GK fans), made-for-kids **False** — decided 01-Oct-2026; kid/school signals removed from code and metadata | Yes for new uploads. Keep the Studio channel audience on "not made for kids" |
 | 2-Step Verification, AdSense, Studio "Get notified" | — | — | **No. Manual (you)** |
 | No Community Guidelines strikes | unknown | unknown | Not checked. Look in Studio |
 | Comments/engagement | pinned comment text | pinned comment **never posted (403 scope)** | Quiz: fixed in PR, needs a re-auth with `youtube.force-ssl` |
 
-**Made-for-kids and money (Quiz):** a made-for-kids video can still earn in YPP, but it gets
-non-personalized ads only (lower RPM), no comments, and some features switched off. A wrong "not for kids"
-label is a policy and COPPA risk, and YouTube can change the label itself.
+**Audience (Quiz):** the channel targets a general audience, so made-for-kids stays False (comments and
+personalized ads stay on). That only holds if the content really is general: exam-level GK questions, adult
+"आप" register, and no school/kids wording in titles, tags, hooks or design. YouTube sets the label from
+content and audience and can change it itself, so keep it that way.
 
 **Finance channel (Paise):** YouTube places financial-advice content under stricter ad-suitability rules.
 Keep the "शिक्षा के लिए, सलाह नहीं" (education only, not advice) line and avoid naming buy/sell calls. The
@@ -85,13 +86,13 @@ Subscriptions and that Bonuses are invite-only; I could not verify this on an of
 | Token kept alive | **No.** `IG_ACCESS_TOKEN` (set 24-Sep) is a ~60-day token and expires around 23-Nov-2026. Refresh it manually |
 | Follower count / monetization status read | No |
 | Gifts, payouts, Creator Marketplace setup | **No. Manual (you) in the app** |
-| Quiz Pathshala on Instagram | Not posted at all. If you add it, note the "content for children" exclusion |
+| Quiz Pathshala on Instagram | Not posted at all |
 
 ## Your manual steps
 
 1. Paise: set the OAuth consent screen to **In production**, then re-auth (`python youtube_auth.py --set-github-secret`).
 2. Quiz: re-auth with `youtube.force-ssl` (`python src/upload.py --auth --set-github-secret`) so the comments actually post.
-3. Quiz: decide on made-for-kids and set the channel audience in Studio to match.
+3. Quiz: keep the channel audience in Studio on "No, it's not made for kids" (matches `MADE_FOR_KIDS = False`).
 4. Both: turn on 2-Step Verification, then in Studio go to **Earn → Get notified**. Create AdSense only when you apply.
 5. Instagram: refresh the token before ~23-Nov, and check Professional dashboard → Monetization status.
 6. Optional: add a `YT_DATA_API_KEY` secret so competitor + own-slot research runs.

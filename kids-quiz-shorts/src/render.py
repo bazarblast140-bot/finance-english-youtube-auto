@@ -646,9 +646,9 @@ def reveal_banner_text(qnum, total):
     - Aakhri sawaal + SUBSCRIBE_CTA="end": ek hi subscribe line — value dene
       ke BAAD, bina extra second aur bina bolne wali line ke."""
     if qnum < total and getattr(C, "NEXT_QUESTION_TEASER", True):
-        return "रुको! अगला सवाल आ रहा है…"
+        return "रुकिए! अगला सवाल आ रहा है…"
     if qnum == total and getattr(C, "SUBSCRIBE_CTA", "end") == "end":
-        return f"रोज़ {C.VIDEOS_PER_DAY} नए सवाल — सब्सक्राइब करें"
+        return f"रोज़ {C.VIDEOS_PER_DAY} नए क्विज़ — सब्सक्राइब कीजिए"
     return None
 
 

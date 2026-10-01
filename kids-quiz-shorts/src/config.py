@@ -42,30 +42,18 @@ READ_PAD_SECONDS = 0.6      # voice khatam hone ke baad thoda gap
 BRAND = "QUIZ PATHSHALA"
 HANDLE = "@QuizPathshalaIndia"
 
-# ---------- COPPA / Made for Kids ----------
-# Rajesh ne False choose kiya taaki comments chaalu rahein (engagement CTA
-# kaam kare, aur personalized ads se RPM bacha rahe).
-#
-# !! RISK (30-Sep-2026 review) !! Ye sirf "grey area" nahi hai:
-#   - README, purane tags ("hindi riddles for class 1 to 5"), hooks
-#     ("स्कूल जाने से पहले", "90% बच्चे...") aur cartoon-style design sab
-#     bacchon ko target karte dikhte the. YouTube ke rule me label CONTENT
-#     aur INTENDED AUDIENCE se tay hota hai, creator ki marzi se nahi.
-#     YouTube khud video ko "made for kids" set kar sakta hai, aur galat
-#     label par channel pe action / FTC (COPPA) penalty ka risk hai.
-#   - Is PR ne kids-signal wale tags/hooks hata diye hain taaki metadata
-#     "general Hindi GK (teens + adults, competitive exam)" wale pivot se
-#     match kare. Par ASLI faisla Rajesh ka hai — code ye flag chupke se
-#     nahi badalta. Dekho README "Made for Kids" section.
-#   - True karne ka asar: comments band, pinned comment nahi, personalized
-#     ads nahi (RPM kam), notification bell / Shorts remix jaise features
-#     band. Monetization (YPP) phir bhi possible hai.
-# Channel-level "audience" setting (YouTube Studio > Settings > Channel >
-# Advanced) bhi isi ke saath match rakhna.
+# ---------- Audience / Made for Kids ----------
+# FAISLA (Rajesh, 01-Oct-2026): QUIZ PATHSHALA kids channel NAHI hai.
+# Audience = general: teens, adults, competitive-exam (SSC/Railway/Police)
+# aur GK fans. Isliye MADE_FOR_KIDS = False rehta hai, aur content, metadata,
+# hooks aur design me bacchon/school wala koi signal nahi hona chahiye
+# (tests/test_growth.py ye check karta hai). Sawaal exam-GK level ke hon,
+# aur bhasha "आप" wali (कीजिए/लिखिए), "तुम/तू" wali nahi.
+# Channel-level audience setting (YouTube Studio > Settings > Channel >
+# Advanced) bhi "No, it's not made for kids" hi rakhni hai.
 MADE_FOR_KIDS = False
 
-CTA_TEXT = ("घर में सबको ये सवाल पूछो!" if MADE_FOR_KIDS
-            else "जवाब कमेंट में लिखो 👇")
+CTA_TEXT = "अपना जवाब कमेंट में लिखिए"   # on-screen footer: emoji mat daalo (font me glyph nahi)
 
 # Palette — high contrast, mobile pe 3 inch me turant padha jaana chahiye
 # Palette channel branding se match ki hai — purple banner, yellow accent,
@@ -167,12 +155,13 @@ EDGE_VOICE = os.getenv("EDGE_VOICE", "hi-IN-SwaraNeural")
 
 # ---------- scheduling ----------
 # GitHub Actions me UTC cron use hota hai; ye sirf metadata/labelling ke liye.
-# 5 video roz. Time bacchon ki availability ke hisaab se chuna hai:
-#   morning  — school jaane se pehle
-#   noon     — lunch / ghar pe
-#   paheli   — school ke baad, riddle (search + family time)
-#   evening  — homework se pehle
-#   night    — khaane ke baad, family time
+# 5 video roz (QUIZ_ACTIVE_SLOTS se kam kar sakte ho). General audience ke
+# daily routine ke hisaab se:
+#   morning  — subah ki chai / commute
+#   noon     — lunch break
+#   paheli   — shaam se pehle, riddle
+#   evening  — office / padhai ke baad
+#   night    — khaane ke baad
 SLOT_ORDER = ["morning", "noon", "paheli", "evening", "night"]
 
 # 22-Sep-2026: paheli wapas 1/din kiya.
@@ -193,7 +182,6 @@ SLOTS = {
     "evening": "17:30 IST",
     "night":   "20:30 IST",
 }
-VIDEOS_PER_DAY = len(SLOT_ORDER)
 PAHELI_SUB = "पहेली"
 
 
@@ -206,9 +194,9 @@ PAHELI_SUB = "पहेली"
 # Line sach honi chahiye: nakli "90% log galat" statistics nahi.
 HOOK_ON_SCREEN = True
 HOOK_LINES = {
-    "quiz":   ["8 सेकंड में जवाब दो!", "सोचो, फिर बताओ!", "ये आता है आपको?",
+    "quiz":   ["8 सेकंड में जवाब दीजिए!", "सोचिए, फिर बताइए!", "ये आता है आपको?",
                "आज का GK चैलेंज", "पक्का पता है?"],
-    "paheli": ["बूझो तो जानें!", "8 सेकंड में बूझो!", "दिमाग़ लगाओ!",
+    "paheli": ["बूझिए तो जानें!", "8 सेकंड में बूझिए!", "दिमाग़ लगाइए!",
                "आज की पहेली"],
 }
 # Q1 ka jawab aane ke baad viewer swipe kar deta hai (Q2 title me hai hi
@@ -234,5 +222,8 @@ BANK_LOW_DAYS = 7          # itne din se kam ka fresh stock bacha to WARNING
 # QUIZ_ACTIVE_SLOTS="morning,paheli,night" set karo to baaki slot ke run
 # bina upload ke skip ho jaate hain — workflow file edit kiye bina
 # upload frequency kam/zyada kar sakte ho.
-ACTIVE_SLOTS = [s.strip() for s in os.getenv("QUIZ_ACTIVE_SLOTS", "").split(",")
-                if s.strip()] or list(SLOT_ORDER)
+ACTIVE_SLOTS = [s for s in SLOT_ORDER
+                if s in {x.strip() for x in os.getenv("QUIZ_ACTIVE_SLOTS", "").split(",")}] \
+    or list(SLOT_ORDER)
+# Description / CTA me "रोज़ N नए सवाल" — active slots ke hisaab se sach rahe
+VIDEOS_PER_DAY = len(ACTIVE_SLOTS)

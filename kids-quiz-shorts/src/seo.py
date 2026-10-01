@@ -34,9 +34,9 @@ import config as C
 HOOKS = {
     "morning": ["सुबह का GK सवाल", "आज का पहला सवाल", "चाय के साथ एक सवाल"],
     "noon":    ["दोपहर का क्विज़ ब्रेक", "लंच ब्रेक चैलेंज", "दिमाग़ को 8 सेकंड दो"],
-    "paheli":  ["आज की पहेली बूझो", "दिमाग़ी पहेली — सोचो तो सही",
-                "घर वालों से पूछो ये पहेली"],
-    "evening": ["शाम का GK चैलेंज", "ये सवाल दोस्तों से पूछो"],
+    "paheli":  ["आज की पहेली बूझिए", "दिमाग़ी पहेली — सोचिए तो सही",
+                "ये पहेली दोस्तों से पूछिए"],
+    "evening": ["शाम का GK चैलेंज", "ये सवाल दोस्तों से पूछिए"],
     "night":   ["सोने से पहले एक सवाल", "आज का आख़िरी सवाल", "ये आता है आपको?"],
 }
 
@@ -113,12 +113,11 @@ def build(questions, slot="morning", date=None):
         + (f"\n💡 क्यों: {q['why']}" if q.get("why") else "")
         for i, q in enumerate(questions)
     )
-    engage = ("कितने सही हुए? घर में सबसे ये सवाल पूछिए 🎯"
-              if C.MADE_FOR_KIDS else "कितने सही हुए? कमेंट में लिखो 👇")
+    engage = "कितने सही हुए? कमेंट में लिखिए 👇"
 
     # Pehli line me hi keyword + sawaal — ye ~100 char sabse zyada weight
     # rakhte hain, isliye yahan "hook" nahi, saaf topic likhte hain.
-    slot_times = ", ".join(C.SLOTS[k] for k in C.SLOT_ORDER)
+    slot_times = ", ".join(C.SLOTS[k] for k in C.ACTIVE_SLOTS)
     # video me "इशारा" band ho (fauji CTA) to वजह sirf neeche description me hai
     tail = ("फिर सही जवाब और वजह।" if getattr(C, "HINT_BEFORE_ANSWER", True)
             else "फिर सही जवाब — वजह नीचे।")
@@ -134,7 +133,7 @@ def build(questions, slot="morning", date=None):
 
     description = f"""{first}
 
-{hook} 👉 रोज़ {C.VIDEOS_PER_DAY} नए सवाल — {C.BRAND} को सब्सक्राइब करो! 🔔
+{hook}! रोज़ नए सवालों के लिए {C.BRAND} को सब्सक्राइब कीजिए 🔔
 
 {q_block}
 
@@ -181,11 +180,11 @@ def build(questions, slot="morning", date=None):
     # jawab mil jaata tha, to kisi ko apna jawab likhne ki wajah nahi bachti
     # thi. Ab sawaal poochte hain (comment = engagement signal), jawab video me.
     n_q = len(questions)
-    ask = ("आपका जवाब क्या है? A, B, C या D — कमेंट करो 👇" if n_q == 1 else
-           f"{n_q} में से कितने सही हुए? अपना स्कोर कमेंट करो 👇")
+    ask = ("आपका जवाब क्या है? A, B, C या D — कमेंट कीजिए 👇" if n_q == 1 else
+           f"{n_q} में से कितने सही हुए? अपना स्कोर कमेंट कीजिए 👇")
     pinned = None if C.MADE_FOR_KIDS else (
         f"{ask}\n"
-        f"रोज़ {C.VIDEOS_PER_DAY} नए सवाल आते हैं — सब्सक्राइब करके रोज़ खेलो 🔔\n"
+        f"रोज़ नए सवाल आते हैं — सब्सक्राइब करके रोज़ खेलिए 🔔\n"
         f"किस विषय के सवाल और चाहिए — भारत, विज्ञान, दुनिया या पहेली?"
     )
 
