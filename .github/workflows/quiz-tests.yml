@@ -1,0 +1,38 @@
+name: Quiz Pathshala tests
+
+# PR par quiz code ke unit tests. Koi secret nahi chahiye, koi upload nahi.
+on:
+  pull_request:
+    paths:
+      - "kids-quiz-shorts/**"
+      - ".github/workflows/kids-gk-shorts.yml"
+      - ".github/workflows/quiz-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: kids-quiz-shorts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: kids-quiz-shorts/requirements.txt
+      - name: Devanagari fonts (render test)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-core >/dev/null
+      - run: pip install -r requirements.txt
+      - name: Unit tests
+        env:
+          GIT_AUTHOR_NAME: ci
+          GIT_AUTHOR_EMAIL: ci@example.invalid
+          GIT_COMMITTER_NAME: ci
+          GIT_COMMITTER_EMAIL: ci@example.invalid
+        run: python -m unittest discover -s tests -v
