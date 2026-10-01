@@ -39,7 +39,8 @@ KID_SIGNALS = (
 TUM_FORMS = ("करो", "लिखो", "रुको", "बताओ", "पूछो", "खेलो")
 CURIOSITY = (
     "सेकंड", "जवाब", "सोच", "पता", "चैलेंज", "बूझ", "दिमाग", "दिमाग़",
-    "तैयार", "पक्का", "चुन", "क्या", "बता", "पहेली", "सुलझ",
+    "तैयार", "पक्का", "चुन", "क्या", "कौन", "किस", "कहाँ", "कहां", "क्यों",
+    "कितने", "कितना", "बता", "पहेली", "सुलझ",
 )
 AAP_MARKS = (
     "आप", "आपको", "दीजिए", "बताइए", "सोचिए", "चुनिए", "बूझिए",
@@ -138,6 +139,19 @@ def hook_is_generic(line: str, question=None) -> bool:
     return not (qtoks & set(content_tokens(line)))
 
 
+def hook_is_keyword_list(line: str) -> bool:
+    """'सोचिए — कच्छ रण राज्य' jaisi tooti hui list. Sawal-jaisi line nahi."""
+    if "?" in (line or "") or "？" in (line or ""):
+        return False
+    parts = re.split(r"[—:–\-]", line or "", maxsplit=1)
+    tail = parts[-1] if len(parts) > 1 else (line or "")
+    words = [w.strip("।,. ") for w in tail.split() if w.strip("।,. ")]
+    if len(words) < 3:
+        return False
+    posts = {"का", "की", "के", "में", "से", "को", "पर", "ने", "कौन", "किस", "कहाँ", "कहां", "क्यों"}
+    return not any(w in posts for w in words)
+
+
 def hook_spoils_answer(line: str, question) -> bool:
     if not isinstance(question, dict):
         return False
@@ -164,7 +178,7 @@ def score_hook(line: str, voice: str = "", recent=(), question=None) -> tuple[in
     if any(tum in line for tum in TUM_FORMS):
         return 25, ["tum-register imperative"]
     score = 0
-    if 6 <= len(line) <= 48:
+    if 6 <= len(line) <= 60:
         score += 20
     else:
         score += 8
@@ -194,6 +208,9 @@ def score_hook(line: str, voice: str = "", recent=(), question=None) -> tuple[in
     if hook_is_generic(line, question):
         score = min(score, 48)
         notes.append("generic hook — question-specific teaser missing")
+    if hook_is_keyword_list(line):
+        score = min(score, 46)
+        notes.append("keyword-list hook — use a natural line")
     if hook_spoils_answer(line, question):
         score = min(score, 30)
         notes.append("hook names the correct option")
@@ -203,6 +220,125 @@ def score_hook(line: str, voice: str = "", recent=(), question=None) -> tuple[in
         score = min(score, 40)
         notes.append("unverified percentage claim")
     return min(100, score), notes
+
+
+_FILLER = frozenset({
+    "ये", "यह", "वह", "वो", "ही", "भी", "तो", "एक", "बहुत", "काफी",
+})
+_SOFT = frozenset({"विशाल", "बड़ा", "छोटा", "पुराना", "नया"})
+_ASKS = (
+    ("किस राज्य में", "किस राज्य में?"),
+    ("किस शहर में", "किस शहर में?"),
+    ("किस देश", "किस देश में?"),
+    ("कौन सी है", "कौन?"),
+    ("कौन सा है", "कौन?"),
+    ("कौन सी", "कौन?"),
+    ("कौन सा", "कौन?"),
+    ("कौन थे", "कौन?"),
+    ("कौन थी", "कौन?"),
+    ("कौन है", "कौन?"),
+    ("कहाँ है", "कहाँ?"),
+    ("कहां है", "कहाँ?"),
+    ("क्यों", "क्यों?"),
+    ("कितने", "कितने?"),
+    ("कितना", "कितना?"),
+)
+
+
+def _answer_text(q: dict) -> str:
+    opts = list(q.get("opts") or [])
+    ans = q.get("ans")
+    if isinstance(ans, int) and not isinstance(ans, bool) and 0 <= ans < len(opts):
+        return str(opts[ans])
+    return ""
+
+
+def _ask_from_question(q: dict, paheli: bool = False) -> str:
+    text = (q.get("q") or "").replace("?", " ").replace("।", " ")
+    for needle, ask in _ASKS:
+        if needle in text:
+            return "बूझिए!" if paheli and ask == "कौन?" else ask
+    return "बूझिए!" if paheli else "पता है आपको?"
+
+
+def _phrase(text: str, limit: int = 5, drop_soft: bool = False) -> str:
+    words = []
+    for raw in (text or "").replace("।", " ").split():
+        w = raw.strip(" ,—–-:;\"'")
+        if not w or w in _FILLER or (drop_soft and w in _SOFT):
+            continue
+        words.append(w)
+        if len(words) >= limit:
+            break
+    while words and words[-1] in {"का", "की", "के", "में", "से", "को", "पर", "ने", "है", "हैं"}:
+        words.pop()
+    return " ".join(words)
+
+
+def _lead_before_answer(q: dict) -> str:
+    why = (q.get("why") or "").strip()
+    ans = _answer_text(q)
+    if not why or not ans or ans not in why:
+        return ""
+    head = why.split(ans, 1)[0]
+    for opt in q.get("opts") or []:
+        if opt and opt != ans and opt in head:
+            head = head.split(opt, 1)[0]
+    return head
+
+
+def _question_hook(q: dict, paheli: bool = False) -> str:
+    text = (q.get("q") or "").strip().rstrip("?। ")
+    ask = _ask_from_question(q, paheli=paheli)
+    head = text
+    for needle, _ask in _ASKS:
+        if needle in text:
+            head = text.split(needle, 1)[0].strip(" ,—–-")
+            break
+    head = head.rstrip(" ,—–-")
+    if not head:
+        head = _phrase(text, limit=6) or (q.get("sub") or "ये सवाल")
+    line = f"{head} — {ask}"
+    if len(line) > 58:
+        line = f"{_phrase(head, limit=4)} — {ask}"
+    return " ".join(line.split())
+
+
+def offline_hook(q: dict, paheli: bool = False) -> str:
+    """Template jab DeepSeek na ho. Natural line, jawab ka naam nahi.
+
+    'सोचिए — कच्छ रण राज्य' jaisi keyword list nahi. Why ka pehla
+    hissa (jawab se pehle) warna khud sawaal ko chhota karke.
+    """
+    ask = _ask_from_question(q, paheli=paheli)
+    lead = _phrase(_lead_before_answer(q), limit=5, drop_soft=True)
+    if len(lead.split()) >= 3:
+        line = f"{lead} — {ask}"
+    else:
+        line = _question_hook(q, paheli)
+    if hook_spoils_answer(line, q) or any(t in line for t in TUM_FORMS):
+        line = _question_hook(q, paheli)
+    return " ".join(line.split())
+
+
+def accept_hook(line: str, question) -> bool:
+    """Live model ki line tabhi lo jab wo natural ho aur jawab na khole."""
+    line = " ".join((line or "").split())
+    if not line or len(line) > 70:
+        return False
+    low = line.lower()
+    if any(bad.lower() in low for bad in KID_SIGNALS):
+        return False
+    if any(tum in line for tum in TUM_FORMS):
+        return False
+    if _PERCENT_CLAIM.search(line):
+        return False
+    if hook_is_generic(line, question) or hook_is_keyword_list(line):
+        return False
+    if hook_spoils_answer(line, question):
+        return False
+    score, _notes = score_hook(line, line, question=question)
+    return score >= THRESHOLDS["hook"]
 
 
 def load_trends(path=None):

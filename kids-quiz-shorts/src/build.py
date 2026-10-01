@@ -178,36 +178,57 @@ def hook_seed(questions, slot, date=None, nonce=0) -> str:
     return f"{date:%Y%m%d}|{slot}|{qid}|{nonce}"
 
 
-def hook_line(questions, slot, date=None, nonce=0):
-    """Pehle 2 second: is sawaal ka topic, jawab ke bina.
+_HOOK_SYSTEM = (
+    "You write ONE Hindi hook line for an adult general-knowledge YouTube Short. "
+    "Natural spoken Hindi, not a keyword list. Aap register (बताइए / सोचिए / कीजिए), "
+    "never tum (करो / बताओ). No kid or school words. No percentages or invented "
+    "statistics. Do not use any forbidden word and do not reveal the answer. "
+    "Under 14 words. Curiosity. Reply with JSON only: {\"hook\":\"...\"}"
+)
 
-    Stock lines (HOOK_LINES) generic hain — score unhe fail karta hai.
-    Nakli "90% log" statistic nahi; hamare paas aisa data nahi hai.
+
+def _parse_hook_reply(raw: str) -> str:
+    data = quality._parse_json_blob(raw)
+    if isinstance(data, dict):
+        return str(data.get("hook") or "").strip()
+    return ""
+
+
+def hook_line(questions, slot, date=None, nonce=0, live=None, complete=None):
+    """Pehle ~2 second: natural line, jawab ke bina.
+
+    Live upload DeepSeek se ek line maangta hai. Key na ho, offline ho,
+    ya model kharab line de, to offline template.
     """
-    import random
     if not getattr(C, "HOOK_ON_SCREEN", False) or not questions:
         return None
     q = questions[0]
-    topic = quality.topic_phrase(q)
     is_ph = slot in C.PAHELI_SLOTS or any(item.get("sub") == C.PAHELI_SUB for item in questions)
-    if is_ph:
-        variants = [
-            f"बूझिए: {topic}",
-            f"सोचिए — {topic}",
-            f"{topic}? 8 सेकंड",
-        ]
-    else:
-        variants = [
-            f"बताइए: {topic}",
-            f"सोचिए — {topic}",
-            f"{topic}? 8 सेकंड",
-            f"पता है? {topic}",
-        ]
-    line = random.Random(hook_seed(questions, slot, date, nonce)).choice(variants)
-    if len(line) > 46:
-        short = " ".join(topic.split()[:3])
-        line = f"बूझिए: {short}" if is_ph else f"बताइए: {short}"
-    return line
+    template = quality.offline_hook(q, paheli=is_ph)
+    if live is None:
+        live = os.environ.get("QUIZ_QUALITY_OFFLINE") != "1" and bool(os.environ.get("DEEPSEEK_API_KEY"))
+    fn = complete
+    if fn is None and live:
+        fn = quality.deepseek_complete
+    if fn is None:
+        return template
+    opts = list(q.get("opts") or [])
+    ans = q.get("ans")
+    forbidden = []
+    if isinstance(ans, int) and not isinstance(ans, bool) and 0 <= ans < len(opts):
+        forbidden.append(opts[ans])
+    payload = json.dumps({
+        "question": q.get("q"),
+        "subject": q.get("sub"),
+        "forbidden": forbidden,
+    }, ensure_ascii=False)
+    try:
+        line = _parse_hook_reply(fn(_HOOK_SYSTEM, payload))
+    except (quality.FactCheckError, json.JSONDecodeError, ValueError, TypeError):
+        return template
+    if quality.accept_hook(line, q):
+        return line
+    return template
 
 
 def _save_still(stills_dir, name, img):
@@ -285,7 +306,6 @@ def render_video(segs, frames_dir: Path, stills_dir: Path | None = None):
             idx = _hardlink_rest(frames_dir, start, nf) if nf > 1 else idx
         elif kind == "timer":
             base, opt_end = render.question_panel(q, qn, tot)
-            render.footer(base, "सोचिए…", y=max(render.FOOTER_Y, opt_end + 28), after=opt_end)
             seg_secs = nf / C.FPS
             for f in range(nf):
                 elapsed = f / C.FPS
@@ -388,7 +408,7 @@ def prepare(args):
             print("[quality] koi sawaal nahi bacha")
             break
         print("[pick] " + " || ".join(f"{q['sub']}/{q['id']}: {q['q']}" for q in questions))
-        hook = hook_line(questions, args.slot, nonce=attempt)
+        hook = hook_line(questions, args.slot, nonce=attempt, live=not offline)
         voice = tts.hook_script(hook) if hook else ""
         if hook:
             print(f"[hook] on-screen+voice: {hook}")

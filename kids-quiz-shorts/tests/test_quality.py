@@ -34,11 +34,19 @@ def _state_q():
 class HookTests(unittest.TestCase):
     def test_specific_hook_scores_high(self):
         q = _state_q()
-        line = "बताइए: कच्छ रण राज्य"
+        line = "नमक का सफ़ेद रेगिस्तान — किस राज्य में?"
         score, notes = quality.score_hook(line, line, question=q)
         self.assertGreaterEqual(score, 70, notes)
+        self.assertFalse(quality.hook_is_keyword_list(line))
         self.assertNotIn("करो", line)
         self.assertNotIn("गुजरात", line)
+
+    def test_keyword_list_hook_penalised(self):
+        q = _state_q()
+        line = "सोचिए — कच्छ रण राज्य"
+        score, notes = quality.score_hook(line, line, question=q)
+        self.assertLess(score, 70, notes)
+        self.assertTrue(any("keyword-list" in n for n in notes))
 
     def test_generic_hook_penalised(self):
         q = _state_q()
@@ -69,14 +77,64 @@ class HookTests(unittest.TestCase):
         self.assertNotEqual(a, b)
         q = _state_q()
         line = build.hook_line([q], "noon", datetime(2026, 10, 1))
-        self.assertIn("कच्छ", line)
+        self.assertIn("कच्छ का रण", line)
+        self.assertIn("किस राज्य", line)
+        self.assertNotIn("रण राज्य", line.split("—")[-1])
         self.assertNotIn("गुजरात", line)
+        self.assertNotIn("कच्छ रण राज्य", line)
         self.assertNotIn("90%", line)
         self.assertNotIn(line, C.HOOK_LINES["quiz"])
+        self.assertFalse(quality.hook_is_keyword_list(line))
         for tum in ("करो", "लिखो", "रुको", "बताओ", "पूछो", "खेलो"):
             self.assertNotIn(tum, line)
         score, notes = quality.score_hook(line, line, question=q)
         self.assertGreaterEqual(score, 70, notes)
+
+    def test_why_lead_in_becomes_a_natural_hook(self):
+        q = _state_q()
+        q["why"] = "नमक का ये विशाल सफ़ेद रेगिस्तान गुजरात के कच्छ ज़िले में है, जहाँ हर साल रण उत्सव होता है।"
+        line = quality.offline_hook(q)
+        self.assertEqual(line, "नमक का सफ़ेद रेगिस्तान — किस राज्य में?")
+        self.assertNotIn("गुजरात", line)
+        score, notes = quality.score_hook(line, line, question=q)
+        self.assertGreaterEqual(score, 70, notes)
+
+    def test_offline_hook_falls_back_for_science_question(self):
+        import build
+        q = _q(text="दुनिया की सबसे तेज़ चीज़ कौन सी है?", opts=["आवाज़", "प्रकाश", "रॉकेट", "हवा"], ans=1,
+               why="प्रकाश एक सेकंड में धरती के 7 चक्कर लगा सकता है।")
+        line = build.hook_line([q], "morning", datetime(2026, 10, 1))
+        self.assertNotIn("प्रकाश", line)
+        self.assertIn("तेज़", line)
+        self.assertFalse(quality.hook_is_keyword_list(line))
+        score, notes = quality.score_hook(line, line, question=q)
+        self.assertGreaterEqual(score, 70, notes)
+
+    def test_deepseek_hook_used_and_bad_reply_falls_back(self):
+        import build
+        q = _state_q()
+
+        def good(system, user):
+            self.assertIn("forbidden", user)
+            self.assertNotIn("DEEPSEEK", system)
+            return json.dumps({"hook": "नमक का सफ़ेद रेगिस्तान — किस राज्य में?"})
+
+        line = build.hook_line([q], "noon", datetime(2026, 10, 1), complete=good)
+        self.assertIn("रेगिस्तान", line)
+
+        def leaks(system, user):
+            return json.dumps({"hook": "जवाब गुजरात है, बताइए"})
+
+        line = build.hook_line([q], "noon", datetime(2026, 10, 1), complete=leaks)
+        self.assertNotIn("गुजरात", line)
+        self.assertIn("कच्छ का रण", line)
+
+        def boom(system, user):
+            raise quality.FactCheckError("DeepSeek HTTP 500")
+
+        line = build.hook_line([q], "noon", datetime(2026, 10, 1), complete=boom)
+        self.assertNotIn("गुजरात", line)
+        self.assertGreaterEqual(quality.score_hook(line, line, question=q)[0], 70)
 
     def test_hook_frame_shows_the_question(self):
         import render
@@ -183,7 +241,7 @@ class FactTests(unittest.TestCase):
         self.assertEqual(got["bad_ids"], [])
 
         q = _state_q()
-        hook = "बताइए: कच्छ रण राज्य"
+        hook = "कच्छ का रण — किस राज्य में?"
         pre = quality.precheck([q], hook, hook, None, missing)
         self.assertNotIn("fact", pre["failures"])
         self.assertTrue(pre["pass_content"])
@@ -256,6 +314,12 @@ class VisualFontTests(unittest.TestCase):
         names = indiamap.for_question(state)
         self.assertEqual(names[0], "गुजरात")
         self.assertIsNone(indiamap.for_question(_q()))
+        lic = (C.ASSETS / "maps" / "LICENSE.txt").read_text(encoding="utf-8")
+        self.assertIn("public domain", lic.lower())
+        self.assertIn("Natural Earth", lic)
+        geo = C.ASSETS / "maps" / "india_states.geojson"
+        self.assertLess(geo.stat().st_size, 80_000)
+        self.assertIn("गुजरात", geo.read_text(encoding="utf-8"))
 
     def test_reveal_highlights_state(self):
         import indiamap
@@ -294,12 +358,41 @@ class VisualFontTests(unittest.TestCase):
         self.assertEqual(revealed.getpixel(indiamap.locate(box, "राजस्थान")), indiamap.PLAIN_FILL)
         self.assertEqual(revealed.getpixel(indiamap.locate(box, "महाराष्ट्र")), indiamap.PLAIN_FILL)
 
-        panel, _ = render.question_panel(q, 1, 2, highlight=None)
+        wide = (20, 20, 560, 540)
+        sheet = Image.new("RGB", (580, 560), (0, 0, 0))
+        indiamap.draw(sheet, wide, opts, correct=None)
+        self.assertGreaterEqual(indiamap.ink_width(wide), 400)
+        panel, opt_end = render.question_panel(q, 1, 2, highlight=None)
         panel = panel.convert("RGB")
+        self.assertGreaterEqual(render.map_ink_width(panel), 400)
+        self.assertGreater(opt_end, 1300)
+        self.assertLess(opt_end, render.SAFE_BOTTOM - 60)
         self.assertEqual(sum(1 for p in panel.getdata() if p == indiamap.ANSWER_FILL), 0)
         self.assertEqual(sum(1 for p in panel.getdata() if p == gold), 0)
+        self.assertLess(render.visual_slot(400)["bottom"], 1200)
         rev = render.reveal_at(q, 1, 2, 1.0).convert("RGB")
-        self.assertGreater(sum(1 for p in rev.getdata() if p == indiamap.ANSWER_FILL), 40)
+        box = indiamap.LAST_LAYOUT["box"]
+        x0, y0, x1, y1 = [int(v) for v in box]
+        greens = [(x, y) for y in range(y0, y1, 2) for x in range(x0, x1, 2)
+                  if rev.getpixel((x, y)) == indiamap.ANSWER_FILL]
+        self.assertGreater(len(greens), 80)
+        outside = [p for p in greens if not indiamap.covers("गुजरात", p[0], p[1])]
+        self.assertLess(len(outside) / len(greens), 0.04, "green fill left the state outline")
+        gx, gy = indiamap.locate(box, "गुजरात")
+        self.assertEqual(rev.getpixel((gx, gy)), indiamap.ANSWER_FILL)
+
+    def test_science_question_gets_an_icon_card(self):
+        import render
+        q = _q()
+        panel, opt_end = render.question_panel(q, 1, 2)
+        panel = panel.convert("RGB")
+        self.assertIsNone(__import__("indiamap").for_question(q))
+        ink = sum(1 for p in panel.getdata() if p == render.ICON_INK)
+        self.assertGreater(ink, 80, "science frame should draw an icon, not a blank card")
+        self.assertEqual(render.map_ink_width(panel), 0)
+        self.assertLess(opt_end, render.SAFE_BOTTOM)
+        # Options sit in the lower half, still above the Shorts overlay.
+        self.assertGreater(opt_end, 1200)
 
     def test_visual_score_fails_closed_without_font(self):
         score, _ = quality.score_visual(
