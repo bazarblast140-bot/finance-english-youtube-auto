@@ -218,15 +218,43 @@ def _save_ledger(rows):
     LEDGER.write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
+def _public_video_ids(yt, ids):
+    """videos.list (1 unit). None = unknown, caller may try the comment anyway.
+
+    A MagicMock or any non-dict response means 'unknown' so unit tests that
+    stub the client keep the old behaviour. Still-private videos are not
+    counted as a failed attempt — YouTube 403s comments until publishAt.
+    """
+    try:
+        resp = yt.videos().list(part="status", id=",".join(ids)).execute()
+    except Exception:
+        return None
+    if not isinstance(resp, dict):
+        return None
+    public = set()
+    for video in resp.get("items") or []:
+        if not isinstance(video, dict):
+            continue
+        status = video.get("status") or {}
+        if status.get("privacyStatus") == "public" and video.get("id"):
+            public.add(video["id"])
+    return public
+
+
 def post_pending_comments(max_n=5):
     """Scheduled (private + publishAt) video par upload ke turant baad comment
-    ho sake ya na ho — isliye jo reh gaye, unhe video public hone ke BAAD agle
-    run me daalte hain. 50 quota units/comment, isliye max_n."""
+    ho sake ya na ho — isliye jo reh gaye, unhe video public hone ke BAAD daalte
+    hain. Catch-up workflow ye bina naye upload ke chalata hai.
+
+    Pending list = uploads.json rows with pinned_comment and no comment_posted.
+    Post hone par comment_posted set hota hai — row pending set se hat jaati
+    hai (upload history row rehti hai). 50 quota units/comment, isliye max_n.
+    """
+    from slot_planner import pending_comment_rows
+
     rows = _ledger()
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    todo = [r for r in rows if r.get("pinned_comment") and not r.get("comment_posted")
-            and int(r.get("comment_attempts") or 0) < COMMENT_MAX_ATTEMPTS
-            and (r.get("publish_at") or "") <= now][-max_n:]
+    todo = pending_comment_rows(rows, now, COMMENT_MAX_ATTEMPTS)[-max_n:]
     if not todo:
         print("[comments] koi pending comment nahi")
         return 0
@@ -238,13 +266,17 @@ def post_pending_comments(max_n=5):
         return 0
     from googleapiclient.discovery import build
     yt = build("youtube", "v3", credentials=creds, cache_discovery=False)
+    public_ids = _public_video_ids(yt, [r["video_id"] for r in todo if r.get("video_id")])
     done = 0
     for r in todo:
+        if public_ids is not None and r.get("video_id") not in public_ids:
+            print(f"[comments] {r.get('video_id')} abhi public nahi — attempt nahi badhaya")
+            continue
         try:
             post_comment(yt, r["video_id"], r.get("channel_id"), r["pinned_comment"])
             r["comment_posted"] = now
             done += 1
-            print(f"[comments] posted on {r['video_id']} (Studio me pin karo)")
+            print(f"[comments] posted on {r['video_id']} — pending se hata diya (Studio me pin karo)")
         except Exception as e:
             r["comment_error"] = str(e)[:200]
             r["comment_attempts"] = int(r.get("comment_attempts") or 0) + 1
@@ -270,7 +302,50 @@ def video_status(meta, privacy):
     }
 
 
-def upload(meta_path: Path, privacy="public", publish_at=None):
+def _coverage_keys():
+    """List-only YouTube read + ledger. Raises on API failure (fail closed)."""
+    from googleapiclient.discovery import build
+    from slot_planner import covered_from_ledger, covered_from_videos, fetch_videos
+    yt = build("youtube", "v3", credentials=_creds(), cache_discovery=False)
+    videos = fetch_videos(yt)
+    return covered_from_videos(videos) | covered_from_ledger(_ledger())
+
+
+def _refuse_duplicate(publish_at, target_slot, target_date, skip_coverage):
+    """Exit 2 when this slot+date already has a public or scheduled video.
+
+    Exit 1 when the check itself cannot run — uploading blind can duplicate
+    a slot and burn the ~1600-unit insert.
+    """
+    if skip_coverage:
+        return
+    from slot_planner import nearest_slot, parse_time
+    key = None
+    if publish_at:
+        key = nearest_slot(parse_time(publish_at))
+    elif target_slot and target_date:
+        key = (target_slot, target_date)
+    if key is None:
+        raise SystemExit(
+            "[upload] public upload ke liye publishAt ya target slot+date chahiye "
+            "— coverage check ke bina upload nahi karunga"
+        )
+    try:
+        covered = _coverage_keys()
+    except SystemExit:
+        raise
+    except Exception as exc:
+        raise SystemExit(
+            f"[upload] coverage check failed ({type(exc).__name__}: {exc}) "
+            "— upload nahi kiya, duplicate se bachne ke liye"
+        ) from None
+    if key in covered:
+        print(f"UPLOAD_SKIPPED=duplicate {key[0]} {key[1]}")
+        raise SystemExit(2)
+
+
+def upload(meta_path: Path, privacy="public", publish_at=None, target_slot=None,
+           target_date=None, skip_coverage=False):
     from googleapiclient.discovery import build
     from googleapiclient.http import MediaFileUpload
     from googleapiclient.errors import HttpError
@@ -280,6 +355,9 @@ def upload(meta_path: Path, privacy="public", publish_at=None):
     if not video.exists():
         video = meta_path.parent / video.name
     assert video.exists(), f"MP4 nahi mila: {video}"
+
+    if privacy == "public":
+        _refuse_duplicate(publish_at, target_slot, target_date, skip_coverage)
 
     status = video_status(meta, privacy)
     if publish_at:
@@ -395,6 +473,12 @@ if __name__ == "__main__":
     ap.add_argument("--publish-slot", default=None,
                     help="slot ka naam — uske config.SLOTS wale IST time pe "
                          "YouTube khud public karega (GitHub cron late ho tab bhi)")
+    ap.add_argument("--target-slot", default=None,
+                    help="coverage key ka slot (immediate public upload)")
+    ap.add_argument("--target-date", default=None,
+                    help="coverage key ki IST date YYYY-MM-DD")
+    ap.add_argument("--skip-coverage-check", action="store_true",
+                    help="unlisted/private test upload — scheduled public slot skip")
     a = ap.parse_args()
     if a.auth:
         do_auth(a.client_secret_file, a.set_github_secret)
@@ -412,7 +496,10 @@ if __name__ == "__main__":
         if not pub_at and a.publish_slot and a.privacy == "public":
             pub_at = resolve_publish_at(a.publish_slot)
         try:
-            upload(a.dir / "metadata.json", a.privacy, pub_at)
+            upload(a.dir / "metadata.json", a.privacy, pub_at,
+                   target_slot=a.target_slot or a.publish_slot,
+                   target_date=a.target_date,
+                   skip_coverage=a.skip_coverage_check)
         except Exception as e:
             # Poora error stdout pe — CI logs blob storage pe hote hain, isliye
             # error ko file me bhi likhte hain jise workflow repo me commit karta hai.

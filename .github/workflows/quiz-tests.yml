@@ -7,6 +7,7 @@ on:
       - "kids-quiz-shorts/**"
       - ".github/workflows/kids-gk-shorts.yml"
       - ".github/workflows/health-check.yml"
+      - ".github/workflows/quiz-catchup.yml"
       - ".github/workflows/quiz-tests.yml"
   workflow_dispatch:
 

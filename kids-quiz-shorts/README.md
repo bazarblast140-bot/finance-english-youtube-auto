@@ -136,19 +136,30 @@ chalata hai; video `private + publishAt` se exact IST time par public hota hai:
 se nahi.
 
 **Kam slot chalane ho to:** repo variable `QUIZ_ACTIVE_SLOTS`
-(e.g. `morning,paheli,night`). Workflow ka "Slot decide karo" step ise padhta
-hai — list me na ho to us run me kuch nahi banta. Khaali = saare 5.
-Description ka "रोज़ N नए सवाल" bhi isi se banta hai.
+(e.g. `morning,paheli,night`). Planner, catch-up, aur public build ise
+respect karte hain — list me na ho to us slot ka video nahi banta. Khaali =
+saare 5. Description ka "रोज़ N नए सवाल" bhi isi se banta hai.
 
-Naya slot jodna ho to **do jagah** badalna padega: workflow ka cron+case
-block, aur `config.py` ka `SLOT_ORDER`.
+Naya slot jodna ho to **do jagah** badalna padega: workflow ka cron
+(`kids-gk-shorts.yml` + `src/slot_planner.py` ka `CRON_TO_SLOT`), aur
+`config.py` ka `SLOT_ORDER`.
 
 Manual chalane ke liye: Actions tab → *Quiz Pathshala GK Shorts* → **Run workflow**
 (default privacy `unlisted` hai — pehla run dekh lo, phir `public` karna).
+`date` (IST `YYYY-MM-DD`) do to video usi din ke slot par schedule hoti hai.
+Catch-up hamesha `privacy=public` bhejta hai, warna `publishAt` lagta hi nahi.
 
-**GitHub cron on-time nahi hai** — peak load pe 5–30 min late chal sakta hai.
-Agar exact time chahiye to workflow me `--publish-at '2026-08-26T02:00:00Z'`
-add kar do: video pehle private upload hoga, YouTube khud exact second pe public karega.
+**GitHub cron drop / late hota hai.** `.github/workflows/quiz-catchup.yml`
+ghante mein teen baar (`:17`, `:41`, `:53`) channel ki list padhta hai
+(~3 quota units) aur jo active slot agle 36 ghante mein khali hai uske liye
+build dispatch karta hai. Video `private + publishAt` se usi IST time par
+public hoti hai. Woh scheduled queue hi buffer hai — alag pre-render cache
+nahi. Ek slot+date par ek build, phir sirf ek retry; uske baad `health-alert`
+label wala issue. Late run aaj ka slot bharta hai agar wo abhi baaki hai
+(10 minute se kam bache to turant public); nikal chuka ho to sabse nazdeek
+khali slot, kal wahi slot nahi jab wo pehle se covered ho.
+
+Purane 5 build crons backup hain. Health check unke schedule runs dekhta hai.
 
 ## Health check (roz 3 baar)
 
@@ -362,6 +373,7 @@ error text log me poora print hota hai.
 src/config.py    saare settings — sirf yahin badlo
 src/pick.py      sawaal chunna + repeat rokna
 src/tts.py       Edge default; ElevenLabs only if QUIZ_TTS_PROVIDER=elevenlabs
+src/slot_planner.py  coverage, catch-up, no upload
 src/sfx.py       tik-tik, ding, whoosh — code se bante hain (no copyright)
 src/render.py    1080x1920 frames
 src/build.py     sab jodta hai -> MP4 + metadata.json
