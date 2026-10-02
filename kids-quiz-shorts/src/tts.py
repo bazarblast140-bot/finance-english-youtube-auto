@@ -1,13 +1,16 @@
 """Voice engine.
 
-Order: ElevenLabs (primary, tumhari female Hindi voice) -> edge-tts (hi-IN-SwaraNeural)
--> silent track (pipeline kabhi crash na ho, video phir bhi bane).
+Default: edge-tts (hi-IN-SwaraNeural, free). ElevenLabs sirf tab jab repo
+variable QUIZ_TTS_PROVIDER=elevenlabs ho — warna API key set hone par bhi
+ElevenLabs call nahi hoti (credit waste na ho). ElevenLabs fail ho to Edge,
+phir silent track (pipeline crash na ho).
 
 Har call ka output ek WAV file + uska exact duration, kyunki render.py ko
 timing chahiye segment length set karne ke liye.
 """
 import hashlib
 import json
+import os
 import re
 import subprocess
 import shutil
@@ -153,11 +156,32 @@ def _silent(text: str, out_wav: Path) -> bool:
 
 
 # ---------------------------------------------------------------- public
+def tts_provider(raw=None):
+    """edge (default, free) or elevenlabs (opt-in).
+
+    Repo variable QUIZ_TTS_PROVIDER. Koi aur value, ya khaali, Edge hai —
+    ElevenLabs key environment me ho tab bhi call nahi hoti.
+    """
+    if raw is None:
+        raw = os.getenv("QUIZ_TTS_PROVIDER", "edge")
+    if str(raw or "").strip().lower() in {"elevenlabs", "eleven", "11labs"}:
+        return "elevenlabs"
+    return "edge"
+
+
+def engine_order(provider=None):
+    """(name, fn) pairs. ElevenLabs opt-in falls back to Edge, then silence."""
+    if tts_provider(provider) == "elevenlabs":
+        return (("elevenlabs", _eleven), ("edge", _edge), ("silent", _silent))
+    return (("edge", _edge), ("silent", _silent))
+
+
 def say(text: str, tag: str = "") -> tuple[Path, float, str]:
     """Returns (wav_path, duration_seconds, engine_used). Cached by text hash."""
     text = clean_for_tts(text)
+    provider = tts_provider()
     key = hashlib.sha1(
-        f"{text}|{C.ELEVEN_VOICE_ID}|{C.ELEVEN_MODEL}".encode()
+        f"{text}|{provider}|{C.ELEVEN_VOICE_ID}|{C.ELEVEN_MODEL}".encode()
     ).hexdigest()[:16]
     out_wav = CACHE / f"{tag}_{key}.wav" if tag else CACHE / f"{key}.wav"
     meta = out_wav.with_suffix(".json")
@@ -166,7 +190,7 @@ def say(text: str, tag: str = "") -> tuple[Path, float, str]:
         m = json.loads(meta.read_text())
         return out_wav, m["dur"], m["engine"] + "+cache"
 
-    for name, fn in (("elevenlabs", _eleven), ("edge", _edge), ("silent", _silent)):
+    for name, fn in engine_order(provider):
         if fn(text, out_wav):
             dur = audio_duration(out_wav)
             meta.write_text(json.dumps({"dur": dur, "engine": name, "text": text}))

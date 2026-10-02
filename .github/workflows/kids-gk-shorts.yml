@@ -9,12 +9,16 @@ name: Quiz Pathshala GK Shorts
 #   17:30 IST -> 12:00 UTC  (evening: office / padhai ke baad)
 #   20:30 IST -> 15:00 UTC  (night:   khaane ke baad)
 #
-# GitHub cron on-time NAHI hai — regularly 10-20 ghante late chal raha hai.
-# Isliye:
-#   1. Cron target se ~20h PEHLE fire hota hai (build buffer)
-#   2. Upload private + publishAt se hota hai — YouTube exact IST time pe public karta hai
-#   3. Agar run itna late ho ki aaj ka target nikal jaye, upload.py KAL usi time pe schedule karta hai
-#   4. Har slot alag concurrency group — queue me block nahi hote
+# GitHub cron on-time NAHI hai — regularly drop ya 10-20 ghante late.
+# Asli schedule quiz-catchup.yml hai: har ghante kai baar planner chalta hai
+# aur jo slot agle 36 ghante me khali hai uske liye is workflow ko slot+date
+# ke saath dispatch karta hai (privacy=public → private + publishAt).
+# Ye crons backup hain. Plan job coverage dekhta hai:
+#   - aaj ka slot abhi baaki hai aur khali hai → aaj schedule (≤10 min → turant public)
+#   - aaj ka slot nikal gaya → sabse nazdeek khali slot, KAL wahi slot nahi
+#     jab wo pehle se scheduled/public ho
+#   - slot+date par video hai → skip (duplicate upload nahi)
+# Buffer = YouTube par agle 24-36h ki scheduled videos. Alag pre-render cache nahi.
 #
 # CHANNEL: QUIZ PATHSHALA (YOUTUBE_* secrets)
 #
@@ -23,6 +27,7 @@ name: Quiz Pathshala GK Shorts
 #                       (khaali = saare 5). Upload frequency yahin se badlo.
 #                       Slot step me padha jaata hai + build step ko env me jaata hai.
 #   QUIZ_SUBSCRIBE_CTA  end (default) | before_answer | off
+#   QUIZ_TTS_PROVIDER   edge (default, free) | elevenlabs
 # Optional SECRET:
 #   YT_DATA_API_KEY     competitor research (src/competitor_research.py). Na ho to skip.
 #                       ALAG Google Cloud project ki key ho — upload OAuth ka quota
@@ -48,17 +53,25 @@ on:
         options: [morning, noon, paheli, evening, night]
         default: morning
       privacy:
-        description: "unlisted / public / private"
+        description: "unlisted / public / private. Catch-up hamesha public bhejta hai taaki publishAt lage."
         type: choice
         options: [unlisted, public, private]
         default: unlisted
+      date:
+        description: "IST date YYYY-MM-DD. Catch-up set karta hai. Khaali = planner decide kare."
+        type: string
+        required: false
+        default: ""
 
 permissions:
   contents: write
 
-# Har slot alag group — ek late night run morning ko block na kare
+# Dispatch path: one group per slot+date so two catch-up runs cannot both
+# build morning 2026-10-03. Schedule crons do not know the date until the
+# planner runs, so they use the cron expression; the attempts file is the
+# lock shared with the dispatcher.
 concurrency:
-  group: quiz-pathshala-${{ github.event.schedule || inputs.slot || github.run_id }}
+  group: quiz-slot-${{ inputs.slot || github.event.schedule }}-${{ inputs.date || 'auto' }}
   cancel-in-progress: false
 
 defaults:
@@ -66,7 +79,49 @@ defaults:
     working-directory: kids-quiz-shorts
 
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      action: ${{ steps.prep.outputs.action }}
+      slot: ${{ steps.prep.outputs.slot }}
+      date: ${{ steps.prep.outputs.date }}
+      privacy: ${{ steps.prep.outputs.privacy }}
+      publish_at: ${{ steps.prep.outputs.publish_at }}
+      immediate: ${{ steps.prep.outputs.immediate }}
+      reason: ${{ steps.prep.outputs.reason }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt
+
+      - name: Coverage decide (list calls only — no upload)
+        id: prep
+        env:
+          YT_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          QUIZ_ACTIVE_SLOTS: ${{ vars.QUIZ_ACTIVE_SLOTS }}
+        run: |
+          git config user.name  "quiz-bot"
+          git config user.email "quiz-bot@users.noreply.github.com"
+          python src/slot_planner.py prepare \
+            --event "${{ github.event_name }}" \
+            --slot "${{ inputs.slot }}" \
+            --date "${{ inputs.date }}" \
+            --privacy "${{ github.event_name == 'schedule' && 'public' || inputs.privacy }}" \
+            --schedule "${{ github.event.schedule }}" \
+            --branch "${{ github.ref_name }}" \
+            --push
+          echo "plan: $(grep -E '^(action|slot|date|reason|immediate|publish_at)=' "$GITHUB_OUTPUT" | tr '\n' ' ')"
+
   make-and-upload:
+    needs: plan
+    if: needs.plan.outputs.action == 'build'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -75,33 +130,15 @@ jobs:
       - name: Slot decide karo
         id: slot
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "slot=${{ inputs.slot }}"       >> $GITHUB_OUTPUT
-            echo "privacy=${{ inputs.privacy }}" >> $GITHUB_OUTPUT
-          else
-            # cron -> slot mapping. Naya slot jodo to yahan aur config.py
-            # ke SLOT_ORDER, dono jagah add karna.
-            case "${{ github.event.schedule }}" in
-              "0 6 * * *")   SLOT=morning ;;
-              "0 12 * * *")  SLOT=noon ;;
-              "30 14 * * *") SLOT=paheli ;;
-              "0 16 * * *")  SLOT=evening ;;
-              "0 19 * * *")  SLOT=night ;;
-              *)             SLOT=morning ;;
-            esac
-            echo "slot=$SLOT"     >> $GITHUB_OUTPUT
-            echo "privacy=public" >> $GITHUB_OUTPUT
-          fi
-          echo "decided slot=$(cat $GITHUB_OUTPUT | grep slot=) privacy=$(cat $GITHUB_OUTPUT | grep privacy=)"
-          # QUIZ_ACTIVE_SLOTS (repo variable) — manual run hamesha chalta hai
-          ACTIVE="${{ vars.QUIZ_ACTIVE_SLOTS }}"
-          S=$(grep '^slot=' $GITHUB_OUTPUT | tail -1 | cut -d= -f2)
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ -z "$ACTIVE" ] || echo ",$ACTIVE," | tr -d ' ' | grep -q ",$S,"; then
-            echo "active=true" >> $GITHUB_OUTPUT
-          else
-            echo "active=false" >> $GITHUB_OUTPUT
-            echo "::notice::slot $S QUIZ_ACTIVE_SLOTS ($ACTIVE) me nahi — is run me kuch nahi banega"
-          fi
+          # Plan job ne coverage dekh li. Yahan sirf uska faisla aage badhta hai.
+          # QUIZ_ACTIVE_SLOTS planner me respect hota hai (public runs).
+          echo "slot=${{ needs.plan.outputs.slot }}" >> $GITHUB_OUTPUT
+          echo "privacy=${{ needs.plan.outputs.privacy }}" >> $GITHUB_OUTPUT
+          echo "date=${{ needs.plan.outputs.date }}" >> $GITHUB_OUTPUT
+          echo "publish_at=${{ needs.plan.outputs.publish_at }}" >> $GITHUB_OUTPUT
+          echo "immediate=${{ needs.plan.outputs.immediate }}" >> $GITHUB_OUTPUT
+          echo "active=true" >> $GITHUB_OUTPUT
+          echo "decided slot=${{ needs.plan.outputs.slot }} date=${{ needs.plan.outputs.date }} immediate=${{ needs.plan.outputs.immediate }} reason=${{ needs.plan.outputs.reason }}"
 
       - name: System deps (ffmpeg + Devanagari + emoji fonts)
         if: steps.slot.outputs.active == 'true'
@@ -125,7 +162,9 @@ jobs:
       - name: Video banao
         if: steps.slot.outputs.active == 'true'
         env:
-          ELEVENLABS_API_KEY:  ${{ secrets.ELEVENLABS_API_KEY }}
+          # Default Edge (free). ElevenLabs sirf QUIZ_TTS_PROVIDER=elevenlabs par.
+          QUIZ_TTS_PROVIDER:   ${{ vars.QUIZ_TTS_PROVIDER || 'edge' }}
+          ELEVENLABS_API_KEY:  ${{ vars.QUIZ_TTS_PROVIDER == 'elevenlabs' && secrets.ELEVENLABS_API_KEY || '' }}
           ELEVENLABS_VOICE_ID: 7qBNUtXRGP0jPi0H4r8k
           ELEVENLABS_MODEL:    ${{ vars.ELEVENLABS_MODEL || 'eleven_multilingual_v2' }}
           QUIZ_ACTIVE_SLOTS:   ${{ vars.QUIZ_ACTIVE_SLOTS }}
@@ -136,9 +175,9 @@ jobs:
           # Isi wajah se ek crash chup-chaap nikal gaya tha.
           set -o pipefail
           python src/build.py --slot ${{ steps.slot.outputs.slot }} | tee build_out.txt
-          # ElevenLabs chup-chaap fail hoke free voice pe chala jaaye to pata
-          # chalna chahiye — warna mahino tak galat voice publish hoti rahegi.
-          if grep -q "voice: edge" build_out.txt; then
+          # Edge default hai. Warning sirf tab jab ElevenLabs maanga ho aur
+          # wo fail hokar Edge pe gir jaaye.
+          if [ "$QUIZ_TTS_PROVIDER" = "elevenlabs" ] && grep -q "voice: edge" build_out.txt; then
             echo "::warning::ElevenLabs fail hua - free Swara voice pe chala. Log dekho."
           fi
 
@@ -168,15 +207,39 @@ jobs:
           YT_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
         run: |
           DIR=$(ls -td out/*/ | head -1)
+          set +e
           set -o pipefail
-          python src/upload.py --dir "${DIR%/}" \
-            --privacy ${{ steps.slot.outputs.privacy }} \
-            --publish-slot "${{ steps.slot.outputs.slot }}" 2>&1 | tee upload_out.txt
+          PRIV="${{ steps.slot.outputs.privacy }}"
+          SLOT="${{ steps.slot.outputs.slot }}"
+          DATE="${{ steps.slot.outputs.date }}"
+          IMM="${{ steps.slot.outputs.immediate }}"
+          PUB="${{ steps.slot.outputs.publish_at }}"
+          {
+            if [ "$PRIV" != "public" ]; then
+              python src/upload.py --dir "${DIR%/}" --privacy "$PRIV" --skip-coverage-check
+            elif [ "$IMM" = "true" ] || [ -z "$PUB" ]; then
+              python src/upload.py --dir "${DIR%/}" --privacy public \
+                --target-slot "$SLOT" --target-date "$DATE"
+            else
+              python src/upload.py --dir "${DIR%/}" --privacy public \
+                --publish-at "$PUB" --target-slot "$SLOT" --target-date "$DATE"
+            fi
+          } 2>&1 | tee upload_out.txt
+          code=$?
+          set -e
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" -eq 2 ]; then
+            echo "skipped=true" >> "$GITHUB_OUTPUT"
+            echo "UPLOAD_SKIPPED=duplicate — slot already covered"
+            exit 0
+          fi
+          echo "skipped=false" >> "$GITHUB_OUTPUT"
+          exit "$code"
 
       # Quota guard: ye dono upload ke BAAD, aur sirf jab upload success hua.
       # Upload fail (jaise quotaExceeded) hua to aur units nahi jalate.
       - name: Competitor research (optional, read-only, sirf API key se)
-        if: steps.slot.outputs.active == 'true' && steps.up.outcome == 'success'
+        if: steps.slot.outputs.active == 'true' && steps.up.outcome == 'success' && steps.up.outputs.skipped != 'true'
         continue-on-error: true
         env:
           YT_DATA_API_KEY:  ${{ secrets.YT_DATA_API_KEY }}
@@ -201,7 +264,7 @@ jobs:
           python src/notify.py --dir "${DIR%/}" \
             --slot "${{ steps.slot.outputs.slot }}" \
             --privacy "${{ steps.slot.outputs.privacy }}" \
-            --upload "${{ steps.up.outcome }}" \
+            --upload "${{ steps.up.outputs.skipped == 'true' && 'skipped' || steps.up.outcome }}" \
             --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
       # CI logs Azure blob pe hote hain jo har network se readable nahi. Isliye
@@ -252,7 +315,9 @@ jobs:
           # JSON merge, 500/non-fast-forward par 5 baar backoff ke saath retry.
           # (30-Sep: ek push 500 se fail hua, used.json gaya, sawaal repeat hue.)
           INCLUDE_USED=false
-          [ "${{ steps.up.outcome }}" = "success" ] && INCLUDE_USED=true
+          if [ "${{ steps.up.outcome }}" = "success" ] && [ "${{ steps.up.outputs.skipped }}" != "true" ]; then
+            INCLUDE_USED=true
+          fi
           python src/sync_state.py --branch "${{ github.ref_name }}" \
             --include-used "$INCLUDE_USED" --attempts 5 \
             --message "chore(quiz): ${{ steps.slot.outputs.slot }} run — upload ${{ steps.up.outcome }} [skip ci]"

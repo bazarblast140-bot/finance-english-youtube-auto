@@ -1,0 +1,89 @@
+name: Quiz catch-up
+
+# GitHub drops the upload crons in kids-gk-shorts.yml. This workflow runs
+# several times an hour (odd minutes, not :00 or :30) so one missed tick
+# does not matter. It lists the channel (about 3 YouTube units) and dispatches
+# Quiz Pathshala GK Shorts with an explicit slot + IST date and privacy=public,
+# which schedules the video at that slot (private + publishAt).
+#
+# Goal: the next 24 h is always covered, and each slot is on YouTube at least
+# ~12 h ahead because the planner fills a 36 h horizon. That scheduled queue
+# is the backup buffer — there is no separate pre-render cache.
+#
+# One build per slot+date, then at most one retry. After that an issue
+# labelled health-alert is opened (or commented). The title does not start
+# with "health-alert:" so the read-only pipeline health check does not
+# rewrite it. Dispatch stops at 5 uploads per Pacific quota day.
+#
+# Also posts pending pinned comments once publishAt has passed and the video
+# is public. That does not wait for the next successful upload.
+# Comment insert = 50 units. The row leaves the pending set when it posts.
+#
+# Never uploads from this workflow.
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+    - cron: "41 * * * *"
+    - cron: "53 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+  issues: write
+
+concurrency:
+  group: quiz-catchup
+  cancel-in-progress: false
+
+defaults:
+  run:
+    working-directory: kids-quiz-shorts
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt
+
+      - name: Pending comments (after publishAt, independent of upload)
+        continue-on-error: true
+        env:
+          YT_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: python src/upload.py --post-pending-comments
+
+      - name: Save comment ledger
+        if: always()
+        continue-on-error: true
+        run: |
+          git config user.name  "quiz-bot"
+          git config user.email "quiz-bot@users.noreply.github.com"
+          python src/sync_state.py --branch "${{ github.ref_name }}" \
+            --include-used false --attempts 5 \
+            --message "chore(quiz): pending comments [skip ci]"
+
+      - name: Plan and dispatch uncovered slots
+        env:
+          YT_CLIENT_ID:      ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YT_CLIENT_SECRET:  ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN:  ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          QUIZ_ACTIVE_SLOTS: ${{ vars.QUIZ_ACTIVE_SLOTS }}
+          GH_TOKEN:          ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          git config user.name  "quiz-bot"
+          git config user.email "quiz-bot@users.noreply.github.com"
+          python src/slot_planner.py catchup \
+            --branch "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --push --dispatch

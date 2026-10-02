@@ -34,8 +34,8 @@ ab use jawab chahiye. Outro poora hata diya.
 
 Har video me **1 sawaal**, **4 option**,
 **8 second ka tik-tik timer**, phir **sahi jawab + ek line "क्यों"** — sirf ratna
-nahi, samajhna. Voice **ElevenLabs female Hindi** hai; fail ho to apne aap
-free `hi-IN-SwaraNeural` pe chali jaati hai.
+nahi, samajhna. Voice default **Edge** (`hi-IN-SwaraNeural`, free) hai.
+ElevenLabs tabhi, jab `QUIZ_TTS_PROVIDER=elevenlabs` ho.
 
 **Paanch subject:** GK · Science · Maths · English · पहेली. Quiz slots
 GK/Science/Maths/English rotate karte hain. **16:00 IST wala slot sirf
@@ -103,8 +103,10 @@ aur **ek bhi video par comment nahi gaya**. Ab:
   Studio me pin karna padta hai.
 - **Rajesh ko karna hai:** upar wala `--auth --set-github-secret` ek baar.
 
-`ELEVENLABS_*` na daalo to script `hi-IN-SwaraNeural` (edge-tts, free) pe fall
-back kar jaati hai — video phir bhi banega, bas voice alag hogi.
+Voice **default Edge** hai (`hi-IN-SwaraNeural`, free) — `ELEVENLABS_API_KEY`
+set hone par bhi ElevenLabs tabhi chalti hai jab repo variable
+`QUIZ_TTS_PROVIDER=elevenlabs` ho. Uske bina key waste nahi hoti. ElevenLabs
+fail ho to Edge, phir silent.
 
 ⚠️ **Sabse common galti:** ElevenLabs dashboard me jo value list me dikhti hai
 wo key ka **ID** hai, asli API key nahi. Asli key **`sk_` se shuru** hoti hai
@@ -134,19 +136,30 @@ chalata hai; video `private + publishAt` se exact IST time par public hota hai:
 se nahi.
 
 **Kam slot chalane ho to:** repo variable `QUIZ_ACTIVE_SLOTS`
-(e.g. `morning,paheli,night`). Workflow ka "Slot decide karo" step ise padhta
-hai — list me na ho to us run me kuch nahi banta. Khaali = saare 5.
-Description ka "रोज़ N नए सवाल" bhi isi se banta hai.
+(e.g. `morning,paheli,night`). Planner, catch-up, aur public build ise
+respect karte hain — list me na ho to us slot ka video nahi banta. Khaali =
+saare 5. Description ka "रोज़ N नए सवाल" bhi isi se banta hai.
 
-Naya slot jodna ho to **do jagah** badalna padega: workflow ka cron+case
-block, aur `config.py` ka `SLOT_ORDER`.
+Naya slot jodna ho to **do jagah** badalna padega: workflow ka cron
+(`kids-gk-shorts.yml` + `src/slot_planner.py` ka `CRON_TO_SLOT`), aur
+`config.py` ka `SLOT_ORDER`.
 
 Manual chalane ke liye: Actions tab → *Quiz Pathshala GK Shorts* → **Run workflow**
 (default privacy `unlisted` hai — pehla run dekh lo, phir `public` karna).
+`date` (IST `YYYY-MM-DD`) do to video usi din ke slot par schedule hoti hai.
+Catch-up hamesha `privacy=public` bhejta hai, warna `publishAt` lagta hi nahi.
 
-**GitHub cron on-time nahi hai** — peak load pe 5–30 min late chal sakta hai.
-Agar exact time chahiye to workflow me `--publish-at '2026-08-26T02:00:00Z'`
-add kar do: video pehle private upload hoga, YouTube khud exact second pe public karega.
+**GitHub cron drop / late hota hai.** `.github/workflows/quiz-catchup.yml`
+ghante mein teen baar (`:17`, `:41`, `:53`) channel ki list padhta hai
+(~3 quota units) aur jo active slot agle 36 ghante mein khali hai uske liye
+build dispatch karta hai. Video `private + publishAt` se usi IST time par
+public hoti hai. Woh scheduled queue hi buffer hai — alag pre-render cache
+nahi. Ek slot+date par ek build, phir sirf ek retry; uske baad `health-alert`
+label wala issue. Late run aaj ka slot bharta hai agar wo abhi baaki hai
+(10 minute se kam bache to turant public); nikal chuka ho to sabse nazdeek
+khali slot, kal wahi slot nahi jab wo pehle se covered ho.
+
+Purane 5 build crons backup hain. Health check unke schedule runs dekhta hai.
 
 ## Health check (roz 3 baar)
 
@@ -297,11 +310,10 @@ uploads.json / LAST_RUN.md ko remote ke taaze state par JSON-merge karke push
 karta hai, 5 baar backoff ke saath. 30-Sep ko ek `git push` 500 se fail hua
 tha, used.json gaya, aur agle hi runs me wahi sawaal repeat hue.
 
-**2. Voice fallback.** Order: ElevenLabs → `hi-IN-SwaraNeural` (edge-tts, free)
-→ silent. ElevenLabs ka quota/key fail ho to build rukta nahi, apne aap free
-voice pe chal jaata hai — log me `voice: edge` dikhega aur build ke ant me
-saaf likha aata hai ki ElevenLabs fail hua. Sirf teeno fail hone pe silent
-video banta hai, aur us case me workflow ka volume-check upload rok deta hai.
+**2. Voice.** Default **Edge** (`hi-IN-SwaraNeural`, free). Repo variable
+`QUIZ_TTS_PROVIDER=elevenlabs` ho tab hi ElevenLabs chalti hai, key set hone
+par bhi nahi. ElevenLabs fail ho to Edge, phir silent. Silent par volume-check
+upload rok deta hai.
 
 **2a. Refresh token me WRITE scope nahi hai — do cheezein isse ruki hain.**
 Maujuda `YOUTUBE_REFRESH_TOKEN` sirf `youtube.upload` + `youtube.readonly`
@@ -360,7 +372,8 @@ error text log me poora print hota hai.
 ```
 src/config.py    saare settings — sirf yahin badlo
 src/pick.py      sawaal chunna + repeat rokna
-src/tts.py       ElevenLabs -> edge-tts -> silent fallback
+src/tts.py       Edge default; ElevenLabs only if QUIZ_TTS_PROVIDER=elevenlabs
+src/slot_planner.py  coverage, catch-up, no upload
 src/sfx.py       tik-tik, ding, whoosh — code se bante hain (no copyright)
 src/render.py    1080x1920 frames
 src/build.py     sab jodta hai -> MP4 + metadata.json
