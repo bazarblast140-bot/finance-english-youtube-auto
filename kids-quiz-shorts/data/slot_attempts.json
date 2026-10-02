@@ -1,4 +1,40 @@
 {
  "version": 1,
- "slots": {}
+ "slots": {
+  "evening|2026-10-03": {
+   "attempts": 1,
+   "state": "dispatched",
+   "dispatched_at": "2026-10-02T14:20:30Z",
+   "quota_day": "2026-10-02",
+   "counts_quota": true
+  },
+  "morning|2026-10-04": {
+   "attempts": 1,
+   "state": "dispatched",
+   "dispatched_at": "2026-10-02T14:20:30Z",
+   "quota_day": "2026-10-02",
+   "counts_quota": true
+  },
+  "night|2026-10-03": {
+   "attempts": 1,
+   "state": "dispatched",
+   "dispatched_at": "2026-10-02T14:20:30Z",
+   "quota_day": "2026-10-02",
+   "counts_quota": true
+  },
+  "noon|2026-10-03": {
+   "attempts": 1,
+   "state": "dispatched",
+   "dispatched_at": "2026-10-02T14:20:30Z",
+   "quota_day": "2026-10-02",
+   "counts_quota": true
+  },
+  "paheli|2026-10-03": {
+   "attempts": 1,
+   "state": "dispatched",
+   "dispatched_at": "2026-10-02T14:20:30Z",
+   "quota_day": "2026-10-02",
+   "counts_quota": true
+  }
+ }
 }
