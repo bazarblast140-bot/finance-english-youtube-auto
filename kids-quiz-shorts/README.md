@@ -144,9 +144,63 @@ block, aur `config.py` ka `SLOT_ORDER`.
 Manual chalane ke liye: Actions tab → *Quiz Pathshala GK Shorts* → **Run workflow**
 (default privacy `unlisted` hai — pehla run dekh lo, phir `public` karna).
 
-**GitHub cron on-time nahi hai** — peak load pe 5-30 min late chal sakta hai.
+**GitHub cron on-time nahi hai** — peak load pe 5–30 min late chal sakta hai.
 Agar exact time chahiye to workflow me `--publish-at '2026-08-26T02:00:00Z'`
 add kar do: video pehle private upload hoga, YouTube khud exact second pe public karega.
+
+## Health check (roz 3 baar)
+
+`.github/workflows/health-check.yml` upload se pehle credentials aur stock
+check karta hai. Ye workflow **kuch upload nahi karta** aur YouTube par kuch
+likhta nahi (`videos.insert` / `videos.update` / `channels.update` / comments
+nahi). Manual: Actions → *Pipeline health check* → Run workflow. `dry_run`
+sirf report chapta hai, issue nahi chhedta.
+
+GitHub cron UTC me hai. Neeche wale time **build cron** se pehle hain (IST
+publish `publishAt` se hota hai, us waqt token dobara use nahi hota):
+
+| Health cron (UTC) | IST | Kis upload build se pehle |
+|---|---|---|
+| `45 4 * * *` | 10:15 | morning `0 6 * * *` (75 min) |
+| `15 11 * * *` | 16:45 | noon `0 12 * * *` aur paheli `30 14 * * *` |
+| `15 15 * * *` | 20:45 | evening `0 16 * * *` aur night `0 19 * * *` |
+
+45–75 min ka lead aam 5–30 min slip ke liye hai. 10–20 ghante wala slip is
+preflight se poora cover nahi hota — "scheduled run aaya ya nahi" **22 ghante**
+baad judge hota hai, aur run cron ke **23 ghante** ke andar count hota hai.
+
+Checks (secret values kabhi print nahi hoti):
+
+1. **YouTube** — `YOUTUBE_CLIENT_ID` / `YOUTUBE_CLIENT_SECRET` /
+   `YOUTUBE_REFRESH_TOKEN` se refresh, channel
+   `UCSIJMHyB_h02gHc5HZkmYqg` title `QUIZ PATHSHALA`, scopes
+   `youtube.upload`, `youtube.readonly`, `youtube`, `youtube.force-ssl`.
+2. **Quota** — `channels.list` (1 unit, read-only). `quotaExceeded` par alert.
+   **Exact remaining quota API me nahi hai.** Sirf GCP console: project
+   `quiz-pathshala-yt` → APIs & Services → YouTube Data API v3 → Quotas.
+3. **ElevenLabs** (`ELEVENLABS_API_KEY`) — key valid, aur bache characters.
+   Warning line = **2 din** ka typical usage: `build.py` jo bolta hai
+   (question + options + CTA + answer; hint sirf jab `HINT_BEFORE_ANSWER` on ho)
+   uski mean length × `QUESTIONS_PER_VIDEO` × active slots, phir × 2, ceil.
+   Is bank par ~290 characters/video, 5 slots × 2 din ≈ **2,900** characters.
+   `QUIZ_ACTIVE_SLOTS` kam ho to line bhi neeche aati hai. Runner par voice
+   cache nahi rehta, isliye CTA har video me gina jaata hai.
+4. **DeepSeek** (`DEEPSEEK_API_KEY`, base `DEEPSEEK_BASE_URL` ya
+   `https://api.deepseek.com`) — key valid. `GET /user/balance` ho to
+   `is_available: false`, ya har currency ≤ 0.50 USD / 1 CNY (baaki currency
+   ≤ 0.50) par alert. 404 aaye to `GET /models` se key check; balance na
+   hona apne aap fail nahi. Quiz upload DeepSeek nahi bulata — secret
+   `daily-finance.yml` use karta hai.
+5. **Upload runs** — `kids-gk-shorts.yml`. Last 48h me `failure` / `timed_out`
+   / `startup_failure` / schedule `cancelled`, ya 2h se zyada atka hua run,
+   alert. Sirf **active** slots required hain.
+6. **Question bank** — quiz aur paheli ka fresh stock (kabhi use na hua id,
+   `pick.py` jaisa). Active slots × 2 sawaal/video se **7 din** se kam ho to
+   alert (`BANK_LOW_DAYS`).
+
+Problem par label `health-alert` wala ek open issue banta ya update hota hai
+(Hinglish + English). Sab green ho to comment karke close. Permissions:
+`issues: write`, `contents: read`, `actions: read`.
 
 ---
 
@@ -284,9 +338,15 @@ waghairah) — chup-chaap gayab nahi hota.
 **3. YouTube quota.** Har upload ~1600 units. Daily quota 10,000 = ~6 upload/din.
 5 video = ~8000 units — theek hai, par 6th extra run quota kha sakta hai.
 Upload script me retry max 2 rakha hai taaki loop quota na kha jaye.
+Exact remaining units API se nahi milte — sirf GCP console (project
+`quiz-pathshala-yt` → YouTube Data API v3 → Quotas). Health check sirf 1-unit
+`channels.list` karta hai.
 
-**4. ElevenLabs cost.** Har video me ~6 TTS call, roughly 400-500 characters.
-5 video/din = ~75k characters/month. Apne plan ka limit dekh lena.
+**4. ElevenLabs cost.** Har video me question + options + CTA + answer
+(hint band hai). Current bank par mean ~290 spoken characters/video; health
+check 2 din ki line isi se nikalta hai (~2,900 characters at 5 slots). Purana
+400–500/video andaaza lambe lines ke time ka tha. Month ka bill plan par
+dekho — health check remaining characters warn karta hai.
 Voice cache bhi hai (`out/voice_cache/`), so same text dobara paisa nahi legega.
 
 **5. ElevenLabs API shape.** `src/tts.py` ka request format apne current docs se
@@ -307,6 +367,7 @@ src/build.py     sab jodta hai -> MP4 + metadata.json
 src/seo.py       title, description, tags, hashtags
 src/upload.py    YouTube Data API v3
 src/notify.py    Telegram notification (har run pe, pass ho ya fail)
+src/healthcheck.py  read-only pipeline health check (koi upload nahi)
 ```
 
 
