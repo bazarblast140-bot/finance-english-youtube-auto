@@ -23,6 +23,7 @@ name: Quiz Pathshala GK Shorts
 #                       (khaali = saare 5). Upload frequency yahin se badlo.
 #                       Slot step me padha jaata hai + build step ko env me jaata hai.
 #   QUIZ_SUBSCRIBE_CTA  end (default) | before_answer | off
+#   QUIZ_TTS_PROVIDER   edge (default, free) | elevenlabs
 # Optional SECRET:
 #   YT_DATA_API_KEY     competitor research (src/competitor_research.py). Na ho to skip.
 #                       ALAG Google Cloud project ki key ho — upload OAuth ka quota
@@ -125,7 +126,9 @@ jobs:
       - name: Video banao
         if: steps.slot.outputs.active == 'true'
         env:
-          ELEVENLABS_API_KEY:  ${{ secrets.ELEVENLABS_API_KEY }}
+          # Default Edge (free). ElevenLabs sirf QUIZ_TTS_PROVIDER=elevenlabs par.
+          QUIZ_TTS_PROVIDER:   ${{ vars.QUIZ_TTS_PROVIDER || 'edge' }}
+          ELEVENLABS_API_KEY:  ${{ vars.QUIZ_TTS_PROVIDER == 'elevenlabs' && secrets.ELEVENLABS_API_KEY || '' }}
           ELEVENLABS_VOICE_ID: 7qBNUtXRGP0jPi0H4r8k
           ELEVENLABS_MODEL:    ${{ vars.ELEVENLABS_MODEL || 'eleven_multilingual_v2' }}
           QUIZ_ACTIVE_SLOTS:   ${{ vars.QUIZ_ACTIVE_SLOTS }}
@@ -136,9 +139,9 @@ jobs:
           # Isi wajah se ek crash chup-chaap nikal gaya tha.
           set -o pipefail
           python src/build.py --slot ${{ steps.slot.outputs.slot }} | tee build_out.txt
-          # ElevenLabs chup-chaap fail hoke free voice pe chala jaaye to pata
-          # chalna chahiye — warna mahino tak galat voice publish hoti rahegi.
-          if grep -q "voice: edge" build_out.txt; then
+          # Edge default hai. Warning sirf tab jab ElevenLabs maanga ho aur
+          # wo fail hokar Edge pe gir jaaye.
+          if [ "$QUIZ_TTS_PROVIDER" = "elevenlabs" ] && grep -q "voice: edge" build_out.txt; then
             echo "::warning::ElevenLabs fail hua - free Swara voice pe chala. Log dekho."
           fi
 

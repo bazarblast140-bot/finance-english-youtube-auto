@@ -34,8 +34,8 @@ ab use jawab chahiye. Outro poora hata diya.
 
 Har video me **1 sawaal**, **4 option**,
 **8 second ka tik-tik timer**, phir **sahi jawab + ek line "क्यों"** — sirf ratna
-nahi, samajhna. Voice **ElevenLabs female Hindi** hai; fail ho to apne aap
-free `hi-IN-SwaraNeural` pe chali jaati hai.
+nahi, samajhna. Voice default **Edge** (`hi-IN-SwaraNeural`, free) hai.
+ElevenLabs tabhi, jab `QUIZ_TTS_PROVIDER=elevenlabs` ho.
 
 **Paanch subject:** GK · Science · Maths · English · पहेली. Quiz slots
 GK/Science/Maths/English rotate karte hain. **16:00 IST wala slot sirf
@@ -103,8 +103,10 @@ aur **ek bhi video par comment nahi gaya**. Ab:
   Studio me pin karna padta hai.
 - **Rajesh ko karna hai:** upar wala `--auth --set-github-secret` ek baar.
 
-`ELEVENLABS_*` na daalo to script `hi-IN-SwaraNeural` (edge-tts, free) pe fall
-back kar jaati hai — video phir bhi banega, bas voice alag hogi.
+Voice **default Edge** hai (`hi-IN-SwaraNeural`, free) — `ELEVENLABS_API_KEY`
+set hone par bhi ElevenLabs tabhi chalti hai jab repo variable
+`QUIZ_TTS_PROVIDER=elevenlabs` ho. Uske bina key waste nahi hoti. ElevenLabs
+fail ho to Edge, phir silent.
 
 ⚠️ **Sabse common galti:** ElevenLabs dashboard me jo value list me dikhti hai
 wo key ka **ID** hai, asli API key nahi. Asli key **`sk_` se shuru** hoti hai
@@ -297,11 +299,10 @@ uploads.json / LAST_RUN.md ko remote ke taaze state par JSON-merge karke push
 karta hai, 5 baar backoff ke saath. 30-Sep ko ek `git push` 500 se fail hua
 tha, used.json gaya, aur agle hi runs me wahi sawaal repeat hue.
 
-**2. Voice fallback.** Order: ElevenLabs → `hi-IN-SwaraNeural` (edge-tts, free)
-→ silent. ElevenLabs ka quota/key fail ho to build rukta nahi, apne aap free
-voice pe chal jaata hai — log me `voice: edge` dikhega aur build ke ant me
-saaf likha aata hai ki ElevenLabs fail hua. Sirf teeno fail hone pe silent
-video banta hai, aur us case me workflow ka volume-check upload rok deta hai.
+**2. Voice.** Default **Edge** (`hi-IN-SwaraNeural`, free). Repo variable
+`QUIZ_TTS_PROVIDER=elevenlabs` ho tab hi ElevenLabs chalti hai, key set hone
+par bhi nahi. ElevenLabs fail ho to Edge, phir silent. Silent par volume-check
+upload rok deta hai.
 
 **2a. Refresh token me WRITE scope nahi hai — do cheezein isse ruki hain.**
 Maujuda `YOUTUBE_REFRESH_TOKEN` sirf `youtube.upload` + `youtube.readonly`
@@ -360,7 +361,7 @@ error text log me poora print hota hai.
 ```
 src/config.py    saare settings — sirf yahin badlo
 src/pick.py      sawaal chunna + repeat rokna
-src/tts.py       ElevenLabs -> edge-tts -> silent fallback
+src/tts.py       Edge default; ElevenLabs only if QUIZ_TTS_PROVIDER=elevenlabs
 src/sfx.py       tik-tik, ding, whoosh — code se bante hain (no copyright)
 src/render.py    1080x1920 frames
 src/build.py     sab jodta hai -> MP4 + metadata.json
