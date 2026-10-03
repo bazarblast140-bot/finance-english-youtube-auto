@@ -406,10 +406,16 @@ class WorkflowContractTests(unittest.TestCase):
         self.assertNotIn("videos().insert", src)
         self.assertNotIn("videos.insert", src)
 
-    def test_attempts_file_is_empty_object(self):
+    def test_attempts_file_is_versioned_object(self):
+        # The planner commits live slot state into this file ("claim slot"
+        # commits on main), so it is not empty after the first run. Check the
+        # shape instead of requiring {}.
         data = json.loads((ROOT / "kids-quiz-shorts/data/slot_attempts.json").read_text(encoding="utf-8"))
         self.assertEqual(data["version"], 1)
-        self.assertEqual(data["slots"], {})
+        self.assertIsInstance(data["slots"], dict)
+        for key, entry in data["slots"].items():
+            self.assertRegex(key, r"^[a-z]+\|\d{4}-\d{2}-\d{2}$")
+            self.assertIsInstance(entry.get("attempts"), int, key)
 
 
 if __name__ == "__main__":
