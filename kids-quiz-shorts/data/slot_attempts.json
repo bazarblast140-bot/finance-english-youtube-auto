@@ -27,10 +27,11 @@
   },
   "evening|2026-10-06": {
    "attempts": 1,
-   "state": "dispatched",
+   "state": "uploaded",
    "dispatched_at": "2026-10-05T07:39:12Z",
    "quota_day": "2026-10-05",
-   "counts_quota": true
+   "counts_quota": true,
+   "uploaded_at": "2026-10-05T07:44:15Z"
   },
   "morning|2026-10-04": {
    "attempts": 1,
@@ -82,10 +83,11 @@
   },
   "night|2026-10-06": {
    "attempts": 1,
-   "state": "dispatched",
+   "state": "uploaded",
    "dispatched_at": "2026-10-05T07:39:12Z",
    "quota_day": "2026-10-05",
-   "counts_quota": true
+   "counts_quota": true,
+   "uploaded_at": "2026-10-05T07:44:15Z"
   },
   "noon|2026-10-03": {
    "attempts": 1,
@@ -113,10 +115,11 @@
   },
   "noon|2026-10-06": {
    "attempts": 1,
-   "state": "dispatched",
+   "state": "uploaded",
    "dispatched_at": "2026-10-05T07:39:12Z",
    "quota_day": "2026-10-05",
-   "counts_quota": true
+   "counts_quota": true,
+   "uploaded_at": "2026-10-05T07:44:15Z"
   },
   "paheli|2026-10-03": {
    "attempts": 1,
@@ -144,10 +147,11 @@
   },
   "paheli|2026-10-06": {
    "attempts": 1,
-   "state": "dispatched",
+   "state": "uploaded",
    "dispatched_at": "2026-10-05T07:39:12Z",
    "quota_day": "2026-10-05",
-   "counts_quota": true
+   "counts_quota": true,
+   "uploaded_at": "2026-10-05T07:44:15Z"
   }
  }
 }
