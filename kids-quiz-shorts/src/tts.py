@@ -198,12 +198,13 @@ def say(text: str, tag: str = "") -> tuple[Path, float, str]:
     raise RuntimeError("Koi TTS engine kaam nahi kiya")
 
 
-def question_script(q: dict, index: int, total: int) -> str:
-    """Sirf sawaal — koi lead-in nahi ("पहला सवाल" waghairah hata diya).
+def hook_script(line: str) -> str:
+    """Pehle ~2 second ki voice. On-screen line hi bolte hain."""
+    return (line or "").strip()
 
-    Shorts me viewer scroll karke aata hai; pehle 1-2 second me agar sawaal
-    shuru nahi hua to wo aage scroll kar deta hai. Isliye frame 0 se hi
-    sawaal bolna shuru hota hai.
+
+def question_script(q: dict, index: int, total: int) -> str:
+    """Sirf sawaal — hook alag segment hai, yahan dobara lead-in nahi.
 
     Options alag se bolte hain — wo timer ke DAURAN chalte hain."""
     if q.get("sub") == "पहेली":
@@ -212,10 +213,14 @@ def question_script(q: dict, index: int, total: int) -> str:
 
 
 def options_script(q: dict) -> str:
-    """Timer chalte waqt bolne ke liye — chaaron option."""
+    """Timer ke 8 second mein bolna hai — chhota, bina lambe viram ke.
+
+    Pehle har option ke baad '।' tha, TTS wahan rukti thi aur segment 8s se
+    lamba ho jaata tha. Screen par options likhe hain; awaaz sirf padhti hai.
+    """
     labels = ["ए", "बी", "सी", "डी"]
-    opts = "। ".join(f"{labels[i]}, {o}" for i, o in enumerate(q["opts"]))
-    return f"{opts}। सोचिए।"
+    opts = ", ".join(f"{labels[i]} {o}" for i, o in enumerate(q["opts"]))
+    return opts
 
 
 _DEVA_WORD = r"[\u0900-\u097F\w]"
@@ -304,9 +309,20 @@ def hint_script(q: dict) -> str:
 
 
 def answer_script(q: dict) -> str:
-    """Video ki aakhri line. Iske baad kuch nahi."""
+    """Jawab bolo. Chhota 'kyun' tabhi bolo jab wo 6 shabd se chhota ho —
+    lambi line 30-40s window tod deti hai. Poori line screen par dikhti hai."""
     labels = ["ए", "बी", "सी", "डी"]
-    return f"सही जवाब है — {labels[q['ans']]}, {q['opts'][q['ans']]}।"
+    line = f"सही जवाब है — {labels[q['ans']]}, {q['opts'][q['ans']]}।"
+    why = (q.get("why") or "").strip().rstrip("।")
+    words = why.split()
+    if 0 < len(words) <= 6:
+        line += " " + " ".join(words) + "।"
+    return line
+
+
+def comment_cta_script() -> str:
+    """Video ki aakhri voice line. Emoji nahi — TTS unhe padh leti hai."""
+    return getattr(C, "COMMENT_CTA_VOICE", "अपना जवाब कमेंट कीजिए।")
 
 
 def cta_script() -> str:

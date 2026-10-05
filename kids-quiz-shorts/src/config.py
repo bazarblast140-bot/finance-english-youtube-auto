@@ -22,7 +22,11 @@ TIMER_SECONDS = 8           # Rajesh spec: 8 second tik-tik
 #   TARGET_SECONDS = retention ka target, rule nahi. Shorts ka engagement
 #     sweet spot 30-60s hai, isliye hum yahin rehne ki koshish karte hain.
 HARD_LIMIT_SECONDS = 180.0
-TARGET_SECONDS = 55.0   # 2 sawaal ke liye thoda upar (pehle 32 tha 1 sawaal ke liye)
+TARGET_SECONDS = 38.0   # retention window ~30-40s (2 sawaal + hook + end CTA)
+LENGTH_MIN_SECONDS = 30.0
+LENGTH_MAX_SECONDS = 40.0
+HOOK_SECONDS = 2.0          # pehle 2 second: challenge on screen + voice
+COMMENT_CTA_SECONDS = 2.2   # aakhri beat: comment CTA
 
 # Jawab se pehle: salute karta fauji + lehrata tiranga + "सच्चे देशभक्त हैं तो
 # लाइक-सब्सक्राइब… जवाब अभी बताती हूँ" (Rajesh, 13-Sep-2026).
@@ -34,9 +38,9 @@ FAUJI_CTA = False
 HINT_BEFORE_ANSWER = False
 
 INTRO_SECONDS = 2.0
-REVEAL_SECONDS = 3.2
+REVEAL_SECONDS = 3.6        # jawab + on-screen kyun padhne ki fursat
 OUTRO_SECONDS = 3.0
-READ_PAD_SECONDS = 0.6      # voice khatam hone ke baad thoda gap
+READ_PAD_SECONDS = 0.28     # voice ke baad chhota gap — 30-40s window ke liye
 
 # ---------- brand ----------
 BRAND = "QUIZ PATHSHALA"
@@ -53,7 +57,10 @@ HANDLE = "@QuizPathshalaIndia"
 # Advanced) bhi "No, it's not made for kids" hi rakhni hai.
 MADE_FOR_KIDS = False
 
-CTA_TEXT = "अपना जवाब कमेंट में लिखिए"   # on-screen footer: emoji mat daalo (font me glyph nahi)
+# On-screen string mein emoji mat daalo — 👇 alag emoji font se paste hota hai.
+# "आप" register: कीजिए, करो nahi.
+CTA_TEXT = "अपना जवाब कमेंट कीजिए"
+COMMENT_CTA_VOICE = "अपना जवाब कमेंट कीजिए।"
 
 # Palette — high contrast, mobile pe 3 inch me turant padha jaana chahiye
 # Palette channel branding se match ki hai — purple banner, yellow accent,
@@ -118,7 +125,11 @@ COLORS.update({
 QUESTION_COLORS = ["word1", "word2", "word3", "word4"]
 OPTION_COLORS = ["word2", "word3", "word1", "word4"]
 
+# Hind (SIL OFL) Devanagari + Latin dono cover karta hai. System ka
+# NotoSansDevanagari Bold Latin (A-D, QUIZ PATHSHALA) render NAHI karta —
+# isliye vendored Hind pehle, aur picker Latin glyphs maangta hai.
 FONT_CANDIDATES = [
+    str(ASSETS / "fonts" / "Hind-Bold.ttf"),
     str(ASSETS / "fonts" / "NotoSansDevanagari-Bold.ttf"),
     "/usr/share/fonts/truetype/google-fonts/Poppins-Bold.ttf",
     "/usr/share/fonts/truetype/Poppins-Bold.ttf",
@@ -126,6 +137,7 @@ FONT_CANDIDATES = [
     "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf",
 ]
 FONT_CANDIDATES_REG = [
+    str(ASSETS / "fonts" / "Hind-Regular.ttf"),
     str(ASSETS / "fonts" / "NotoSansDevanagari-Regular.ttf"),
     "/usr/share/fonts/truetype/google-fonts/Poppins-Medium.ttf",
     "/usr/share/fonts/truetype/google-fonts/Poppins-Regular.ttf",
@@ -136,6 +148,8 @@ FONT_CANDIDATES_REG = [
 SAMPLE_RATE = 44100
 TICK_VOLUME = 0.20   # voice ab timer ke dauran chalti hai, tick dabna nahi chahiye
 VOICE_VOLUME = 1.0
+# Hook typewriter clicks. Voice 1.0 ke neeche — awaaz saaf rahe.
+KEYCLICK_VOLUME = 0.18
 
 # ---------- ElevenLabs ----------
 # Voice ID env se aata hai — female Hindi voice jo tumne set ki hai.
@@ -186,18 +200,18 @@ PAHELI_SUB = "पहेली"
 
 
 # ---------- growth knobs (30-Sep-2026 review) ----------
-# Pehle 1-2 second ka ON-SCREEN hook. Sirf Q1 ke "read" segment me:
-#   - top banner me brand ki jagah challenge line (brand YouTube khud
-#     channel row me dikhata hai, frame 0 par wo jagah bekaar thi)
-#   - "ध्यान से सुनिए…" pill ki jagah bada challenge pill
-# Voice / timing nahi badalti — sawaal frame 0 se hi bolna shuru hota hai.
-# Line sach honi chahiye: nakli "90% log galat" statistics nahi.
+# Pehle 2 second: sawaal-specific teaser (topic words, jawab nahi) + wahi
+# line voice mein. Frame par sawaal ka text bhi dikhta hai.
+# HOOK_LINES ab stock/generic denylist hai — score_hook inhe fail karta hai.
+# Nakli "90% log galat" nahi (aapka data nahi hai). Register "आप".
 HOOK_ON_SCREEN = True
 HOOK_LINES = {
     "quiz":   ["8 सेकंड में जवाब दीजिए!", "सोचिए, फिर बताइए!", "ये आता है आपको?",
-               "आज का GK चैलेंज", "पक्का पता है?"],
+               "पक्का पता है आपको?", "तैयार हैं आप?", "चुनिए — ए, बी, सी या डी",
+               "आज का GK चैलेंज", "दिमाग़ लगाइए!", "क्या आप बता सकते हैं?",
+               "जवाब दीजिए, 8 सेकंड हैं"],
     "paheli": ["बूझिए तो जानें!", "8 सेकंड में बूझिए!", "दिमाग़ लगाइए!",
-               "आज की पहेली"],
+               "आज की पहेली", "ये पहेली सुलझेगी?", "सोचिए, फिर बूझिए!"],
 }
 # Q1 ka jawab aane ke baad viewer swipe kar deta hai (Q2 title me hai hi
 # nahi). Isliye Q1 reveal par "अगला सवाल…" teaser — open loop, zero seconds.
@@ -227,3 +241,7 @@ ACTIVE_SLOTS = [s for s in SLOT_ORDER
     or list(SLOT_ORDER)
 # Description / CTA me "रोज़ N नए सवाल" — active slots ke hisaab se sach rahe
 VIDEOS_PER_DAY = len(ACTIVE_SLOTS)
+
+# Quality gate (src/quality.py). Fact check: secret DEEPSEEK_API_KEY.
+QUALITY_HISTORY = DATA / "quality_history.jsonl"
+TRENDS_PATH = DATA / "trends.json"

@@ -28,8 +28,8 @@ jobs:
           python-version: "3.11"
           cache: pip
           cache-dependency-path: kids-quiz-shorts/requirements.txt
-      - name: Devanagari fonts (render test)
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-core >/dev/null
+      - name: Devanagari fonts + shaping (render test)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-core libraqm0 >/dev/null
       - run: pip install -r requirements.txt
       - name: Unit tests
         env:
@@ -38,3 +38,47 @@ jobs:
           GIT_COMMITTER_NAME: ci
           GIT_COMMITTER_EMAIL: ci@example.invalid
         run: python -m unittest discover -s tests -v
+
+  # Ek sample Short, bina upload. MP4 + PNG frames artifact mein —
+  # Rajesh dekh sake. DeepSeek yahan nahi (offline gate).
+  sample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: kids-quiz-shorts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: kids-quiz-shorts/requirements.txt
+      - name: ffmpeg, shaping, emoji
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg libraqm0 fonts-noto-color-emoji fonts-noto-core >/dev/null
+      - run: pip install -r requirements.txt
+      - name: Font check — Devanagari + Latin
+        run: PYTHONPATH=src python -c "import render; render.assert_fonts()"
+      - name: Render one sample (no upload)
+        env:
+          QUIZ_QUALITY_OFFLINE: "1"
+        run: |
+          python src/build.py --slot morning --seed 7 --dry-run \
+            --ids g044,g012 --out sample --quality-offline
+          test -f out/sample/sample.mp4
+          test -f out/sample/stills/01_hook.png
+          test -f out/sample/stills/03_timer.png
+          test -f out/sample/stills/05_reveal.png
+          test -f out/sample/stills/06_comment.png
+          ffprobe -v error -show_entries format=duration -of csv=p=0 out/sample/sample.mp4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quiz-sample-short
+          retention-days: 14
+          if-no-files-found: error
+          path: |
+            kids-quiz-shorts/out/sample/*.mp4
+            kids-quiz-shorts/out/sample/stills/*.png
+            kids-quiz-shorts/out/sample/quality.json

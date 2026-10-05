@@ -2,11 +2,11 @@
 
 Design rules (rajesh-ui-pro, Shorts variant):
 - Mobile pe 3 inch me padhna hai -> question font >= 62px, option >= 52px.
-- Safe zone: neeche 380px YouTube UI (title/CTA/like) dhak leta hai -> wahan kuch
-  zaroori mat rakho. Timer ko bhi 1500px ke upar rakha hai.
+- Safe zone: neeche ~250px YouTube UI (title/CTA) aur right rail (like/comment)
+  x>890. Uske upar ka hissa khali mat chhodo — visual + options wahan tak jaate hain.
 - Right rail: like / dislike / comment / share buttons right kinare par ~900px
-  ke baad baithte hain. Options aur neeche wala sab RAIL_X se pehle khatam.
-- Contrast pehle, subtlety baad me. Bacchon ka content hai, bold chahiye.
+  ke baad baithte hain. Options, map, aur neeche wala sab RAIL_X se pehle khatam.
+- Contrast pehle, subtlety baad me. Audience general GK hai — bold, padhne layak.
 """
 import math
 import random
@@ -14,6 +14,7 @@ from pathlib import Path
 from PIL import Image, ImageChops, ImageDraw, ImageFont, ImageFilter
 
 import config as C
+import hooktype
 
 LABELS = ["A", "B", "C", "D"]
 
@@ -89,30 +90,61 @@ def _has_devanagari(path) -> bool:
         return False
 
 
+def _glyph_real(path, ch: str) -> bool:
+    """Missing glyph (.notdef tofu) ko 'hai' mat maano.
+
+    Noto Sans Devanagari Bold mein Latin nahi hota — A-D aur QUIZ PATHSHALA
+    khali box ban jaate hain, getbbox phir bhi sach bolta hai. Isliye .notdef
+    se byte-compare karte hain.
+    """
+    try:
+        font = ImageFont.truetype(str(path), 80)
+        missing = font.getmask("\uffff")
+        got = font.getmask(ch)
+        if not got.getbbox():
+            return False
+        # ImagingCore par tobytes hamesha nahi hota. Histogram .notdef se alag
+        # ho to glyph asli hai (tofu box nahi).
+        return got.histogram() != missing.histogram()
+    except Exception:
+        return False
+
+
+def _font_ok(path) -> bool:
+    if not _has_devanagari(path):
+        return False
+    for ch in "ABCDQUIZPATHSHALA":
+        if not _glyph_real(path, ch):
+            return False
+    return True
+
+
 def _pick(cands, patterns):
     for p in cands:
-        if Path(p).exists() and _has_devanagari(p):
+        if Path(p).exists() and _font_ok(p):
             return str(p)
-    # CI runner pe path alag ho sakta hai -> system scan
+    # CI runner pe path alag ho sakta hai -> system scan.
+    # Sirf Devanagari wala font (NotoSansDevanagari) yahan reject hota hai.
     import glob
     for pat in patterns:
         for p in sorted(glob.glob(f"/usr/share/fonts/**/{pat}", recursive=True)):
-            if _has_devanagari(p):
+            if _font_ok(p):
                 print(f"[render] font auto-detected: {p}")
                 return p
     raise FileNotFoundError(
-        "Devanagari font nahi mila.\n"
-        "  Ubuntu/CI : sudo apt-get install -y fonts-noto-core fonts-indic\n"
-        "  ya manually: assets/fonts/NotoSansDevanagari-Bold.ttf daal do"
+        "Devanagari+Latin font nahi mila (A-D aur QUIZ PATHSHALA bhi chahiye).\n"
+        "  Repo: kids-quiz-shorts/assets/fonts/Hind-Bold.ttf (SIL OFL)\n"
+        "  System NotoSansDevanagari Latin glyphs nahi rakhta — use mat karo."
     )
 
 
 FONT_BOLD = _pick(C.FONT_CANDIDATES,
-                  ["*Devanagari*Bold*.ttf", "Poppins-Bold.ttf",
+                  ["Hind-Bold.ttf", "*Devanagari*Bold*.ttf", "Poppins-Bold.ttf",
                    "*Devanagari*.ttf", "Lohit-Devanagari.ttf"])
 FONT_REG = _pick(C.FONT_CANDIDATES_REG,
-                 ["*Devanagari*Regular*.ttf", "Poppins-Medium.ttf",
+                 ["Hind-Regular.ttf", "*Devanagari*Regular*.ttf", "Poppins-Medium.ttf",
                   "*Devanagari*.ttf", "Lohit-Devanagari.ttf"])
+print(f"[render] font: {FONT_BOLD} (Devanagari+Latin)")
 _font_cache = {}
 
 
@@ -340,13 +372,11 @@ def banner(img, qnum=None, total=None, subject=None, hook=None):
     return img
 
 
-# YouTube Shorts ka apna UI (channel row, description, "Share your video"
-# bar) lagbhag 1450px se neeche sab dhak leta hai. Pehle footer 1470 par
-# tha aur handle 1584 par — dono UI ke PEECHE chale jaate the.
-# Ab FOOTER_Y ek CEILING hai, floor nahi: footer content ke turant neeche
-# baithta hai aur is line se kabhi neeche nahi jaata.
-FOOTER_Y = 1330
-SAFE_BOTTOM = 1420       # is se neeche kuch bhi mat rakho
+# YouTube Shorts ka neeche ka UI lagbhag aakhri 250px dhak leta hai.
+# FOOTER_Y ek ceiling hai: pill content ke neeche baithta hai, is line se
+# neeche nahi, aur SAFE_BOTTOM se neeche koi zaroori cheez nahi.
+FOOTER_Y = 1560
+SAFE_BOTTOM = 1670       # 1920 - 250
 
 # YouTube Shorts ka right action rail (like, dislike, comment, share, remix)
 # video ke right kinare par, lagbhag beech se neeche tak rehta hai — 1080px
@@ -399,40 +429,127 @@ def footer(img, text=None, y=FOOTER_Y, handle=False, after=None):
     return img
 
 
-TIMER_CX, TIMER_CY, TIMER_R = 928, 288, 80
+# Banner ke daayein hisse mein, card (y=348) se upar. r=104 taaki number
+# feed mein turant dikhe. Last 3 second laal + moti ring.
+TIMER_CX, TIMER_CY, TIMER_R = 910, 292, 108
 
 
 def timer_ring(img, remaining, total):
-    """Top-right countdown ring. Yahan isliye rakha hai kyunki neeche options
-    ki jagah hai — overlap ka risk zero. remaining = float seconds."""
+    """Prominent countdown. remaining = float seconds."""
     d = ImageDraw.Draw(img)
     cx, cy, r = TIMER_CX, TIMER_CY, TIMER_R
+    secs = max(0, math.ceil(remaining - 1e-6))
+    urgent = secs <= 3
+    ring = (220, 38, 38) if urgent else C.COLORS["timer_ring"]
+    disc = (255, 236, 236) if urgent else (255, 255, 255)
+    width = 28 if urgent else 22
+    d.ellipse([cx - r - 14, cy - r - 14, cx + r + 14, cy + r + 14], fill=disc)
     box = [cx - r, cy - r, cx + r, cy + r]
-    d.ellipse([cx - r - 8, cy - r - 8, cx + r + 8, cy + r + 8],
-              fill=C.COLORS["card"] if C.NEON else (255, 255, 255))
-    d.arc(box, 0, 360, fill=C.COLORS["timer_ring_bg"], width=20)
+    d.arc(box, 0, 360, fill=C.COLORS["timer_ring_bg"], width=width)
     frac = max(0.0, min(1.0, remaining / total))
     if frac > 0:
-        d.arc(box, -90, -90 + 360 * frac, fill=C.COLORS["timer_ring"], width=20)
-    secs = max(0, math.ceil(remaining - 1e-6))
-    f = F(86)
+        d.arc(box, -90, -90 + 360 * frac, fill=ring, width=width)
+    f = F(100 if not urgent else 112)
     s = str(secs)
     b = d.textbbox((0, 0), s, font=f)
-    d.text((cx - (b[2] - b[0]) // 2 - b[0], cy - (b[3] - b[1]) // 2 - b[1]),
-           s, font=f, fill=C.COLORS["timer_ring"])
+    d.text((cx - (b[2] - b[0]) // 2 - b[0], cy - (b[3] - b[1]) // 2 - b[1] - 8),
+           s, font=f, fill=ring)
     return img
 
 
 # ---------------------------------------------------------------- panels
-CARD_TOP = 348
+# Timer ring y~292 par hai. Sawaal uske neeche, phir bada visual (naksha ya
+# icon), phir options. Neeche ~250px aur right rail khaali rehte hain.
+QUESTION_TOP = 408
 CARD_X = 58
-# Card ki height cap zaroori hai: lamba sawaal card ko bada karta hai,
-# jo options ko neeche dhakelta hai, aur phir CTA/ishara YouTube ke UI
-# (1420px se neeche) me chale jaate hain.
-CARD_MIN_H, CARD_MAX_H = 240, 352
-OPT_H = 112
-OPT_GAP = 20
-OPT_PAD = 34            # card ke neeche se options tak ka gap
+CARD_MIN_H, CARD_MAX_H = 120, 156
+OPT_H = 90
+OPT_GAP = 8
+OPT_PAD = 12
+MAP_H = 460             # India ~1.07 tall/wide → silhouette still wider than 400px
+ICON_INK = (14, 116, 144)
+
+
+def visual_slot(after_y):
+    """Map / icon card. Right edge RAIL_X se pehle. Ink width >= 400."""
+    top = after_y + 14
+    left, right = COL_L, RAIL_X - 16
+    avail = right - left
+    map_w = min(540, avail)
+    x0 = left + (avail - map_w) // 2
+    map_box = (x0, top, x0 + map_w, top + MAP_H)
+    icon_box = (left, top, right, top + MAP_H)
+    return {"map_box": map_box, "icon_box": icon_box, "bottom": top + MAP_H}
+
+
+def _pictogram(q) -> str:
+    blob = f"{q.get('q', '')} {q.get('sub', '')}"
+    if any(k in blob for k in ("चाँद", "सूरज", "सूर्य", "ग्रह", "तारा")):
+        return "sky"
+    if any(k in blob for k in ("नदी", "समुद्र", "पानी", "झील")):
+        return "water"
+    if any(k in blob for k in ("जानवर", "पक्षी", "पशु", "मछली")):
+        return "animal"
+    return {
+        "विज्ञान": "atom",
+        "भारत": "tricolor",
+        "दुनिया": "globe",
+        "पहेली": "puzzle",
+        "सामान्य ज्ञान": "bulb",
+    }.get(q.get("sub") or "", "bulb")
+
+
+def _icon_card(img, box, q):
+    """Naksha na ho to bhi frame khaali na dikhe — subject ka icon card."""
+    x0, y0, x1, y1 = box
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle([x0, y0, x1, y1], 36, fill=(255, 255, 255))
+    cx, cy = (x0 + x1) // 2, y0 + int((y1 - y0) * 0.40)
+    kind = _pictogram(q)
+    ink = ICON_INK
+    r = 118
+    if kind == "atom":
+        d.ellipse([cx - 22, cy - 22, cx + 22, cy + 22], fill=ink)
+        d.ellipse([cx - r, cy - 46, cx + r, cy + 46], outline=ink, width=8)
+        d.ellipse([cx - 46, cy - r, cx + 46, cy + r], outline=ink, width=8)
+        d.arc([cx - r, cy - 70, cx + r, cy + 70], 20, 200, fill=ink, width=8)
+    elif kind == "globe":
+        d.ellipse([cx - r, cy - r, cx + r, cy + r], outline=ink, width=10)
+        d.ellipse([cx - 52, cy - r, cx + 52, cy + r], outline=ink, width=8)
+        d.arc([cx - r, cy - 48, cx + r, cy + 48], 0, 360, fill=ink, width=8)
+        d.line([(cx - r, cy), (cx + r, cy)], fill=ink, width=8)
+    elif kind == "tricolor":
+        d.rounded_rectangle([cx - 130, cy - 90, cx + 130, cy - 30], 8, fill=(255, 153, 51))
+        d.rounded_rectangle([cx - 130, cy - 30, cx + 130, cy + 30], 8, fill=(255, 255, 255),
+                            outline=ink, width=4)
+        d.ellipse([cx - 22, cy - 22, cx + 22, cy + 22], outline=ink, width=6)
+        d.rounded_rectangle([cx - 130, cy + 30, cx + 130, cy + 90], 8, fill=(19, 136, 8))
+    elif kind == "sky":
+        d.ellipse([cx - 70, cy - 70, cx + 70, cy + 70], fill=(255, 196, 64), outline=ink, width=8)
+        for dx, dy, rr in ((-140, -40, 16), (120, -70, 12), (150, 30, 10), (-100, 80, 14)):
+            d.ellipse([cx + dx - rr, cy + dy - rr, cx + dx + rr, cy + dy + rr], fill=ink)
+    elif kind == "water":
+        for i, dy in enumerate((-50, 10, 70)):
+            d.arc([cx - 150, cy + dy - 40, cx + 150, cy + dy + 40], 200, 340, fill=ink, width=10)
+    elif kind == "animal":
+        d.ellipse([cx - 36, cy - 10, cx + 36, cy + 50], fill=ink)
+        for dx, dy in ((-70, -20), (70, -20), (-28, -70), (28, -70)):
+            d.ellipse([cx + dx - 28, cy + dy - 28, cx + dx + 28, cy + dy + 28], fill=ink)
+    elif kind == "puzzle":
+        mark = "?"
+        mf = F(180)
+        mb = d.textbbox((0, 0), mark, font=mf)
+        d.text((cx - (mb[2] - mb[0]) // 2 - mb[0], cy - (mb[3] + mb[1]) // 2 - 10),
+               mark, font=mf, fill=ink)
+    else:
+        d.ellipse([cx - 70, cy - 80, cx + 70, cy + 40], outline=ink, width=10)
+        d.rounded_rectangle([cx - 28, cy + 36, cx + 28, cy + 78], 10, fill=ink)
+        d.rectangle([cx - 46, cy + 78, cx + 46, cy + 100], fill=ink)
+    sub = (q.get("sub") or "क्विज़").strip()
+    sf = F(54)
+    sw = text_w(d, sub, sf)
+    d.text((cx - sw // 2, y1 - 120), sub, font=sf, fill=C.COLORS["q_text"])
+    return img
 
 
 def question_panel(q, qnum, total, highlight=None, dim_others=False,
@@ -450,23 +567,37 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False,
     img = background(qnum).convert("RGB")
     banner(img, qnum, total, q.get("sub"), hook=hook)
 
+    import indiamap
+    states = indiamap.for_question(q)
+
     d = ImageDraw.Draw(img)
-    inner_w = C.W - 2 * CARD_X - 96
-    f, lines, lh = fit_lines(d, q["q"], inner_w, CARD_MAX_H - 76,
-                             start=92, min_size=56, max_lines=3)
-    card_h = max(CARD_MIN_H, min(CARD_MAX_H, len(lines) * lh + 76))
-    card_box = [CARD_X, CARD_TOP, C.W - CARD_X, CARD_TOP + card_h]
+    inner_w = C.W - 2 * CARD_X - 80
+    f, lines, lh = fit_lines(d, q["q"], inner_w, CARD_MAX_H - 64,
+                             start=72, min_size=46, max_lines=3)
+    card_h = max(CARD_MIN_H, min(CARD_MAX_H, len(lines) * lh + 64))
+    card_box = [CARD_X, QUESTION_TOP, C.W - CARD_X, QUESTION_TOP + card_h]
     card(img, card_box, fill=C.COLORS["card"])
 
     d = ImageDraw.Draw(img)
-    top = CARD_TOP + (card_h - len(lines) * lh) // 2
+    top = QUESTION_TOP + (card_h - len(lines) * lh) // 2
     if C.NEON:
         img = img.convert("RGBA")
         d = ImageDraw.Draw(img)
-    centered_multicolor(d, lines, f, lh, C.W // 2, top,
+    centered_multicolor(d, lines, f, lh, C.W / 2, top,
                         [C.COLORS[k] for k in C.QUESTION_COLORS], img=img)
+    slot = visual_slot(card_box[3])
+    if states:
+        correct = None
+        if highlight is not None and 0 <= highlight < len(states):
+            correct = states[highlight]
+        indiamap.draw(
+            img, slot["map_box"], [s for s in states if s], correct=correct,
+        )
+    else:
+        _icon_card(img, slot["icon_box"], q)
+    d = ImageDraw.Draw(img)
 
-    opt_top = card_box[3] + OPT_PAD
+    opt_top = slot["bottom"] + OPT_PAD
     icons = icons_for(q)
     q_opts = q["opts"][:max(0, min(4, show_options))]
     text_x = 296 if icons else 206
@@ -497,7 +628,7 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False,
         cx = 134
         d.ellipse([cx - 42, y + 14, cx + 42, y + OPT_H - 14],
                   fill=bg if C.NEON else (255, 255, 255), outline=lab, width=6)
-        lf = F(50)
+        lf = F(58)
         lb = d.textbbox((0, 0), LABELS[i], font=lf)
         d.text((cx - (lb[2] - lb[0]) // 2 - lb[0], y + OPT_H // 2 - (lb[3] + lb[1]) // 2),
                LABELS[i], font=lf, fill=lab)
@@ -529,6 +660,8 @@ def question_panel(q, qnum, total, highlight=None, dim_others=False,
                    fill=C.COLORS["correct"], width=11, joint="curve")
 
     opt_end = opt_top + 4 * (OPT_H + OPT_GAP) - OPT_GAP
+    if highlight is None and opt_end + 100 < SAFE_BOTTOM:
+        footer(img, "सोचिए…", y=opt_end + 18, after=opt_end)
     if img.mode == "RGBA":
         img = img.convert("RGB")
     return img, opt_end
@@ -652,22 +785,280 @@ def reveal_banner_text(qnum, total):
     return None
 
 
-def reveal_panel(q, qnum, total):
-    img, opt_end = question_panel(q, qnum, total, highlight=q["ans"], dim_others=True,
-                                  hook=reveal_banner_text(qnum, total))
+_REVEAL_CACHE = {}
+
+
+def _reveal_bases(q, qnum, total):
+    key = (q.get("id"), qnum, total, q.get("ans"), bool(indiamap_states(q)))
+    if key not in _REVEAL_CACHE:
+        banner_hook = reveal_banner_text(qnum, total)
+        plain, end_y = question_panel(q, qnum, total, hook=banner_hook)
+        hit, end_y = question_panel(q, qnum, total, highlight=q["ans"], dim_others=True,
+                                    hook=banner_hook)
+        _REVEAL_CACHE[key] = (plain.convert("RGB"), hit.convert("RGB"), end_y)
+    return _REVEAL_CACHE[key]
+
+
+def indiamap_states(q):
+    import indiamap
+    return indiamap.for_question(q)
+
+
+def _draw_reveal_overlay(img, q, opt_end, progress):
+    """Badge scale-in, phir ek line ka kyun. progress 0..1."""
+    p = max(0.0, min(1.0, progress))
+    if p < 0.28:
+        return img
+    t = (p - 0.28) / 0.72
     d = ImageDraw.Draw(img)
-
-    t = "सही जवाब!"
-    f = F(64)
-    w = text_w(d, t, f)
-    by = opt_end + 22
-    d.rounded_rectangle([COL_CX - w // 2 - 44, by, COL_CX + w // 2 + 44, by + 96],
-                        46, fill=C.COLORS["correct"])
-    d.text((COL_CX - w // 2, by + 12), t, font=f, fill=(255, 255, 255))
-    y = by + 96
-
-    footer(img, C.CTA_TEXT, y=max(FOOTER_Y, y + 34), after=y)
+    label = "सही जवाब!"
+    f = F(58)
+    w = text_w(d, label, f)
+    by = min(opt_end + 12, SAFE_BOTTOM - 150)
+    # halka scale: pill pehle patli, phir poori
+    grow = 0.82 + 0.18 * min(1.0, t / 0.35)
+    half = int((w // 2 + 40) * grow)
+    top = by
+    bot = by + int(76 * grow)
+    d.rounded_rectangle([COL_CX - half, top, COL_CX + half, bot], 40, fill=C.COLORS["correct"])
+    b = d.textbbox((0, 0), label, font=f)
+    tw, th = b[2] - b[0], b[3] - b[1]
+    d.text((COL_CX - tw // 2 - b[0], top + (bot - top - th) // 2 - b[1]),
+           label, font=f, fill=(255, 255, 255))
+    why = (q.get("why") or "").strip()
+    room = SAFE_BOTTOM - (bot + 16)
+    if why and p > 0.5 and room >= 64:
+        wf, wlines, wlh = fit_lines(d, why, RAIL_X - COL_L - 64, room - 24,
+                                    start=34, min_size=24, max_lines=2, bold=False)
+        h = len(wlines[:2]) * wlh + 24
+        y = bot + 10
+        if y + h <= SAFE_BOTTOM:
+            d.rounded_rectangle([COL_L, y, RAIL_X, y + h], 22, fill=(255, 255, 255),
+                                outline=C.COLORS["correct"], width=4)
+            centered(d, wlines[:2], wf, wlh, COL_CX, y + 12, C.COLORS["q_text"])
     return img
+
+
+def reveal_at(q, qnum, total, progress):
+    """Answer reveal animation. progress 0 = options plain, 1 = highlighted + kyun."""
+    plain, hit, opt_end = _reveal_bases(q, qnum, total)
+    p = max(0.0, min(1.0, float(progress)))
+    blend = min(1.0, p / 0.4)
+    img = Image.blend(plain, hit, blend)
+    return _draw_reveal_overlay(img, q, opt_end, p)
+
+
+def reveal_panel(q, qnum, total):
+    return reveal_at(q, qnum, total, 1.0)
+
+
+# Hook line: solid crimson, no alpha and no stroke. A stroke fills Devanagari
+# counters (स, म, भ). The shadow is a hard offset in a darker solid colour.
+# Coverage below the threshold stays the card; everything else is the exact ink,
+# so antialiasing cannot leave a washed-out fringe once a cluster is shown.
+HOOK_INK = (186, 18, 36)
+HOOK_SHADOW = (42, 6, 14)
+_HOOK_SHADOW_DX = 4
+_HOOK_SHADOW_DY = 5
+_HOOK_COVER = 96
+_hook_chrome_cache = {}
+
+
+def _paint_opaque(img, xy, text, font, fill):
+    """Glyph coverage snaps to a solid RGB fill. No alpha on the frame."""
+    if not text:
+        return
+    b = ImageDraw.Draw(img).textbbox(xy, text, font=font)
+    pad = 6
+    box = (max(0, int(b[0]) - pad), max(0, int(b[1]) - pad),
+           min(img.width, int(math.ceil(b[2])) + pad),
+           min(img.height, int(math.ceil(b[3])) + pad))
+    if box[2] <= box[0] or box[3] <= box[1]:
+        return
+    w, h = box[2] - box[0], box[3] - box[1]
+    mask = Image.new("L", (w, h), 0)
+    ImageDraw.Draw(mask).text((xy[0] - box[0], xy[1] - box[1]), text, font=font, fill=255)
+    bw = mask.point(lambda v: 255 if v >= _HOOK_COVER else 0)
+    if bw.getbbox() is None:
+        ImageDraw.Draw(img).text(xy, text, font=font, fill=fill)
+        return
+    solid = Image.new("RGB", (w, h), fill)
+    region = img.crop(box)
+    if region.mode != "RGB":
+        region = region.convert("RGB")
+    region.paste(solid, (0, 0), bw)
+    img.paste(region, box)
+
+
+def _draw_hook_line(img, line: str, t: float):
+    """Typewriter. Clusters stay in their final x, so the line does not jump."""
+    text = " ".join((line or "").split())
+    if not text:
+        return img
+    d = ImageDraw.Draw(img)
+    font, lines, lh = fit_lines(d, text, C.W - 220, 360, start=78, min_size=46, max_lines=4)
+    top = 280 + (340 - len(lines) * lh) // 2
+    shown = hooktype.visible_text(text, t)
+    rest = shown
+    y = top
+    cx = C.W // 2
+    for ln in lines:
+        line_w = text_w(d, ln, font)
+        x0 = cx - line_w / 2
+        take = ""
+        if rest:
+            if rest.startswith(ln):
+                take = ln
+                rest = rest[len(ln):]
+                if rest.startswith(" "):
+                    rest = rest[1:]
+            else:
+                take = rest
+                rest = ""
+        if take:
+            _paint_opaque(img, (x0 + _HOOK_SHADOW_DX, y + _HOOK_SHADOW_DY),
+                          take, font, HOOK_SHADOW)
+            _paint_opaque(img, (x0, y), take, font, HOOK_INK)
+        y += lh
+    return img
+
+
+def _hook_chrome(question: str = ""):
+    """Banner, cards, question, chip. The hook line is drawn on a copy."""
+    qtext = " ".join((question or "").split())
+    cached = _hook_chrome_cache.get(qtext)
+    if cached is not None:
+        return cached.copy()
+    img = background(3).convert("RGB")
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle([0, -40, C.W, 200], 40, fill=C.COLORS["banner"])
+    brand = C.BRAND
+    bf = F(64)
+    while text_w(d, brand, bf) > C.W - 140 and bf.size > 36:
+        bf = F(bf.size - 2)
+    bw = text_w(d, brand, bf)
+    d.text(((C.W - bw) // 2, 58), brand, font=bf, fill=C.COLORS["banner_text"])
+    card(img, [70, 240, C.W - 70, 700], fill=(255, 255, 255))
+    d = ImageDraw.Draw(img)
+    if qtext:
+        card(img, [COL_L, 740, RAIL_X, 1480], fill=(255, 255, 255))
+        d = ImageDraw.Draw(img)
+        d.text((COL_L + 36, 770), "सवाल", font=F(36), fill=C.COLORS["opt_label"])
+        qf, qlines, qlh = fit_lines(d, qtext, RAIL_X - COL_L - 80, 520, start=68, min_size=42, max_lines=5)
+        centered(d, qlines, qf, qlh, (COL_L + RAIL_X) // 2, 880, C.COLORS["q_text"])
+    sub = f"{C.TIMER_SECONDS} सेकंड  ·  4 विकल्प"
+    sf = F(42)
+    sw = text_w(d, sub, sf)
+    chip_y = 1520 if qtext else 1100
+    cx = (COL_L + RAIL_X) // 2 if qtext else C.W // 2
+    d.rounded_rectangle([cx - sw // 2 - 36, chip_y, cx + sw // 2 + 36, chip_y + 84],
+                        36, fill=C.COLORS["timer_ring"])
+    d.text((cx - sw // 2, chip_y + 14), sub, font=sf, fill=(255, 255, 255))
+    if img.mode != "RGB":
+        img = img.convert("RGB")
+    _hook_chrome_cache[qtext] = img
+    return img.copy()
+
+
+def hook_frame(line: str, question: str = "", t: float = 0.0):
+    """Hook at time t. t >= TYPE_SECONDS is the full, solid line. No fade."""
+    img = _hook_chrome(question)
+    _draw_hook_line(img, line, t)
+    if img.mode != "RGB":
+        img = img.convert("RGB")
+    return img
+
+
+def hook_panel(line: str, question: str = ""):
+    """Pehle ~2 second, line poori dikh chuki ho. Topic teaser + sawaal (jawab nahi)."""
+    return hook_frame(line, question, hooktype.TYPE_SECONDS)
+
+
+def comment_panel(questions=None):
+    """Aakhri beat: comment CTA. Emoji alag font se, text Hind se."""
+    img = background(5).convert("RGB")
+    banner(img)
+    d = ImageDraw.Draw(img)
+    card(img, [COL_L, 420, RAIL_X, 1520], fill=(255, 255, 255))
+    title = C.CTA_TEXT
+    f, lines, lh = fit_lines(d, title, RAIL_X - COL_L - 80, 280, start=78, min_size=48, max_lines=3)
+    y = centered(d, lines, f, lh, COL_CX, 560, C.COLORS["q_text"])
+    tile = emoji_tile("👇", 160)
+    if tile is not None:
+        img.paste(tile, (COL_CX - 80, int(y) + 30), tile)
+        y = int(y) + 210
+    else:
+        y = int(y) + 40
+    hint = "A, B, C या D"
+    hf = F(64)
+    hw = text_w(d, hint, hf)
+    d.text((COL_CX - hw // 2, y + 36), hint, font=hf, fill=C.COLORS["opt_label"])
+    return img
+
+
+def font_report() -> dict:
+    latin = all(_glyph_real(FONT_BOLD, ch) for ch in "ABCDQUIZPATHSHALA")
+    dev = _has_devanagari(FONT_BOLD)
+    return {
+        "font_path": FONT_BOLD,
+        "font_latin": latin,
+        "font_devanagari": dev,
+        "timer_radius": TIMER_R,
+        "option_font": 64,
+    }
+
+
+def assert_fonts():
+    info = font_report()
+    if not (info["font_latin"] and info["font_devanagari"]):
+        raise SystemExit(f"[render] font coverage fail: {info}")
+    print(f"[render] font OK latin+devanagari: {info['font_path']}")
+    return info
+
+
+def map_ink_width(img) -> int:
+    """Cream/green silhouette ki chaudaai. Ocean tile nahi — khud desh."""
+    import indiamap
+    xs = []
+    for y in range(480, 1400, 2):
+        for x in range(40, RAIL_X, 2):
+            px = img.getpixel((x, y))
+            if px == indiamap.PLAIN_FILL or px == indiamap.ANSWER_FILL:
+                xs.append(x)
+    if not xs:
+        return 0
+    return max(xs) - min(xs)
+
+
+def _map_ink(img) -> bool:
+    return map_ink_width(img) >= 400
+
+
+def visual_probe(questions) -> dict:
+    """Gate ke liye kuch frames. Poori video nahi."""
+    info = font_report()
+    q = questions[0]
+    hook_panel(C.HOOK_LINES["quiz"][0])
+    import indiamap
+    mapped = []
+    for item in questions:
+        panel, _ = question_panel(item, 1, max(2, len(questions)))
+        if indiamap.for_question(item) and _map_ink(panel):
+            mapped.append(item["id"])
+    rev = reveal_at(q, 1, max(2, len(questions)), 1.0)
+    comment_panel(questions)
+    crop = rev.crop((COL_L, 1080, RAIL_X, SAFE_BOTTOM)).resize((48, 24))
+    green = 0
+    for px in crop.getdata():
+        if px[1] > 120 and px[1] > px[0] + 20 and px[1] > px[2]:
+            green += 1
+    info.update({
+        "why_on_reveal": bool((q.get("why") or "").strip()),
+        "reveal_highlight": green > 3,
+        "comment_cta": True,
+        "map_ids": mapped,
+    })
+    return info
 
 
 def title_panel(title, subtitle, seed=9, big=True):

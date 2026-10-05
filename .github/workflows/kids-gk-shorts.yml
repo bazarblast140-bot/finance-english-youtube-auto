@@ -140,7 +140,7 @@ jobs:
           echo "active=true" >> $GITHUB_OUTPUT
           echo "decided slot=${{ needs.plan.outputs.slot }} date=${{ needs.plan.outputs.date }} immediate=${{ needs.plan.outputs.immediate }} reason=${{ needs.plan.outputs.reason }}"
 
-      - name: System deps (ffmpeg + Devanagari + emoji fonts)
+      - name: System deps (ffmpeg + emoji fonts + shaping)
         if: steps.slot.outputs.active == 'true'
         run: |
           sudo apt-get update -qq
@@ -150,6 +150,9 @@ jobs:
           # Emoji font chup-chaap gayab ho jaaye to option icons bina bataye
           # hat jaate hain — isliye yahin check kar lete hain.
           fc-list | grep -qi emoji && echo "emoji font OK" || echo "::warning::emoji font missing - option icons nahi dikhenge"
+          # Latin (A-D, QUIZ PATHSHALA) Noto Sans Devanagari mein NAHI hota.
+          # Video Hind use karti hai (assets/fonts, Devanagari+Latin). Yahan
+          # sirf confirm — asli check pip ke baad render.assert_fonts().
 
       - uses: actions/setup-python@v5
         if: steps.slot.outputs.active == 'true'
@@ -158,6 +161,10 @@ jobs:
 
       - run: pip install -r requirements.txt
         if: steps.slot.outputs.active == 'true'
+
+      - name: Font check — Devanagari + Latin
+        if: steps.slot.outputs.active == 'true'
+        run: PYTHONPATH=src python -c "import render; render.assert_fonts()"
 
       - name: Video banao
         if: steps.slot.outputs.active == 'true'
@@ -169,6 +176,10 @@ jobs:
           ELEVENLABS_MODEL:    ${{ vars.ELEVENLABS_MODEL || 'eleven_multilingual_v2' }}
           QUIZ_ACTIVE_SLOTS:   ${{ vars.QUIZ_ACTIVE_SLOTS }}
           QUIZ_SUBSCRIBE_CTA:  ${{ vars.QUIZ_SUBSCRIBE_CTA || 'end' }}
+          # Live fact check calls DeepSeek (sample job is offline, this one is not).
+          # Confident disagreement blocks upload. Missing key or API error warns only.
+          DEEPSEEK_API_KEY:    ${{ secrets.DEEPSEEK_API_KEY }}
+          DEEPSEEK_BASE_URL:   ${{ secrets.DEEPSEEK_BASE_URL }}
         run: |
           # pipefail zaroori hai — warna 'python ... | tee' me python crash ho
           # jaaye to bhi tee ka exit 0 aata hai aur step GREEN dikhta hai.
@@ -196,6 +207,14 @@ jobs:
           name: quiz-short-${{ steps.slot.outputs.slot }}-${{ github.run_number }}
           path: kids-quiz-shorts/out/*/
           retention-days: 14
+
+      - name: Quality gate — kam score ya fact-check fail par upload mat karo
+        if: steps.slot.outputs.active == 'true'
+        run: |
+          DIR=$(ls -td out/*/ | head -1)
+          python src/quality.py --dir "${DIR%/}" --check
+          echo "## Quality gate" >> "$GITHUB_STEP_SUMMARY"
+          python -c "import json,pathlib,sys; p=pathlib.Path('$DIR')/'quality.json'; r=json.loads(p.read_text()); print(json.dumps({k:r.get(k) for k in ('pass','scores','reason','duration_sec','hook','question_ids')}, ensure_ascii=False, indent=2))"
 
       - name: YouTube pe upload
         id: up
@@ -291,6 +310,11 @@ jobs:
             echo '## pick / hook (repeat + bank stock)'
             echo '```'
             grep -E '^\[pick\]|^\[hook\]' build_out.txt 2>/dev/null | head -12 || echo '(none)'
+            echo '```'
+            echo
+            echo '## quality gate'
+            echo '```'
+            grep -E '^\[quality\]' build_out.txt 2>/dev/null | head -20 || echo '(none)'
             echo '```'
             echo
             echo '## voice'

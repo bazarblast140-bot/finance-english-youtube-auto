@@ -113,7 +113,7 @@ def build(questions, slot="morning", date=None):
         + (f"\n💡 क्यों: {q['why']}" if q.get("why") else "")
         for i, q in enumerate(questions)
     )
-    engage = "कितने सही हुए? कमेंट में लिखिए 👇"
+    engage = "अपना जवाब कमेंट कीजिए 👇\nकितने सही हुए?"
 
     # Pehli line me hi keyword + sawaal — ye ~100 char sabse zyada weight
     # rakhte hain, isliye yahan "hook" nahi, saaf topic likhte hain.
@@ -180,8 +180,8 @@ def build(questions, slot="morning", date=None):
     # jawab mil jaata tha, to kisi ko apna jawab likhne ki wajah nahi bachti
     # thi. Ab sawaal poochte hain (comment = engagement signal), jawab video me.
     n_q = len(questions)
-    ask = ("आपका जवाब क्या है? A, B, C या D — कमेंट कीजिए 👇" if n_q == 1 else
-           f"{n_q} में से कितने सही हुए? अपना स्कोर कमेंट कीजिए 👇")
+    ask = ("अपना जवाब कमेंट कीजिए 👇 — A, B, C या D" if n_q == 1 else
+           f"अपना जवाब कमेंट कीजिए 👇\n{n_q} में से कितने सही हुए?")
     pinned = None if C.MADE_FOR_KIDS else (
         f"{ask}\n"
         f"रोज़ नए सवाल आते हैं — सब्सक्राइब करके रोज़ खेलिए 🔔\n"

@@ -1,0 +1,10 @@
+india_states.geojson
+
+Public domain. State outlines are simplified from Natural Earth 1:50m
+cultural vectors, admin-1 states and provinces:
+
+    https://www.naturalearthdata.com/
+
+Natural Earth releases that data into the public domain. This file is a
+Douglas–Peucker simplification (about 0.045 degrees) for on-screen drawing,
+not a survey or legal boundary. Hindi names were added in this repository.
