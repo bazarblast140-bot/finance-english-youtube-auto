@@ -1,31 +1,31 @@
 # Last run
-- when   : 2026-10-05 14:12 UTC
-- slot   : morning
+- when   : 2026-10-06 07:38 UTC
+- slot   : night
 - privacy: public
 - upload : success
 
 ## metadata
-- title: कबड्डी में एक टीम के कितने खिलाड़ी एक समय में मैदान पर होते हैं? 🤔 | GK Quiz Hindi
-- duration_sec: 32.2
+- title: कनाडा की राजधानी कौन सी है? 🤔 | World GK Quiz
+- duration_sec: 34.17
 - voice_engines: ['elevenlabs']
-- youtube_url: https://youtube.com/shorts/eEQgQxosMzQ
-- scheduled_for: 2026-10-07T02:00:00Z
+- youtube_url: https://youtube.com/shorts/yniJ9SyT9GM
+- scheduled_for: 2026-10-07T15:00:00Z
 
 ## upload output (tail)
 ```
-[upload] privacy=private + publishAt=2026-10-07T02:00:00Z
+[upload] privacy=private + publishAt=2026-10-07T15:00:00Z
 [upload] token scopes: youtube, youtube.force-ssl, youtube.readonly, youtube.upload
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/eEQgQxosMzQ
+[upload] done -> https://youtube.com/shorts/yniJ9SyT9GM
 [upload] comment abhi nahi gaya (baad me retry): <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "The comment thread could not be created due to insufficient permissions. The request might not be properly authorized.". Details: "[{'message': 'The comment thread could not be cre
 ```
 
 ## pick / hook (repeat + bank stock)
 ```
-[pick] stock quiz: 89/284 fresh (~11.1 din)
+[pick] stock quiz: 87/284 fresh (~10.9 din)
 [pick] stock paheli: 51/128 fresh (~25.5 din)
-[pick] सामान्य ज्ञान/g193: कबड्डी में एक टीम के कितने खिलाड़ी एक समय में मैदान पर होते हैं? || विज्ञान/g227: DNA की डबल हेलिक्स संरचना किसने बताई थी?
-[hook] on-screen: सोचिए, फिर बताइए!
+[pick] दुनिया/g243: कनाडा की राजधानी कौन सी है? || सामान्य ज्ञान/g272: 'द डिस्कवरी ऑफ़ इंडिया' किताब किसने लिखी?
+[hook] on-screen: आज का GK चैलेंज
 ```
 
 ## voice
