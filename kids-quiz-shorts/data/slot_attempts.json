@@ -105,6 +105,13 @@
    "counts_quota": true,
    "uploaded_at": "2026-10-07T14:47:10Z"
   },
+  "morning|2026-10-10": {
+   "attempts": 1,
+   "state": "dispatched",
+   "dispatched_at": "2026-10-08T14:05:37Z",
+   "quota_day": "2026-10-08",
+   "counts_quota": true
+  },
   "night|2026-10-03": {
    "attempts": 1,
    "state": "uploaded",
