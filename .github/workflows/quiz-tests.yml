@@ -47,7 +47,9 @@ jobs:
         continue-on-error: true
         env:
           QUIZ_TTS_PROVIDER: edge
-        run: python src/build.py --slot evening --dry-run --seed 7
+        run: |
+          sudo apt-get install -y -qq ffmpeg >/dev/null
+          python src/build.py --slot evening --dry-run --seed 7
 
       - name: Upload sample
         if: github.event_name == 'workflow_dispatch'
