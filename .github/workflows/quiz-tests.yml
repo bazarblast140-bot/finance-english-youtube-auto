@@ -48,7 +48,7 @@ jobs:
         env:
           QUIZ_TTS_PROVIDER: edge
         run: |
-          sudo apt-get install -y -qq ffmpeg >/dev/null
+          sudo apt-get install -y -qq ffmpeg fonts-noto-core fonts-indic libraqm0 fonts-noto-color-emoji >/dev/null
           python src/build.py --slot evening --dry-run --seed 7
 
       - name: Upload sample
