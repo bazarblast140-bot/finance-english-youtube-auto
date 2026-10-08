@@ -648,3 +648,34 @@ class MainGuardTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WorkflowFetchTruncationTests(unittest.TestCase):
+    """wf_api_error (http 200): runs list ~1.5 MB thi, body 1 MB par katti thi."""
+
+    def test_body_cap_fits_a_full_runs_page(self):
+        self.assertGreaterEqual(H.MAX_BODY_BYTES, 4_000_000)
+
+    def test_runs_query_is_bounded_by_created_filter(self):
+        now = datetime(2026, 10, 7, 11, 19, tzinfo=UTC)
+        seen = []
+
+        def handler(method, url, headers, body):
+            seen.append(url)
+            return H.ClientResponse(200, {"workflow_runs": [_run("2026-10-07T08:00:00Z")]})
+
+        env = {"GH_TOKEN": "ghp_x", "GITHUB_REPOSITORY": "o/r", "GITHUB_ACTIONS": "true"}
+        obs = H.fetch_workflows(FakeClient(handler), env, now)
+        self.assertNotIn("error", obs)
+        self.assertEqual(len(obs["runs"]), 1)
+        qs = parse_qs(urlparse(seen[0]).query)
+        self.assertEqual(qs["created"], [">=2026-10-04T11:19:00Z"])
+
+    def test_unparseable_200_says_so_instead_of_bare_http_200(self):
+        def handler(method, url, headers, body):
+            return H.ClientResponse(200, None, '{"total_count": 5, "workflow_runs": [{"id"')
+
+        env = {"GH_TOKEN": "ghp_x", "GITHUB_REPOSITORY": "o/r", "GITHUB_ACTIONS": "true"}
+        obs = H.fetch_workflows(FakeClient(handler), env, datetime(2026, 10, 7, tzinfo=UTC))
+        self.assertIn("not a JSON object", obs["error"])
+        self.assertNotEqual(obs["error"], "http 200")
