@@ -38,3 +38,22 @@ jobs:
           GIT_COMMITTER_NAME: ci
           GIT_COMMITTER_EMAIL: ci@example.invalid
         run: python -m unittest discover -s tests -v
+
+      # Sirf manual dispatch par: ek sample Short render karke artifact banao,
+      # taaki format badlav (PR) upload kiye bina review ho sake. Koi secret
+      # nahi, koi YouTube call nahi, used.json me kuch nahi likha jaata.
+      - name: Sample render (review only)
+        if: github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        env:
+          QUIZ_TTS_PROVIDER: edge
+        run: python src/build.py --slot evening --dry-run --seed 7
+
+      - name: Upload sample
+        if: github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: format-proposal-sample
+          path: kids-quiz-shorts/out/*/*.mp4
+          retention-days: 14
