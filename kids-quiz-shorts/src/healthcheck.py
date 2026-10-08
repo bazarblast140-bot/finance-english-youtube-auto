@@ -75,6 +75,13 @@ HEALTH_CRONS = (
 SCHEDULE_GRACE_HOURS = 22
 SCHEDULE_MATCH_HOURS = 23
 RECENT_RUN_HOURS = 48
+# GitHub runs list: 100 runs of kids-gk-shorts.yml ~1.5 MB JSON (har run me
+# poora repository object aata hai). Pehle body 1_000_000 byte par kaat di
+# jaati thi -> JSON adhoora -> payload None -> "wf_api_error (http 200)"
+# (runs 37501775483, 37525759888, 37613252532). Ab cap 8 MB, aur list sirf
+# utni purani jitni checks ko chahiye (WORKFLOW_LOOKBACK_HOURS).
+MAX_BODY_BYTES = 8_000_000
+WORKFLOW_LOOKBACK_HOURS = 72
 STUCK_RUN_HOURS = 2
 BAD_CONCLUSIONS = ("failure", "timed_out", "startup_failure", "action_required", "stale")
 
@@ -1008,10 +1015,10 @@ class UrlLibClient:
         opener = urllib.request.build_opener(_NoRedirect)
         try:
             with opener.open(req, timeout=timeout) as resp:
-                raw = resp.read(1_000_000)
+                raw = resp.read(MAX_BODY_BYTES)
                 status = getattr(resp, "status", None) or resp.getcode()
         except urllib.error.HTTPError as exc:
-            raw = exc.read(1_000_000) if exc.fp else b""
+            raw = exc.read(MAX_BODY_BYTES) if exc.fp else b""
             status = exc.code
         except urllib.error.URLError as exc:
             reason = getattr(exc, "reason", exc)
@@ -1196,7 +1203,6 @@ def _github_repo(env):
 
 
 def fetch_workflows(client, env, now):
-    del now  # the caller filters by time; the list itself is the newest page
     token = _env_value(env, "GH_TOKEN", "GITHUB_TOKEN")
     required = env.get("GITHUB_ACTIONS") == "true"
     if not token:
@@ -1206,9 +1212,13 @@ def fetch_workflows(client, env, now):
         repo = _github_repo(env)
     except RuntimeError as exc:
         return {"error": str(exc), "runs": []}
+    # Sirf utne din ke runs jitne evaluate_workflows dekhta hai (grace+match
+    # aur recent window dono 72h ke andar) — response chhota rehta hai.
+    since = (now - timedelta(hours=WORKFLOW_LOOKBACK_HOURS)).strftime("%Y-%m-%dT%H:%M:%SZ")
     query = urllib.parse.urlencode({
         "per_page": "100",
         "exclude_pull_requests": "true",
+        "created": f">={since}",
     })
     url = f"{base}/repos/{repo}/actions/workflows/{UPLOAD_WORKFLOW_FILE}/runs?{query}"
     try:
@@ -1219,8 +1229,12 @@ def fetch_workflows(client, env, now):
         )
     except RuntimeError as exc:
         return {"error": redact(str(exc)), "runs": []}
-    if resp.status != 200 or not isinstance(resp.payload, dict):
+    if resp.status != 200:
         return {"error": f"http {resp.status}", "runs": []}
+    if not isinstance(resp.payload, dict):
+        size = len(resp.text or "")
+        return {"error": f"http 200 but body is not a JSON object ({size} chars; truncated?)",
+                "runs": []}
     runs = []
     for item in resp.payload.get("workflow_runs") or []:
         if not isinstance(item, dict) or not item.get("created_at"):

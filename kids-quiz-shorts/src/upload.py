@@ -241,6 +241,38 @@ def _public_video_ids(yt, ids):
     return public
 
 
+def _already_commented(yt, video_id, channel_id, text):
+    """commentThreads.list (1 unit): kya hamara ye comment video par pehle se hai?
+
+    KYUN: 07-Oct-2026 run 37655462843 ne yniJ9SyT9GM par comment daal diya,
+    par ledger push 5/5 fail hua (comment_posted save nahi hua). Agle run
+    (37680360845) ne wahi comment DOBARA daal diya — video par do ek jaise
+    channel comments. Ab insert se pehle check: same channel + same text
+    mile to sirf ledger update, naya comment nahi (50 units bhi bachte hain).
+
+    True/False; None = pata nahi (error / MagicMock) — tab purana behaviour.
+    """
+    try:
+        resp = yt.commentThreads().list(
+            part="snippet", videoId=video_id, maxResults=50,
+            textFormat="plainText", order="time",
+        ).execute()
+    except Exception:
+        return None
+    if not isinstance(resp, dict):
+        return None
+    want = " ".join(str(text or "").split())
+    for item in resp.get("items") or []:
+        top = (((item or {}).get("snippet") or {}).get("topLevelComment") or {}).get("snippet") or {}
+        author = (top.get("authorChannelId") or {}).get("value")
+        if channel_id and author != channel_id:
+            continue
+        got = " ".join(str(top.get("textOriginal") or top.get("textDisplay") or "").split())
+        if got == want:
+            return True
+    return False
+
+
 def post_pending_comments(max_n=5):
     """Scheduled (private + publishAt) video par upload ke turant baad comment
     ho sake ya na ho — isliye jo reh gaye, unhe video public hone ke BAAD daalte
@@ -271,6 +303,11 @@ def post_pending_comments(max_n=5):
     for r in todo:
         if public_ids is not None and r.get("video_id") not in public_ids:
             print(f"[comments] {r.get('video_id')} abhi public nahi — attempt nahi badhaya")
+            continue
+        if _already_commented(yt, r["video_id"], r.get("channel_id"), r["pinned_comment"]):
+            r["comment_posted"] = now
+            print(f"[comments] {r['video_id']} par comment pehle se hai (pichhla ledger "
+                  f"push fail hua tha) — dobara nahi daala, sirf ledger update")
             continue
         try:
             post_comment(yt, r["video_id"], r.get("channel_id"), r["pinned_comment"])

@@ -349,6 +349,38 @@ class CommentAndAlertTests(unittest.TestCase):
         saved = save.call_args.args[0]
         self.assertFalse(saved[0].get("comment_attempts"))
 
+    def test_existing_channel_comment_is_not_posted_twice(self):
+        """07-Oct: ledger push fail -> next run re-posted the same comment."""
+        import upload
+        from unittest import mock
+        rows = [{"video_id": "V", "pinned_comment": "2 में से कितने सही हुए?\nसब्सक्राइब",
+                 "channel_id": "UCme", "publish_at": "2026-01-01T00:00:00Z"}]
+        yt = mock.MagicMock()
+        yt.commentThreads.return_value.list.return_value.execute.return_value = {"items": [
+            {"snippet": {"topLevelComment": {"snippet": {
+                "authorChannelId": {"value": "UCme"},
+                "textOriginal": "2 में से कितने सही हुए?\nसब्सक्राइब"}}}}]}
+        with mock.patch.object(upload, "_ledger", return_value=rows), \
+             mock.patch.object(upload, "_save_ledger") as save, \
+             mock.patch.object(upload, "_creds", return_value=mock.MagicMock(token="t")), \
+             mock.patch.object(upload, "granted_scopes", return_value=None), \
+             mock.patch("googleapiclient.discovery.build", create=True, return_value=yt), \
+             mock.patch.object(upload, "_public_video_ids", return_value={"V"}), \
+             mock.patch.object(upload, "post_comment") as post:
+            upload.post_pending_comments()
+        post.assert_not_called()
+        self.assertTrue(save.call_args.args[0][0].get("comment_posted"))
+
+    def test_other_users_same_text_does_not_block_our_comment(self):
+        import upload
+        from unittest import mock
+        yt = mock.MagicMock()
+        yt.commentThreads.return_value.list.return_value.execute.return_value = {"items": [
+            {"snippet": {"topLevelComment": {"snippet": {
+                "authorChannelId": {"value": "UCviewer"}, "textOriginal": "hi"}}}}]}
+        self.assertFalse(upload._already_commented(yt, "V", "UCme", "hi"))
+        self.assertIsNone(upload._already_commented(mock.MagicMock(), "V", "UCme", "hi"))
+
     def test_alert_opens_comments_and_closes_without_stealing_health_prefix(self):
         alerts = [{"slot": "night", "date": "2026-10-02", "attempts": 2, "reason": "retry cap"}]
         opened = sp.alert_plan(alerts, [])
