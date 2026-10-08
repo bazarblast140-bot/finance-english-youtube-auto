@@ -169,6 +169,8 @@ jobs:
           ELEVENLABS_MODEL:    ${{ vars.ELEVENLABS_MODEL || 'eleven_multilingual_v2' }}
           QUIZ_ACTIVE_SLOTS:   ${{ vars.QUIZ_ACTIVE_SLOTS }}
           QUIZ_SUBSCRIBE_CTA:  ${{ vars.QUIZ_SUBSCRIBE_CTA || 'end' }}
+          # Khaali = 1 sawaal (default). "2" = purana 2-sawaal format.
+          QUIZ_QUESTIONS_PER_VIDEO: ${{ vars.QUIZ_QUESTIONS_PER_VIDEO }}
         run: |
           # pipefail zaroori hai — warna 'python ... | tee' me python crash ho
           # jaaye to bhi tee ka exit 0 aata hai aur step GREEN dikhta hai.

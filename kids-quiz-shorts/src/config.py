@@ -11,9 +11,14 @@ OUT.mkdir(exist_ok=True)
 # ---------- video ----------
 W, H = 1080, 1920           # YouTube Shorts vertical
 FPS = 30
-QUESTIONS_PER_VIDEO = 2     # 2 sawaal ek Short me. Pehle 1 tha (~25s).
-                            # Ab: Q1 (read+timer+answer) → Q2 (read+timer+answer)
-                            # Total ~50-65s, Shorts limit (3 min) ke andar.
+# PROPOSAL (08-Oct-2026, Rajesh review ke liye — merge NAHI): wapas 1 sawaal.
+# Data (YouTube Data API, public Shorts): 1-sawaal daur (<=27s, n=122) median
+# 35 views; 2-sawaal daur (>=30s, n=105) median 18. 2 sawaal me Q1 ka jawab
+# ~16s par aa jaata hai aur Q2 title me nahi hota -> wahin swipe. Top Hindi GK
+# Shorts channels (PRAKASH GK STUDY 20s, ALL ROUNDER SURAJ 21-33s, Mind Class
+# 33s) 1 sawaal dikhate hain aur jawab sirf aakhir me. Repo variable
+# QUIZ_QUESTIONS_PER_VIDEO=2 se purana format wapas.
+QUESTIONS_PER_VIDEO = max(1, min(3, int(os.getenv("QUIZ_QUESTIONS_PER_VIDEO", "1") or 1)))
 TIMER_SECONDS = 8           # Rajesh spec: 8 second tik-tik
 # Length ke do alag number hain — inhe mat mila dena:
 #   HARD_LIMIT_SECONDS = platform ka asli rule. Oct 2024 se Shorts 3 MINUTE
@@ -22,7 +27,7 @@ TIMER_SECONDS = 8           # Rajesh spec: 8 second tik-tik
 #   TARGET_SECONDS = retention ka target, rule nahi. Shorts ka engagement
 #     sweet spot 30-60s hai, isliye hum yahin rehne ki koshish karte hain.
 HARD_LIMIT_SECONDS = 180.0
-TARGET_SECONDS = 55.0   # 2 sawaal ke liye thoda upar (pehle 32 tha 1 sawaal ke liye)
+TARGET_SECONDS = 25.0 if QUESTIONS_PER_VIDEO == 1 else 55.0   # 1 sawaal ~16-20s
 
 # Jawab se pehle: salute karta fauji + lehrata tiranga + "सच्चे देशभक्त हैं तो
 # लाइक-सब्सक्राइब… जवाब अभी बताती हूँ" (Rajesh, 13-Sep-2026).

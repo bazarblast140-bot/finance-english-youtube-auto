@@ -189,11 +189,13 @@ class CharacterThresholdTests(unittest.TestCase):
         daily = H.daily_spoken_characters(bank, list(C.SLOT_ORDER), C.QUESTIONS_PER_VIDEO)
         threshold = H.credit_threshold(bank, list(C.SLOT_ORDER), C.QUESTIONS_PER_VIDEO, days=2)
         self.assertEqual(threshold, math.ceil(daily * 2))
-        per_video = daily / len(C.SLOT_ORDER)
-        self.assertGreater(per_video, 200)
-        self.assertLess(per_video, 500)
-        self.assertGreater(daily, 1000)
-        self.assertLess(daily, 3000)
+        # Bounds per sawaal, taaki QUESTIONS_PER_VIDEO 1 ho ya 2, test sach rahe.
+        n = C.QUESTIONS_PER_VIDEO
+        per_question = daily / len(C.SLOT_ORDER) / n
+        self.assertGreater(per_question, 100)
+        self.assertLess(per_question, 250)
+        self.assertGreater(daily, 500 * n)
+        self.assertLess(daily, 1500 * n)
 
 
 class YouTubeEvalTests(unittest.TestCase):
@@ -333,11 +335,11 @@ class BankTests(unittest.TestCase):
         # 3 of them used -> 11 fresh = 5.5 days, low. Quiz slot is off.
         used = {f"p{i}" for i in range(3)}
         findings = H.evaluate_bank(
-            bank, used, ["paheli"], [], C.QUESTIONS_PER_VIDEO, C.BANK_LOW_DAYS)
+            bank, used, ["paheli"], [], 2, C.BANK_LOW_DAYS)
         self.assertIn("bank_low_paheli", _codes(findings))
         self.assertEqual(_finding(findings, "bank_quiz_off").level, "ok")
         full = H.evaluate_bank(
-            bank, set(), ["paheli"], [], C.QUESTIONS_PER_VIDEO, 7)
+            bank, set(), ["paheli"], [], 2, 7)
         self.assertIn("bank_paheli", _codes(full))
         self.assertNotIn("bank_low_paheli", _codes(full))
 
