@@ -1,6 +1,7 @@
 """Gemini TTS provider — fully mocked, no network, no real keys."""
 import base64
 import os
+import shutil
 import struct
 import tempfile
 import unittest
@@ -30,6 +31,13 @@ class GeminiTests(unittest.TestCase):
     def setUp(self):
         tts._gemini_dead.clear()
         self.tmp = Path(tempfile.mkdtemp()) / "x.wav"
+        # CI unit-test job me ffmpeg nahi hai: conversion ko record karke mock karo.
+        self.converted = []
+        p = mock.patch.object(tts, "_pcm_to_wav",
+                              side_effect=lambda pcm, out, rate=24000:
+                              self.converted.append((len(pcm), rate)))
+        p.start()
+        self.addCleanup(p.stop)
 
     def env(self, **kv):
         base = {k: "" for k in ENVS}
@@ -63,7 +71,7 @@ class GeminiTests(unittest.TestCase):
                 mock.patch("requests.post", side_effect=post):
             self.assertTrue(tts._gemini("नमस्ते", self.tmp))
         self.assertEqual(calls, ["k1", "k2", "k3"])
-        self.assertAlmostEqual(tts.audio_duration(self.tmp), 1.0, delta=0.05)
+        self.assertEqual(self.converted, [(len(PCM), 24000)])
 
     def test_all_keys_fail_returns_false(self):
         with self.env(GEMINI_API_KEY_2="k2", GEMINI_API_KEY_3="k3"), \
@@ -88,15 +96,25 @@ class GeminiTests(unittest.TestCase):
         self.assertEqual(p.call_count, 2)
 
     def test_say_falls_through_to_next_engine(self):
-        fake = lambda t, p: (tts._silent(t, p))  # noqa: E731
+        fake = lambda t, p: (p.write_bytes(b"x") or True)  # noqa: E731
         order = (("gemini", lambda t, p: False), ("elevenlabs", lambda t, p: False),
                  ("edge", fake))
         with mock.patch.object(tts, "engine_order", return_value=order), \
+                mock.patch.object(tts, "audio_duration", return_value=2.5), \
                 mock.patch.object(tts, "CACHE", self.tmp.parent), \
                 mock.patch.dict(os.environ, {"QUIZ_TTS_PROVIDER": "gemini"}):
             _p, d, eng = tts.say("एक दो तीन", "t")
         self.assertEqual(eng, "edge")
         self.assertGreater(d, 1)
+
+
+
+@unittest.skipUnless(shutil.which("ffmpeg"), "ffmpeg not installed")
+class PcmConversionTests(unittest.TestCase):
+    def test_pcm_24k_becomes_pipeline_wav_same_length(self):
+        out = Path(tempfile.mkdtemp()) / "c.wav"
+        tts._pcm_to_wav(PCM, out, 24000)
+        self.assertAlmostEqual(tts.audio_duration(out), 1.0, delta=0.05)
 
 
 if __name__ == "__main__":
