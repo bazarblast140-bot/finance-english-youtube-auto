@@ -27,7 +27,7 @@ name: Quiz Pathshala GK Shorts
 #                       (khaali = saare 5). Upload frequency yahin se badlo.
 #                       Slot step me padha jaata hai + build step ko env me jaata hai.
 #   QUIZ_SUBSCRIBE_CTA  end (default) | before_answer | off
-#   QUIZ_TTS_PROVIDER   edge (default, free) | elevenlabs
+#   QUIZ_TTS_PROVIDER   edge (default, free) | elevenlabs | gemini
 # Optional SECRET:
 #   YT_DATA_API_KEY     competitor research (src/competitor_research.py). Na ho to skip.
 #                       ALAG Google Cloud project ki key ho — upload OAuth ka quota
@@ -164,7 +164,11 @@ jobs:
         env:
           # Default Edge (free). ElevenLabs sirf QUIZ_TTS_PROVIDER=elevenlabs par.
           QUIZ_TTS_PROVIDER:   ${{ vars.QUIZ_TTS_PROVIDER || 'edge' }}
-          ELEVENLABS_API_KEY:  ${{ vars.QUIZ_TTS_PROVIDER == 'elevenlabs' && secrets.ELEVENLABS_API_KEY || '' }}
+          # gemini -> elevenlabs -> edge -> silent; keys 429/403 par rotate.
+          ELEVENLABS_API_KEY:  ${{ (vars.QUIZ_TTS_PROVIDER == 'elevenlabs' || vars.QUIZ_TTS_PROVIDER == 'gemini') && secrets.ELEVENLABS_API_KEY || '' }}
+          GEMINI_API_KEY:      ${{ vars.QUIZ_TTS_PROVIDER == 'gemini' && secrets.GEMINI_API_KEY || '' }}
+          GEMINI_API_KEY_2:    ${{ vars.QUIZ_TTS_PROVIDER == 'gemini' && secrets.GEMINI_API_KEY_2 || '' }}
+          GEMINI_API_KEY_3:    ${{ vars.QUIZ_TTS_PROVIDER == 'gemini' && secrets.GEMINI_API_KEY_3 || '' }}
           ELEVENLABS_VOICE_ID: 7qBNUtXRGP0jPi0H4r8k
           ELEVENLABS_MODEL:    ${{ vars.ELEVENLABS_MODEL || 'eleven_multilingual_v2' }}
           QUIZ_ACTIVE_SLOTS:   ${{ vars.QUIZ_ACTIVE_SLOTS }}
@@ -179,6 +183,9 @@ jobs:
           python src/build.py --slot ${{ steps.slot.outputs.slot }} | tee build_out.txt
           # Edge default hai. Warning sirf tab jab ElevenLabs maanga ho aur
           # wo fail hokar Edge pe gir jaaye.
+          if [ "$QUIZ_TTS_PROVIDER" = "gemini" ] && grep -q "voice: edge" build_out.txt; then
+            echo "::warning::Gemini (aur ElevenLabs) fail hua - free Swara voice pe chala. Log dekho."
+          fi
           if [ "$QUIZ_TTS_PROVIDER" = "elevenlabs" ] && grep -q "voice: edge" build_out.txt; then
             echo "::warning::ElevenLabs fail hua - free Swara voice pe chala. Log dekho."
           fi

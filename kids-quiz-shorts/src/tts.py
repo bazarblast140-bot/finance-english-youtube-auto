@@ -139,6 +139,92 @@ def _edge(text: str, out_wav: Path) -> bool:
         return False
 
 
+# ---------------------------------------------------------------- gemini
+GEMINI_MODEL = os.getenv("GEMINI_TTS_MODEL", "gemini-2.5-flash-preview-tts")
+GEMINI_VOICE = os.getenv("GEMINI_TTS_VOICE", "Charon")
+GEMINI_PCM_RATE = 24000          # Gemini TTS: raw s16le, 24 kHz, mono
+GEMINI_KEY_ENVS = ("GEMINI_API_KEY", "GEMINI_API_KEY_2", "GEMINI_API_KEY_3")
+GEMINI_URL = ("https://generativelanguage.googleapis.com/v1beta/models/"
+              "{model}:generateContent")
+_gemini_dead = set()             # keys jo 429/403 de chuki hain (is run me)
+
+
+def gemini_keys():
+    """Jo env vars set aur non-empty hain, unhi ki keys (order me, duplicate nahi)."""
+    out = []
+    for name in GEMINI_KEY_ENVS:
+        k = (os.getenv(name) or "").strip()
+        if k and k not in out:
+            out.append(k)
+    return out
+
+
+def _pcm_to_wav(pcm: bytes, out_wav: Path, rate: int = GEMINI_PCM_RATE):
+    subprocess.run(
+        ["ffmpeg", "-y", "-v", "error", "-f", "s16le", "-ar", str(rate),
+         "-ac", "1", "-i", "pipe:0", "-ar", str(C.SAMPLE_RATE), "-ac", "1",
+         str(out_wav)],
+        input=pcm, check=True,
+    )
+    return out_wav
+
+
+def _gemini(text: str, out_wav: Path) -> bool:
+    keys = [k for k in gemini_keys() if k not in _gemini_dead]
+    if not keys:
+        return False
+    try:
+        import base64
+        import requests
+    except ImportError:
+        return False
+    body = {
+        "contents": [{"parts": [{"text":
+            "Read this Hindi quiz line aloud clearly, in a warm, natural "
+            "Indian Hindi accent at a normal pace. Say only the line:\n" + text}]}],
+        "generationConfig": {
+            "responseModalities": ["AUDIO"],
+            "speechConfig": {"voiceConfig": {
+                "prebuiltVoiceConfig": {"voiceName": GEMINI_VOICE}}},
+        },
+    }
+    url = GEMINI_URL.format(model=GEMINI_MODEL)
+    # Gemini kabhi-kabhi 200 ke saath bina audio ke jawab deta hai (finishReason
+    # OTHER, chhoti lines par). Aisa ho to ek baar dobara try karo.
+    attempts = [(i, k) for i, k in enumerate(keys, 1) for _ in (0, 1)]
+    for n, (i, key) in enumerate(attempts):
+        if key in _gemini_dead:
+            continue
+        try:
+            r = requests.post(url, json=body, timeout=90,
+                              headers={"x-goog-api-key": key,
+                                       "Content-Type": "application/json"})
+        except Exception as e:  # noqa: BLE001
+            print(f"[tts] Gemini key#{i} request failed: {type(e).__name__}")
+            continue
+        if r.status_code in (429, 403):
+            print(f"[tts] Gemini key#{i} -> {r.status_code}, agli key")
+            _gemini_dead.add(key)
+            continue
+        if r.status_code != 200:
+            print(f"[tts] Gemini FAIL {r.status_code}: {r.text[:200]}")
+            return False
+        try:
+            part = r.json()["candidates"][0]["content"]["parts"][0]["inlineData"]
+            pcm = base64.b64decode(part["data"])
+            m = re.search(r"rate=(\d+)", part.get("mimeType", ""))
+            if len(pcm) < 2000:
+                raise ValueError("audio too short")
+            _pcm_to_wav(pcm, out_wav, int(m.group(1)) if m else GEMINI_PCM_RATE)
+            return True
+        except Exception as e:  # noqa: BLE001
+            print(f"[tts] Gemini bad response (key#{i}): {e}")
+            if n + 1 < len(attempts) and attempts[n + 1][1] == key:
+                continue          # same key, ek retry
+            return False
+    return False
+
+
 def _silent(text: str, out_wav: Path) -> bool:
     """Aakhri fallback. Duration estimate asli TTS ke kareeb rakha hai —
     pehle 2.6 words/sec tha, jisse local dry-run 56s dikhata tha jabki asli
@@ -157,21 +243,28 @@ def _silent(text: str, out_wav: Path) -> bool:
 
 # ---------------------------------------------------------------- public
 def tts_provider(raw=None):
-    """edge (default, free) or elevenlabs (opt-in).
+    """edge (default, free), elevenlabs or gemini (opt-in).
 
     Repo variable QUIZ_TTS_PROVIDER. Koi aur value, ya khaali, Edge hai —
     ElevenLabs key environment me ho tab bhi call nahi hoti.
     """
     if raw is None:
         raw = os.getenv("QUIZ_TTS_PROVIDER", "edge")
-    if str(raw or "").strip().lower() in {"elevenlabs", "eleven", "11labs"}:
+    v = str(raw or "").strip().lower()
+    if v in {"gemini", "google"}:
+        return "gemini"
+    if v in {"elevenlabs", "eleven", "11labs"}:
         return "elevenlabs"
     return "edge"
 
 
 def engine_order(provider=None):
     """(name, fn) pairs. ElevenLabs opt-in falls back to Edge, then silence."""
-    if tts_provider(provider) == "elevenlabs":
+    p = tts_provider(provider)
+    if p == "gemini":
+        return (("gemini", _gemini), ("elevenlabs", _eleven),
+                ("edge", _edge), ("silent", _silent))
+    if p == "elevenlabs":
         return (("elevenlabs", _eleven), ("edge", _edge), ("silent", _silent))
     return (("edge", _edge), ("silent", _silent))
 
@@ -181,7 +274,8 @@ def say(text: str, tag: str = "") -> tuple[Path, float, str]:
     text = clean_for_tts(text)
     provider = tts_provider()
     key = hashlib.sha1(
-        f"{text}|{provider}|{C.ELEVEN_VOICE_ID}|{C.ELEVEN_MODEL}".encode()
+        (f"{text}|{provider}|{C.ELEVEN_VOICE_ID}|{C.ELEVEN_MODEL}"
+         + (f"|{GEMINI_MODEL}|{GEMINI_VOICE}" if provider == "gemini" else "")).encode()
     ).hexdigest()[:16]
     out_wav = CACHE / f"{tag}_{key}.wav" if tag else CACHE / f"{key}.wav"
     meta = out_wav.with_suffix(".json")
