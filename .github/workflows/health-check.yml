@@ -68,6 +68,11 @@ jobs:
           ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           DEEPSEEK_BASE_URL: ${{ secrets.DEEPSEEK_BASE_URL }}
+          QUIZ_TTS_PROVIDER: ${{ vars.QUIZ_TTS_PROVIDER }}
+          # Presence flags only ("true"/"false"); the key values are not passed.
+          GEMINI_API_KEY_SET: ${{ secrets.GEMINI_API_KEY != '' }}
+          GEMINI_API_KEY_2_SET: ${{ secrets.GEMINI_API_KEY_2 != '' }}
+          GEMINI_API_KEY_3_SET: ${{ secrets.GEMINI_API_KEY_3 != '' }}
           QUIZ_ACTIVE_SLOTS: ${{ vars.QUIZ_ACTIVE_SLOTS }}
           QUIZ_QUESTIONS_PER_VIDEO: ${{ vars.QUIZ_QUESTIONS_PER_VIDEO }}
           GH_TOKEN: ${{ github.token }}
