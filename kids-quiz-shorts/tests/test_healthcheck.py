@@ -326,6 +326,45 @@ class WorkflowEvalTests(unittest.TestCase):
         self.assertEqual(_finding(required, "wf_missing_token").level, "fail")
 
 
+class BugfixTests(unittest.TestCase):
+    def test_elevenlabs_is_warning_unless_primary(self):
+        slots = ["morning"]
+        for obs in ({"status": 401}, {"missing": True}, {"bad_format": True}):
+            w = H.evaluate_elevenlabs(obs, 100, slots, primary="gemini")
+            self.assertTrue(all(f.level == "warn" for f in w), obs)
+            e = H.evaluate_elevenlabs(obs, 100, slots, primary="edge")
+            self.assertTrue(all(f.level == "warn" for f in e), obs)
+            f = H.evaluate_elevenlabs(obs, 100, slots, primary="elevenlabs")
+            self.assertTrue(any(x.level == "fail" for x in f), obs)
+
+    def test_gemini_key_presence(self):
+        none = H.evaluate_tts_primary({"GEMINI_API_KEY_SET": "false"}, "gemini")
+        self.assertEqual(_finding(none, "tts_gemini_no_key").level, "fail")
+        ok = H.evaluate_tts_primary(
+            {"GEMINI_API_KEY_SET": "false", "GEMINI_API_KEY_2_SET": "true"}, "gemini")
+        f = _finding(ok, "tts_gemini_keys")
+        self.assertEqual(f.level, "ok")
+        self.assertIn("GEMINI_API_KEY_2", f.english)
+        self.assertEqual(H.evaluate_tts_primary({}, "edge")[0].level, "ok")
+
+    def test_failures_superseded_by_later_success_ignored(self):
+        now = datetime(2026, 10, 16, 9, 16, tzinfo=UTC)
+        due = H.due_occurrences(now, ["morning"])
+        start = due[0][1]
+        old_fail = _run(now - timedelta(hours=40), conclusion="failure",
+                        url="https://github.test/runs/billing")
+        later_ok = _run(start + timedelta(hours=1))
+        findings = H.evaluate_workflows({"runs": [old_fail, later_ok]}, now, ["morning"])
+        self.assertNotIn("wf_failed", _codes(findings))
+        new_fail = _run(start + timedelta(hours=2), conclusion="failure",
+                        url="https://github.test/runs/new")
+        findings = H.evaluate_workflows(
+            {"runs": [old_fail, later_ok, new_fail]}, now, ["morning"])
+        failed = _finding(findings, "wf_failed")
+        self.assertIn("runs/new", failed.english)
+        self.assertNotIn("billing", failed.english)
+
+
 class BankTests(unittest.TestCase):
     def test_low_stock_uses_active_slot_count(self):
         quiz = [_q(f"g{i}", "विज्ञान") for i in range(10)]

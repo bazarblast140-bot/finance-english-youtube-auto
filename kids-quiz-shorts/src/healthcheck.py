@@ -515,7 +515,47 @@ def _remaining_characters(payload):
         return None, None, None
 
 
-def evaluate_elevenlabs(obs, threshold, active_slots):
+def evaluate_elevenlabs(obs, threshold, active_slots, primary="elevenlabs"):
+    """ElevenLabs findings. Only fatal when ElevenLabs is the primary TTS.
+
+    With QUIZ_TTS_PROVIDER=gemini (or edge) ElevenLabs is just a fallback, so
+    key/credit problems are downgraded to warnings: the build still voices
+    via the primary or Edge.
+    """
+    findings = _evaluate_elevenlabs(obs, threshold, active_slots)
+    if primary == "elevenlabs":
+        return findings
+    for f in findings:
+        if f.level == "fail":
+            f.level = "warn"
+            f.hinglish += f" (Primary TTS {primary} hai, ElevenLabs sirf fallback — warning.)"
+            f.english += f" (Primary TTS is {primary}; ElevenLabs is only a fallback, so this is a warning.)"
+    return findings
+
+
+def evaluate_tts_primary(env, primary):
+    """Cheap presence check for the primary provider's keys. Values are never read out."""
+    if primary != "gemini":
+        return [Finding("tts", "ok", "tts_primary",
+                        f"Primary TTS: {primary}.", f"Primary TTS provider: {primary}.")]
+    present = [
+        name for name in tts.GEMINI_KEY_ENVS
+        if str(env.get(name + "_SET", "")).strip().lower() == "true" or env.get(name)
+    ]
+    if not present:
+        return [Finding(
+            "tts", "fail", "tts_gemini_no_key",
+            "Primary TTS gemini hai par koi GEMINI_API_KEY* secret set nahi.",
+            "Primary TTS is gemini but none of " + ", ".join(tts.GEMINI_KEY_ENVS) + " is set.",
+        )]
+    return [Finding(
+        "tts", "ok", "tts_gemini_keys",
+        f"Gemini keys maujood: {', '.join(present)}.",
+        f"Gemini primary TTS has key(s) present: {', '.join(present)} (values not printed).",
+    )]
+
+
+def _evaluate_elevenlabs(obs, threshold, active_slots):
     slots = ", ".join(active_slots) or "(none)"
     if obs.get("missing"):
         return [Finding(
@@ -767,6 +807,14 @@ def evaluate_workflows(obs, now, active_slots, grace_hours=SCHEDULE_GRACE_HOURS,
         )
 
     recent_start = now - timedelta(hours=recent_hours)
+    # A failure followed by a later success is superseded (e.g. the 14-Oct
+    # billing block): only failures after the newest successful run count.
+    successes = [
+        r["created_at"] for r in runs
+        if r.get("conclusion") == "success"
+        and r.get("event") in ("schedule", "workflow_dispatch")
+    ]
+    latest_success = max(successes) if successes else None
     bad = []
     stuck = []
     for run in runs:
@@ -775,6 +823,8 @@ def evaluate_workflows(obs, now, active_slots, grace_hours=SCHEDULE_GRACE_HOURS,
         if run.get("event") not in ("schedule", "workflow_dispatch"):
             continue
         if _is_bad_run(run):
+            if latest_success is not None and run["created_at"] <= latest_success:
+                continue
             bad.append(run)
         elif _is_stuck(run, now, stuck_hours):
             stuck.append(run)
@@ -861,7 +911,7 @@ def evaluate_bank(bank, used_ids, active_slots, unknown_slots,
 
 
 # ---------------------------------------------------------------- render / issues
-_CHECK_ORDER = ("youtube", "quota", "elevenlabs", "deepseek", "workflows", "bank", "config")
+_CHECK_ORDER = ("youtube", "quota", "tts", "elevenlabs", "deepseek", "workflows", "bank", "config")
 
 
 def render_report(report):
@@ -1289,12 +1339,15 @@ def load_used_ids(path=None):
 def run_checks(client, env, bank, used_ids, now, bank_error=None, run_url=""):
     active_slots, unknown_slots = parse_active_slots(env.get("QUIZ_ACTIVE_SLOTS"))
     threshold = credit_threshold(bank or [], active_slots, C.QUESTIONS_PER_VIDEO, CREDIT_COVER_DAYS)
+    primary = tts.tts_provider(env.get("QUIZ_TTS_PROVIDER") or "")
     findings = []
     findings += _safe_findings("youtube", lambda: evaluate_youtube(fetch_youtube(client, env)))
     findings += _safe_findings(
         "elevenlabs",
-        lambda: evaluate_elevenlabs(fetch_elevenlabs(client, env), threshold, active_slots),
+        lambda: evaluate_elevenlabs(fetch_elevenlabs(client, env), threshold, active_slots,
+                                    primary=primary),
     )
+    findings += _safe_findings("tts", lambda: evaluate_tts_primary(env, primary))
     findings += _safe_findings("deepseek", lambda: evaluate_deepseek(fetch_deepseek(client, env)))
     findings += _safe_findings(
         "workflows",
