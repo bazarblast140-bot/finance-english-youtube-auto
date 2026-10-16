@@ -334,6 +334,10 @@ class BugfixTests(unittest.TestCase):
             self.assertTrue(all(f.level == "warn" for f in w), obs)
             e = H.evaluate_elevenlabs(obs, 100, slots, primary="edge")
             self.assertTrue(all(f.level == "warn" for f in e), obs)
+            self.assertFalse(any(x.problem for x in w), obs)
+            report = H.Report(w, datetime(2026, 10, 16, tzinfo=UTC), slots, 100)
+            self.assertTrue(report.healthy)
+            self.assertIn("Warnings (non-blocking)", H.render_report(report))
             f = H.evaluate_elevenlabs(obs, 100, slots, primary="elevenlabs")
             self.assertTrue(any(x.level == "fail" for x in f), obs)
 
