@@ -139,10 +139,13 @@ class Finding:
         self.code = code
         self.hinglish = hinglish
         self.english = english
+        # Advisory warnings are reported but do not fail the run or open an
+        # issue (e.g. ElevenLabs when it is only a TTS fallback).
+        self.advisory = False
 
     @property
     def problem(self):
-        return self.level != "ok"
+        return self.level != "ok" and not self.advisory
 
 
 class Report:
@@ -526,8 +529,9 @@ def evaluate_elevenlabs(obs, threshold, active_slots, primary="elevenlabs"):
     if primary == "elevenlabs":
         return findings
     for f in findings:
-        if f.level == "fail":
+        if f.level in ("fail", "warn"):
             f.level = "warn"
+            f.advisory = True
             f.hinglish += f" (Primary TTS {primary} hai, ElevenLabs sirf fallback — warning.)"
             f.english += f" (Primary TTS is {primary}; ElevenLabs is only a fallback, so this is a warning.)"
     return findings
@@ -938,7 +942,8 @@ def _render_report(report):
         lines.append(f"Run: {report.run_url}")
         lines.append("")
     problems = [f for f in report.findings if f.problem]
-    passed = [f for f in report.findings if not f.problem]
+    advisory = [f for f in report.findings if f.advisory and f.level != "ok"]
+    passed = [f for f in report.findings if not f.problem and f not in advisory]
     lines.append("### Samasya / Problems" if problems else "### Samasya / Problems")
     lines.append("")
     if not problems:
@@ -947,6 +952,12 @@ def _render_report(report):
         for index, finding in enumerate(_ordered(problems), start=1):
             lines.extend(_finding_lines(index, finding))
     lines.append("")
+    if advisory:
+        lines.append("### Chetavni / Warnings (non-blocking)")
+        lines.append("")
+        for index, finding in enumerate(_ordered(advisory), start=1):
+            lines.extend(_finding_lines(index, finding))
+        lines.append("")
     lines.append("### Jo theek hai / Passed")
     lines.append("")
     if not passed:
