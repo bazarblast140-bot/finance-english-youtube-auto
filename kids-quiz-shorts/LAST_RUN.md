@@ -1,22 +1,22 @@
 # Last run
 - when   : 2026-10-21 10:15 UTC
-- slot   : night
+- slot   : paheli
 - privacy: public
 - upload : success
 
 ## metadata
-- title: दुनिया का सबसे ऊँचा जलप्रपात एंजेल फ़ॉल्स किस देश में है? 🤔 | World GK Quiz
-- duration_sec: 20.37
+- title: हमेशा ऊपर से नीचे आती है, कभी ऊपर नहीं जाती — वो क्या है? 🤔 | Hindi Paheli
+- duration_sec: 21.67
 - voice_engines: ['edge', 'gemini']
-- youtube_url: https://youtube.com/shorts/35gpwig5qFI
-- scheduled_for: 2026-10-21T15:00:00Z
+- youtube_url: https://youtube.com/shorts/oo8SLJwWTjQ
+- scheduled_for: 2026-10-22T10:30:00Z
 
 ## upload output (tail)
 ```
-[upload] privacy=private + publishAt=2026-10-21T15:00:00Z
+[upload] privacy=private + publishAt=2026-10-22T10:30:00Z
 [upload] token scopes: youtube, youtube.force-ssl, youtube.readonly, youtube.upload
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/35gpwig5qFI
+[upload] done -> https://youtube.com/shorts/oo8SLJwWTjQ
 [upload] comment abhi nahi gaya (baad me retry): <HttpError 403 when requesting https://youtube.googleapis.com/youtube/v3/commentThreads?part=snippet&alt=json returned "The comment thread could not be created due to insufficient permissions. The request might not be properly authorized.". Details: "[{'message': 'The comment thread could not be cre
 ```
 
@@ -24,15 +24,16 @@
 ```
 [pick] stock quiz: 95/344 fresh (~23.8 din)
 [pick] stock paheli: 38/128 fresh (~38.0 din)
-[pick] दुनिया/g262: दुनिया का सबसे ऊँचा जलप्रपात एंजेल फ़ॉल्स किस देश में है?
-[hook] on-screen: आज का GK चैलेंज
+[pick] पहेली/ph93: हमेशा ऊपर से नीचे आती है, कभी ऊपर नहीं जाती — वो क्या है?
+[hook] on-screen: बूझिए तो जानें!
 ```
 
 ## voice
 ```
 [tts] Gemini key#1 -> 429, agli key
+[tts] Gemini bad response (key#1): 'content'
 [tts] Gemini key#1 -> 429, agli key
-[tts] ElevenLabs FAIL 401: {"detail":{"type":"payment_required","code":"payment_issue","message":"Your subscription has a failed or incomplete payment. Complete the latest invoice to continue usage.","status":"payment_issue","request_id":"473b1d8943108926104605e1b8a859eb"}}
+[tts] ElevenLabs FAIL 401: {"detail":{"type":"payment_required","code":"payment_issue","message":"Your subscription has a failed or incomplete payment. Complete the latest invoice to continue usage.","status":"payment_issue","request_id":"037d6806438b4e2bedb8b9ef6803f064"}}
 🎙  voice: edge, gemini  <- ElevenLabs fail hua, free voice pe chala
 ```
 
