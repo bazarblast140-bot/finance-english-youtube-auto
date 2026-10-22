@@ -30,6 +30,18 @@ PCM = struct.pack("<h", 1000) * 24000  # 1 second of 24 kHz s16le
 class GeminiTests(unittest.TestCase):
     def setUp(self):
         tts._gemini_dead.clear()
+        tts._gemini_cool.clear()
+        tts._gemini_last_call[0] = 0.0
+        # Fake clock: _sleep sirf time aage badhata hai, test turant chalte hain.
+        self.clock = [1000.0]
+        self.slept = []
+        def fake_sleep(sec):
+            self.slept.append(sec)
+            self.clock[0] += sec
+        for name, fn in (("_now", lambda: self.clock[0]), ("_sleep", fake_sleep)):
+            q = mock.patch.object(tts, name, side_effect=fn)
+            q.start()
+            self.addCleanup(q.stop)
         self.tmp = Path(tempfile.mkdtemp()) / "x.wav"
         # CI unit-test job me ffmpeg nahi hai: conversion ko record karke mock karo.
         self.converted = []
@@ -107,6 +119,52 @@ class GeminiTests(unittest.TestCase):
         self.assertEqual(eng, "edge")
         self.assertGreater(d, 1)
 
+
+    def test_429_honors_retry_delay_then_succeeds_same_key(self):
+        r429 = _resp(429)
+        r429.json.return_value = {"error": {"code": 429, "details": [
+            {"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": "37s"}]}}
+        with self.env(GEMINI_API_KEY_2="k2"), \
+                mock.patch("requests.post", side_effect=[r429, _resp(200, PCM)]) as p:
+            self.assertTrue(tts._gemini("नमस्ते", self.tmp))
+        self.assertEqual(p.call_count, 2)
+        self.assertGreaterEqual(sum(self.slept), 37)
+        self.assertLess(sum(self.slept), 60)
+
+    def test_retry_after_header(self):
+        r429 = _resp(429)
+        r429.json.side_effect = ValueError("no json")
+        r429.headers = {"Retry-After": "12"}
+        self.assertEqual(tts.gemini_retry_info(r429), (12.0, False))
+
+    def test_daily_quota_marks_key_dead_and_rotates(self):
+        r429 = _resp(429)
+        r429.json.return_value = {"error": {"details": [{"violations": [
+            {"quotaId": "GenerateRequestsPerDayPerProjectPerModel-FreeTier"}]},
+            {"retryDelay": "20s"}]}}
+        calls = []
+        def post(url, json, timeout, headers):
+            calls.append(headers["x-goog-api-key"])
+            return r429 if calls[-1] == "k2" else _resp(200, PCM)
+        with self.env(GEMINI_API_KEY_2="k2", GEMINI_API_KEY_3="k3"), \
+                mock.patch("requests.post", side_effect=post):
+            self.assertTrue(tts._gemini("नमस्ते", self.tmp))
+        self.assertEqual(calls, ["k2", "k3"])
+        self.assertIn("k2", tts._gemini_dead)
+
+    def test_persistent_429_is_bounded_then_edge(self):
+        with self.env(GEMINI_API_KEY_2="k2", GEMINI_API_KEY_3="k3"), \
+                mock.patch("requests.post", return_value=_resp(429)) as p:
+            self.assertFalse(tts._gemini("नमस्ते", self.tmp))
+        self.assertLessEqual(sum(self.slept), tts.GEMINI_MAX_WAIT + 10)
+        self.assertGreater(p.call_count, 2)        # retried, not instant fallback
+
+    def test_pacing_between_calls(self):
+        with self.env(GEMINI_API_KEY_2="k2"), \
+                mock.patch("requests.post", return_value=_resp(200, PCM)):
+            self.assertTrue(tts._gemini("एक", self.tmp))
+            self.assertTrue(tts._gemini("दो", self.tmp))
+        self.assertAlmostEqual(sum(self.slept), tts.GEMINI_PACING, delta=0.01)
 
 
 @unittest.skipUnless(shutil.which("ffmpeg"), "ffmpeg not installed")

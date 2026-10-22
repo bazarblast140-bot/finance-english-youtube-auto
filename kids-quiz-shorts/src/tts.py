@@ -14,6 +14,7 @@ import os
 import re
 import subprocess
 import shutil
+import time
 from pathlib import Path
 
 import config as C
@@ -169,9 +170,73 @@ def _pcm_to_wav(pcm: bytes, out_wav: Path, rate: int = GEMINI_PCM_RATE):
     return out_wav
 
 
+GEMINI_MAX_WAIT = float(os.getenv("GEMINI_TTS_MAX_WAIT_SEC", "180"))  # per line, 429 waits
+GEMINI_PACING = float(os.getenv("GEMINI_TTS_PACING_SEC", "3"))        # gap between calls
+_gemini_cool = {}                # key -> monotonic time jab tak 429 cooldown
+_gemini_last_call = [0.0]
+
+
+def _now():
+    return time.monotonic()
+
+
+def _sleep(sec):
+    if sec > 0:
+        time.sleep(sec)
+
+
+def _parse_duration(v):
+    """'37s' / '1.5s' / '12' -> seconds float, else None."""
+    if isinstance(v, (int, float)):
+        return float(v)
+    if not isinstance(v, str):
+        return None
+    m = re.fullmatch(r"\s*(\d+(?:\.\d+)?)\s*s?\s*", v)
+    return float(m.group(1)) if m else None
+
+
+def gemini_retry_info(r):
+    """429 response se (wait_seconds|None, daily_exhausted bool).
+    retryDelay (google.rpc.RetryInfo) pehle, phir Retry-After header."""
+    wait, daily = None, False
+    try:
+        data = r.json()
+    except Exception:  # noqa: BLE001
+        data = None
+    err = data.get("error") if isinstance(data, dict) else None
+    details = err.get("details") if isinstance(err, dict) else None
+    for d in details if isinstance(details, list) else []:
+        if not isinstance(d, dict):
+            continue
+        if "retryDelay" in d:
+            wait = _parse_duration(d["retryDelay"])
+        for v in d.get("violations") or []:
+            q = str((v or {}).get("quotaId", "")) if isinstance(v, dict) else ""
+            if "PerDay" in q:
+                daily = True
+    if wait is None:
+        h = getattr(r, "headers", None)
+        if isinstance(h, dict) or hasattr(h, "items"):
+            try:
+                hv = {str(k).lower(): v for k, v in h.items()}.get("retry-after")
+            except Exception:  # noqa: BLE001
+                hv = None
+            wait = _parse_duration(hv)
+    return wait, daily
+
+
+def _pace():
+    gap = GEMINI_PACING - (_now() - _gemini_last_call[0])
+    if _gemini_last_call[0] and gap > 0:
+        _sleep(gap)
+    _gemini_last_call[0] = _now()
+
+
 def _gemini(text: str, out_wav: Path) -> bool:
-    keys = [k for k in gemini_keys() if k not in _gemini_dead]
-    if not keys:
+    """Gemini TTS. 429 par retryDelay/Retry-After maan ke ruko (backoff, max
+    GEMINI_MAX_WAIT sec per line), keys rotate karo. 403 / daily quota = key
+    is run me dead. Sab fail ho tabhi False (-> Edge backup)."""
+    if not [k for k in gemini_keys() if k not in _gemini_dead]:
         return False
     try:
         import base64
@@ -189,22 +254,50 @@ def _gemini(text: str, out_wav: Path) -> bool:
         },
     }
     url = GEMINI_URL.format(model=GEMINI_MODEL)
-    # Gemini kabhi-kabhi 200 ke saath bina audio ke jawab deta hai (finishReason
-    # OTHER, chhoti lines par). Aisa ho to ek baar dobara try karo.
-    attempts = [(i, k) for i, k in enumerate(keys, 1) for _ in (0, 1)]
-    for n, (i, key) in enumerate(attempts):
-        if key in _gemini_dead:
+    deadline = _now() + GEMINI_MAX_WAIT
+    backoff = 5.0
+    bad_body = {}                 # key -> empty-audio count (1 retry per key)
+    idx = {k: i for i, k in enumerate(gemini_keys(), 1)}
+    while True:
+        live = [k for k in gemini_keys() if k not in _gemini_dead and bad_body.get(k, 0) < 2]
+        if not live:
+            return False
+        now = _now()
+        ready = [k for k in live if _gemini_cool.get(k, 0) <= now]
+        if not ready:
+            wake = min(_gemini_cool.get(k, 0) for k in live)
+            if wake > deadline:
+                print(f"[tts] Gemini: sab keys 429 cooldown me, {GEMINI_MAX_WAIT:.0f}s limit — Edge backup")
+                return False
+            print(f"[tts] Gemini: sab keys 429 — {wake - now:.0f}s ruk rahe hain")
+            _sleep(wake - now)
             continue
+        key = ready[0]
+        i = idx.get(key, 0)
+        _pace()
         try:
             r = requests.post(url, json=body, timeout=90,
                               headers={"x-goog-api-key": key,
                                        "Content-Type": "application/json"})
         except Exception as e:  # noqa: BLE001
             print(f"[tts] Gemini key#{i} request failed: {type(e).__name__}")
+            bad_body[key] = bad_body.get(key, 0) + 1
             continue
-        if r.status_code in (429, 403):
-            print(f"[tts] Gemini key#{i} -> {r.status_code}, agli key")
+        if r.status_code == 403:
+            print(f"[tts] Gemini key#{i} -> 403, is run me band")
             _gemini_dead.add(key)
+            continue
+        if r.status_code in (429, 503):
+            wait, daily = gemini_retry_info(r)
+            if daily:
+                print(f"[tts] Gemini key#{i} -> {r.status_code} daily quota khatam, is run me band")
+                _gemini_dead.add(key)
+                continue
+            if wait is None:
+                wait, backoff = backoff, min(backoff * 2, 60.0)
+            wait = max(1.0, min(wait, GEMINI_MAX_WAIT))
+            print(f"[tts] Gemini key#{i} -> {r.status_code}, {wait:.0f}s cooldown, agli key/retry")
+            _gemini_cool[key] = _now() + wait
             continue
         if r.status_code != 200:
             print(f"[tts] Gemini FAIL {r.status_code}: {r.text[:200]}")
@@ -218,11 +311,11 @@ def _gemini(text: str, out_wav: Path) -> bool:
             _pcm_to_wav(pcm, out_wav, int(m.group(1)) if m else GEMINI_PCM_RATE)
             return True
         except Exception as e:  # noqa: BLE001
+            # Gemini kabhi 200 bina audio deta hai — same key ek retry, phir haar
             print(f"[tts] Gemini bad response (key#{i}): {e}")
-            if n + 1 < len(attempts) and attempts[n + 1][1] == key:
-                continue          # same key, ek retry
-            return False
-    return False
+            bad_body[key] = bad_body.get(key, 0) + 1
+            if bad_body[key] >= 2:
+                return False
 
 
 def _silent(text: str, out_wav: Path) -> bool:

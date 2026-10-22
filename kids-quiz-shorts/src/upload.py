@@ -327,6 +327,17 @@ def post_pending_comments(max_n=5):
     return done
 
 
+def comment_now_ok(privacy, publish_at):
+    """Comment sirf turant-public video par. private/unlisted/scheduled par
+    YouTube commentThreads.insert 403 insufficientPermissions deta hai."""
+    return privacy == "public" and not publish_at
+
+
+def is_insufficient_permissions(exc):
+    t = str(exc).lower()
+    return "insufficientpermissions" in t or "insufficient permission" in t
+
+
 def video_status(meta, privacy):
     """videos.insert ka status block.
 
@@ -457,7 +468,15 @@ def upload(meta_path: Path, privacy="public", publish_at=None, target_slot=None,
     attempts = 0
     mfk = bool(meta.get("made_for_kids", C.MADE_FOR_KIDS))
     if pinned and not mfk:
-        if scopes is not None and FORCE_SSL not in scopes:
+        if not comment_now_ok(privacy, publish_at):
+            # ROOT CAUSE of 403 insufficientPermissions (21-Oct run 39583018980):
+            # token me force-ssl HAI, par video private + publishAt hai. YouTube
+            # private video par commentThreads.insert ko 403 insufficientPermissions
+            # deta hai. Ab upload ke turant baad try nahi karte (50 units + 1 attempt
+            # bachte hain); catch-up public hone ke baad post_pending_comments se daalega.
+            print("[upload] comment abhi skip: video private/scheduled hai (YouTube 403 deta). "
+                  "Public hone ke baad catch-up pending comment daalega.")
+        elif scopes is not None and FORCE_SSL not in scopes:
             print("[upload] comment skip: token me youtube.force-ssl scope nahi hai. "
                   "`python src/upload.py --auth --set-github-secret` se naya token banao "
                   "(README: 'Pinned comment ke liye token'). Comment ledger me pending rahega.")
@@ -467,10 +486,11 @@ def upload(meta_path: Path, privacy="public", publish_at=None, target_slot=None,
                 posted = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
                 print("[upload] comment posted (pin manually — API pin nahi karta)")
             except Exception as e:
-                # Scheduled/private video par comment reject ho sakta hai —
-                # agla run public hone ke baad post_pending_comments() se daalega.
                 attempts = 1
-                print(f"[upload] comment abhi nahi gaya (baad me retry): {str(e)[:300]}")
+                print(f"[upload] comment nahi gaya (non-fatal, baad me retry): {str(e)[:300]}")
+                if is_insufficient_permissions(e):
+                    print("[upload] 403 insufficientPermissions: agar video public hai to token "
+                          "ko youtube.force-ssl scope ke saath dobara authorize karo.")
 
     rows = _ledger()
     rows.append({

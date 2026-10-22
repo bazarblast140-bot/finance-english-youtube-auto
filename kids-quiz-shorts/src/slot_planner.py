@@ -772,6 +772,17 @@ def _covered_now(ledger_path):
     return covered_from_videos(videos) | covered_from_ledger(ledger), videos, ledger
 
 
+def dispatch_stagger_seconds(raw=None):
+    """Seconds between catch-up dispatches (env QUIZ_DISPATCH_STAGGER_SEC, default 150, 0-600)."""
+    if raw is None:
+        raw = os.getenv("QUIZ_DISPATCH_STAGGER_SEC", "150")
+    try:
+        v = int(float(raw))
+    except (TypeError, ValueError):
+        v = 150
+    return max(0, min(600, v))
+
+
 def _dispatch_one(repo, workflow, slot, date):
     cmd = [
         "gh", "workflow", "run", workflow, "--repo", repo,
@@ -903,7 +914,13 @@ def cmd_catchup(args):
         "quota_reserved": plan["quota_reserved"],
     }, default=str))
     if args.dispatch:
-        for item in plan["dispatch"]:
+        stagger = dispatch_stagger_seconds()
+        for n, item in enumerate(plan["dispatch"]):
+            if n and stagger:
+                # Gemini TTS free tier: 5 builds ek saath -> 429 -> Edge voice.
+                # Builds ko thoda aage-peeche start karo (slots/date wahi).
+                print(f"[catchup] {stagger}s ruk ke agla dispatch (Gemini 429 se bachne ke liye)")
+                time.sleep(stagger)
             print(f"[catchup] dispatch {item['slot']} {item['date']} privacy=public")
             _dispatch_one(repo_name, args.workflow, item["slot"], item["date"])
         try:
