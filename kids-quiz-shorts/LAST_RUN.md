@@ -1,31 +1,31 @@
 # Last run
-- when   : 2026-10-22 08:04 UTC
-- slot   : paheli
+- when   : 2026-10-22 08:06 UTC
+- slot   : evening
 - privacy: public
 - upload : success
 
 ## metadata
-- title: कीचड़ में खिले फिर भी सुंदर दिखे, भारत का राष्ट्रीय फूल — वो क्या है? 🤔 | Hindi Paheli
-- duration_sec: 20.77
+- title: 'समाजवादी' और 'पंथनिरपेक्ष' शब्द प्रस्तावना में किस संशोधन से जुड़े? 🤔 | India GK Quiz
+- duration_sec: 22.17
 - voice_engines: ['gemini']
-- youtube_url: https://youtube.com/shorts/URh8WZUbH7Q
-- scheduled_for: 2026-10-23T10:30:00Z
+- youtube_url: https://youtube.com/shorts/fICcn5dJ4Jc
+- scheduled_for: 2026-10-23T12:00:00Z
 
 ## upload output (tail)
 ```
-[upload] privacy=private + publishAt=2026-10-23T10:30:00Z
+[upload] privacy=private + publishAt=2026-10-23T12:00:00Z
 [upload] token scopes: youtube, youtube.force-ssl, youtube.readonly, youtube.upload
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/URh8WZUbH7Q
+[upload] done -> https://youtube.com/shorts/fICcn5dJ4Jc
 [upload] comment abhi skip: video private/scheduled hai (YouTube 403 deta). Public hone ke baad catch-up pending comment daalega.
 ```
 
 ## pick / hook (repeat + bank stock)
 ```
 [pick] stock quiz: 89/344 fresh (~22.2 din)
-[pick] stock paheli: 37/128 fresh (~37.0 din)
-[pick] पहेली/ph109: कीचड़ में खिले फिर भी सुंदर दिखे, भारत का राष्ट्रीय फूल — वो क्या है?
-[hook] on-screen: 8 सेकंड में बूझिए!
+[pick] stock paheli: 36/128 fresh (~36.0 din)
+[pick] भारत/g201: 'समाजवादी' और 'पंथनिरपेक्ष' शब्द प्रस्तावना में किस संशोधन से जुड़े?
+[hook] on-screen: पक्का पता है?
 ```
 
 ## voice
