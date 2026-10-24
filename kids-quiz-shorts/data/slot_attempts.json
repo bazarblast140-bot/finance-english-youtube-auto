@@ -570,10 +570,11 @@
   },
   "noon|2026-10-25": {
    "attempts": 1,
-   "state": "dispatched",
+   "state": "uploaded",
    "dispatched_at": "2026-10-24T07:20:18Z",
    "quota_day": "2026-10-24",
-   "counts_quota": true
+   "counts_quota": true,
+   "uploaded_at": "2026-10-24T07:28:11Z"
   },
   "paheli|2026-10-03": {
    "attempts": 1,
