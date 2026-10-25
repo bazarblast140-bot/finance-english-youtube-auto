@@ -298,10 +298,11 @@
   },
   "morning|2026-10-26": {
    "attempts": 1,
-   "state": "dispatched",
+   "state": "uploaded",
    "dispatched_at": "2026-10-25T10:12:03Z",
    "quota_day": "2026-10-25",
-   "counts_quota": true
+   "counts_quota": true,
+   "uploaded_at": "2026-10-25T10:17:26Z"
   },
   "night|2026-10-03": {
    "attempts": 1,
