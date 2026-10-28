@@ -20,6 +20,13 @@ class ConfigTests(unittest.TestCase):
     def test_committed_config_is_valid(self):
         self.assertEqual(cs.validate(self.prop), [])
         self.assertLessEqual(len(self.prop["description"]), 1000)
+
+    def test_description_includes_about_links(self):
+        d = self.prop["description"]
+        self.assertIn("https://www.instagram.com/quizpathshala2/", d)
+        self.assertIn("https://www.facebook.com/reel.mania/", d)
+        self.assertIn("https://www.youtube.com/@QuizPathshalaIndia", d)
+
         self.assertLessEqual(len(self.prop["keywords"]), 500)
 
     def test_general_audience(self):
