@@ -171,10 +171,11 @@
   },
   "evening|2026-10-29": {
    "attempts": 1,
-   "state": "dispatched",
+   "state": "uploaded",
    "dispatched_at": "2026-10-28T07:20:17Z",
    "quota_day": "2026-10-28",
-   "counts_quota": true
+   "counts_quota": true,
+   "uploaded_at": "2026-10-28T09:43:40Z"
   },
   "morning|2026-10-04": {
    "attempts": 1,
@@ -874,10 +875,11 @@
   },
   "paheli|2026-10-29": {
    "attempts": 1,
-   "state": "dispatched",
+   "state": "uploaded",
    "dispatched_at": "2026-10-28T07:20:17Z",
    "quota_day": "2026-10-28",
-   "counts_quota": true
+   "counts_quota": true,
+   "uploaded_at": "2026-10-28T09:43:40Z"
   }
  }
 }
