@@ -971,3 +971,11 @@ def main(argv=None):
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+def proposed_slots(enabled=None):
+    """Evening-heavy proposal (config.EVENING_HEAVY, default OFF).
+    OFF -> live C.SLOTS. Live schedule/cron ko ye function nahi chhoota."""
+    import config as C
+    on = C.EVENING_HEAVY if enabled is None else enabled
+    return dict(C.EVENING_HEAVY_SLOTS if on else C.SLOTS)

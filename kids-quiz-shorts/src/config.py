@@ -232,3 +232,27 @@ ACTIVE_SLOTS = [s for s in SLOT_ORDER
     or list(SLOT_ORDER)
 # Description / CTA me "रोज़ N नए सवाल" — active slots ke hisaab se sach rahe
 VIDEOS_PER_DAY = len(ACTIVE_SLOTS)
+
+
+# ---------- 10 सवाल Challenge (31-Oct-2026, default OFF) ----------
+# Ek 2-3 min ka vertical video: 10 sawaal, har sawaal par timer, ant me
+# score prompt. Tabhi chalta hai jab QUIZ_CHALLENGE_MODE=1 ho AUR build.py
+# --challenge diya jaaye. Live workflow ise kabhi on nahi karta.
+CHALLENGE_MODE = os.getenv("QUIZ_CHALLENGE_MODE", "0") == "1"
+CHALLENGE_QUESTIONS = 10
+CHALLENGE_TIMER_SECONDS = 5      # 10 x (read+5s+reveal) ~= 2-2.5 min, <180s
+CHALLENGE_TITLE = "GK Quiz in Hindi | 10 सवाल – कितने सही? 🧠"
+
+# ---------- Evening-heavy slots PROPOSAL (default OFF) ----------
+# Prastav: 5 me se 3 video 18:00-21:00 IST me. Sirf proposal — SLOTS aur
+# workflow cron NAHI badalte. QUIZ_EVENING_HEAVY=1 par bhi sirf
+# slot_planner.proposed_slots() / metadata label isse padhte hain; asli
+# switch ke liye workflow cron bhi saath me badalna hoga (alag PR).
+EVENING_HEAVY = os.getenv("QUIZ_EVENING_HEAVY", "0") == "1"
+EVENING_HEAVY_SLOTS = {
+    "morning": "08:00 IST",
+    "noon":    "13:30 IST",
+    "paheli":  "18:00 IST",
+    "evening": "19:30 IST",
+    "night":   "21:00 IST",
+}
