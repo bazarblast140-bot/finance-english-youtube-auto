@@ -116,6 +116,43 @@ def plan_segments(questions):
     return segs
 
 
+def plan_challenge(questions):
+    """10 सवाल Challenge: har sawaal = read + timer + reveal (CTA/hint nahi),
+    ant me ek score segment. Timer CHALLENGE_TIMER_SECONDS ka."""
+    segs = []
+    n = len(questions)
+    t = float(C.CHALLENGE_TIMER_SECONDS)
+    for i, q in enumerate(questions):
+        script = tts.question_script(q, i, n)
+        if i == 0:
+            script = f"दस सवाल चैलेंज! {script}"
+        v, d, eng = tts.say(script, f"cq{i}_{q['id']}")
+        ENGINES.append(eng)
+        segs.append(dict(kind="read", dur=d + 0.3, audio=[(0.0, v, C.VOICE_VOLUME)],
+                         payload=(q, i + 1, n)))
+        ov, od, oeng = tts.say(tts.options_script(q), f"co{i}_{q['id']}")
+        ENGINES.append(oeng)
+        segs.append(dict(kind="timer", dur=max(t, od + 0.5), timer=t,
+                         audio=[(0.0, "TICKBED", C.TICK_VOLUME), (0.0, ov, C.VOICE_VOLUME)],
+                         payload=(q, i + 1, n)))
+        av, ad, aeng = tts.say(tts.answer_script(q), f"ca{i}_{q['id']}")
+        ENGINES.append(aeng)
+        segs.append(dict(kind="reveal", dur=max(2.4, ad + 0.6),
+                         audio=[(0.0, "DING", 0.8), (0.35, av, C.VOICE_VOLUME)],
+                         payload=(q, i + 1, n)))
+    sv, sd, seng = tts.say(score_script(n), "cscore")
+    ENGINES.append(seng)
+    segs.append(dict(kind="score", dur=max(3.0, sd + 0.8),
+                     audio=[(0.0, sv, C.VOICE_VOLUME)], payload=(None, n, n)))
+    for s in segs:
+        s["frames"] = max(1, round(s["dur"] * C.FPS))
+    return segs
+
+
+def score_script(n):
+    return f"आपके {n} में से कितने सही हुए? अपना स्कोर कमेंट करें!"
+
+
 # ---------------------------------------------------------------- render
 def hook_line(questions, slot, date=None):
     """Pehle 1-2 second ki on-screen challenge line (deterministic: din+slot)."""
@@ -138,7 +175,10 @@ def render_video(segs, frames_dir: Path, hook=None):
 
         q, qn, tot = payload
         if True:
-            if kind == "reveal":
+            if kind == "score":
+                base = render.title_panel(f"{tot} में से कितने सही?",
+                                          "अपना स्कोर कमेंट करें")
+            elif kind == "reveal":
                 base = render.reveal_panel(q, qn, tot)
             elif kind == "cta":
                 base = render.cta_panel(q, qn, tot)
@@ -163,9 +203,10 @@ def render_video(segs, frames_dir: Path, hook=None):
             seg_secs = nf / C.FPS
             for f in range(nf):                     # sirf yahan per-frame kaam
                 elapsed = f / C.FPS
-                remaining = min(float(C.TIMER_SECONDS), seg_secs - elapsed)
+                tt = s.get("timer", C.TIMER_SECONDS)
+                remaining = min(float(tt), seg_secs - elapsed)
                 img = base.copy()
-                render.timer_ring(img, remaining, C.TIMER_SECONDS)
+                render.timer_ring(img, remaining, tt)
                 img.save(frames_dir / f"f{idx:06d}.jpg", quality=92)
                 idx += 1
         else:
@@ -194,8 +235,9 @@ def render_audio(segs, total_frames) -> np.ndarray:
             if src == "TICKBED":
                 # tick sirf aakhri 8 second me, taaki wo countdown se sync rahe
                 seg_secs = s["frames"] / C.FPS
-                lead = max(0.0, seg_secs - C.TIMER_SECONDS)
-                clip = sfx.build_timer_bed(C.TIMER_SECONDS, 1.0)
+                tt = s.get("timer", C.TIMER_SECONDS)
+                lead = max(0.0, seg_secs - tt)
+                clip = sfx.build_timer_bed(tt, 1.0)
                 at_extra = int(lead * C.SAMPLE_RATE)
                 mix(track, clip, seg_start + at_extra, gain)
                 continue
@@ -233,7 +275,14 @@ def main():
     ap.add_argument("--seed", type=int, default=None)
     ap.add_argument("--dry-run", action="store_true",
                     help="sawaal use-history me mat likho (testing ke liye)")
+    ap.add_argument("--challenge", action="store_true",
+                    help="10 सवाल Challenge video (QUIZ_CHALLENGE_MODE=1 zaroori)")
     args = ap.parse_args()
+    if args.challenge:
+        if not C.CHALLENGE_MODE:
+            print("[challenge] QUIZ_CHALLENGE_MODE=1 nahi hai — band hai, skip.")
+            return 2
+        return main_challenge(args)
 
     stamp = datetime.now().strftime("%Y%m%d")
     slug = f"{stamp}_{args.slot}"
@@ -304,6 +353,43 @@ def main():
     print(f"✅ {mp4}  ({meta['duration_sec']}s)")
     print(f"📝 {outdir / 'metadata.json'}")
     print(f"🎬 {meta['title']}")
+    return 0
+
+
+def challenge_meta(questions, slot, date=None):
+    meta = build_seo(questions, slot, date)
+    meta["title"] = C.CHALLENGE_TITLE[:100]
+    meta["mode"] = "challenge10"
+    meta["pinned_comment"] = None if C.MADE_FOR_KIDS else (
+        f"{len(questions)} में से कितने सही हुए? अपना स्कोर कमेंट करें 👇")
+    return meta
+
+
+def main_challenge(args):
+    stamp = datetime.now().strftime("%Y%m%d")
+    slug = f"{stamp}_{args.slot}_challenge10"
+    outdir = C.OUT / slug
+    outdir.mkdir(parents=True, exist_ok=True)
+    questions = pick(C.CHALLENGE_QUESTIONS, dry_run=args.dry_run,
+                     seed=args.seed, slot=args.slot)
+    segs = plan_challenge(questions)
+    total = sum(s["frames"] for s in segs) / C.FPS
+    print(f"[challenge] {len(questions)} sawaal, {total:.1f}s")
+    if total > C.HARD_LIMIT_SECONDS:
+        print(f"[ERROR] {total:.1f}s > {C.HARD_LIMIT_SECONDS}s — Short nahi rahega")
+        return 1
+    frames_dir = outdir / "frames"
+    total_frames = render_video(segs, frames_dir)
+    wav = sfx.write_wav(outdir / "audio.wav", render_audio(segs, total_frames))
+    mp4 = mux(frames_dir, wav, outdir / f"{slug}.mp4")
+    shutil.rmtree(frames_dir)
+    meta = challenge_meta(questions, args.slot)
+    meta["video_file"] = str(mp4)
+    meta["duration_sec"] = round(total_frames / C.FPS, 2)
+    meta["voice_engines"] = sorted({e.split("+")[0] for e in ENGINES})
+    (outdir / "metadata.json").write_text(
+        json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"✅ {mp4}  ({meta['duration_sec']}s)  🎬 {meta['title']}")
     return 0
 
 
