@@ -58,7 +58,7 @@ HANDLE = "@QuizPathshalaIndia"
 # Advanced) bhi "No, it's not made for kids" hi rakhni hai.
 MADE_FOR_KIDS = False
 
-CTA_TEXT = "अपना जवाब कमेंट में लिखिए"   # on-screen footer: emoji mat daalo (font me glyph nahi)
+CTA_TEXT = "जवाब कमेंट करें"   # on-screen footer: emoji mat daalo (font me glyph nahi)
 
 # Palette — high contrast, mobile pe 3 inch me turant padha jaana chahiye
 # Palette channel branding se match ki hai — purple banner, yellow accent,
@@ -207,6 +207,10 @@ HOOK_LINES = {
 # Q1 ka jawab aane ke baad viewer swipe kar deta hai (Q2 title me hai hi
 # nahi). Isliye Q1 reveal par "अगला सवाल…" teaser — open loop, zero seconds.
 NEXT_QUESTION_TEASER = True
+# 31-Oct-2026: SPOKEN hook — Q1 se pehle ~1s challenge line bolti hai, aur
+# wahi line on-screen hook banti hai. False = purana behaviour (sirf on-screen).
+SPOKEN_HOOK = os.getenv("QUIZ_SPOKEN_HOOK", "1") != "0"
+SPOKEN_HOOK_LINE = "सिर्फ 1% लोग सही जवाब देंगे!"
 # Subscribe CTA:
 #   "end"           -> sirf AAKHRI reveal par ek chhota visual pill (value dene
 #                      ke baad, koi extra second nahi, koi bolne wali line nahi)

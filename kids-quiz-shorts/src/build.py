@@ -65,7 +65,11 @@ def plan_segments(questions):
     # Koi intro segment nahi. Video ka frame 0 hi pehla sawaal hai — Shorts me
     # branding/intro card sirf scroll-away banata hai.
     for i, q in enumerate(questions):
-        v, d, eng = tts.say(tts.question_script(q, i, n), f"q{i}_{q['id']}")
+        script = tts.question_script(q, i, n)
+        hk = i == 0 and getattr(C, "SPOKEN_HOOK", False)
+        if hk:   # ~1s challenge line, phir sawaal (same clip, koi gap nahi)
+            script = f"{C.SPOKEN_HOOK_LINE} {script}"
+        v, d, eng = tts.say(script, f"q{i}_{q['id']}" + ("_hk" if hk else ""))
         ENGINES.append(eng)
         print(f"[voice] Q{i+1} {d:.2f}s via {eng}")
         segs.append(dict(kind="read", dur=d + C.READ_PAD_SECONDS,
@@ -122,6 +126,8 @@ def hook_line(questions, slot, date=None):
     import random
     if not getattr(C, "HOOK_ON_SCREEN", False):
         return None
+    if getattr(C, "SPOKEN_HOOK", False):
+        return C.SPOKEN_HOOK_LINE      # screen par wahi jo bola ja raha hai
     date = date or datetime.now()
     is_ph = slot in C.PAHELI_SLOTS or any(q.get("sub") == C.PAHELI_SUB for q in questions)
     lines = C.HOOK_LINES["paheli" if is_ph else "quiz"]
