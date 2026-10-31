@@ -94,16 +94,12 @@ def build(questions, slot="morning", date=None):
     subs = list(dict.fromkeys(q.get("sub", "GK") for q in questions))
     sub_hi = " + ".join(SUB_HI.get(x, "जीके") for x in subs)
 
-    # --- TITLE: sawaal pehle -------------------------------------------------
-    # Mobile Shorts feed me title ki ek line dikhti hai. Isliye sawaal poora
-    # aage, aur search keyword baad me — truncate ho bhi jaaye to viewer ne
-    # asli hook padh liya hota hai. Tail sirf Q1 ke subject ka (title me Q1 hi hai).
-    tail = " | " + TITLE_TAIL.get(q1.get("sub"), "GK Quiz Hindi")
-    if len(qtext) + len(tail) + 2 > 100:
-        tail = " | GK Quiz" if not is_paheli else " | पहेली"
-    title = f"{qtext} 🤔{tail}"
-    if len(title) > 100:
-        title = f"{qtext[:100 - len(tail) - 4]}…{tail}"
+    # --- TITLE: search keyword pehle (31-Oct-2026 growth) --------------------
+    # "GK Quiz in Hindi | <sawaal> 🤔 | GK Question Answer" — log yahi
+    # phrase search karte hain. Subject ke hisaab se variant; sawaal ko
+    # chhota karte hain taaki poora title <=100 char rahe.
+    head, tail = title_parts(q1.get("sub"), is_paheli)
+    title = fit_title(head, qtext, tail)
 
     # --- DESCRIPTION ---------------------------------------------------------
     q_block = "\n\n".join(
@@ -180,8 +176,8 @@ def build(questions, slot="morning", date=None):
     # jawab mil jaata tha, to kisi ko apna jawab likhne ki wajah nahi bachti
     # thi. Ab sawaal poochte hain (comment = engagement signal), jawab video me.
     n_q = len(questions)
-    ask = ("आपका जवाब क्या है? A, B, C या D — कमेंट कीजिए 👇" if n_q == 1 else
-           f"{n_q} में से कितने सही हुए? अपना स्कोर कमेंट कीजिए 👇")
+    ask = ("जवाब कमेंट करें 👇 A, B, C या D — आपका जवाब क्या है?" if n_q == 1 else
+           f"जवाब कमेंट करें 👇 {n_q} में से कितने सही हुए? अपना स्कोर कमेंट कीजिए 👇")
     pinned = None if C.MADE_FOR_KIDS else (
         f"{ask}\n"
         f"रोज़ नए सवाल आते हैं — सब्सक्राइब करके रोज़ खेलिए 🔔\n"
@@ -201,7 +197,47 @@ def build(questions, slot="morning", date=None):
     }
 
 
-def hashtags(subs):
+# (head, tail) per subject. Paheli ke liye alag search phrase.
+TITLE_VARIANTS = {
+    "विज्ञान": ("Science GK Quiz in Hindi", "Science GK Question Answer"),
+    "भारत":   ("India GK Quiz in Hindi", "India GK Question Answer"),
+    "दुनिया":  ("World GK Quiz in Hindi", "World GK Question Answer"),
+    "पहेली":   ("Hindi Paheli Quiz", "Paheli with Answer"),
+}
+DEFAULT_TITLE = ("GK Quiz in Hindi", "GK Question Answer")
+
+
+def title_parts(sub, is_paheli=False):
+    if is_paheli:
+        return TITLE_VARIANTS["पहेली"]
+    return TITLE_VARIANTS.get(sub, DEFAULT_TITLE)
+
+
+def fit_title(head, qtext, tail, emoji="🤔", limit=100):
+    """head | sawaal emoji | tail — sawaal truncate karke limit me fit."""
+    qtext = " ".join(qtext.split())
+    fixed = f"{head} |  {emoji} | {tail}"
+    room = limit - len(fixed)
+    if len(qtext) > room:
+        qtext = qtext[:max(0, room - 1)].rstrip() + "…"
+    t = f"{head} | {qtext} {emoji} | {tail}"
+    if len(t) > limit:                 # bahut lamba sawaal: tail chhod do
+        t = f"{head} | {qtext}"[:limit]
+    return t
+
+
+# 31-Oct-2026: fixed hashtag set (Rajesh). Sirf 6 — 15 ki limit se kaafi neeche.
+FIXED_HASHTAGS = "#gkquiz #gkinhindi #gkquestion #quiz #paheli #shorts"
+KEYWORD_LINE = ("GK Quiz in Hindi | GK Question Answer | Hindi Paheli | "
+                "सामान्य ज्ञान प्रश्न उत्तर")
+
+
+def hashtags(subs=None):
+    """Fixed set + ek keyword line (subject-independent)."""
+    return f"{KEYWORD_LINE}\n{FIXED_HASHTAGS}"
+
+
+def _old_hashtags(subs):
     """4 hashtag: broad -> niche -> subject -> brand.
 
     15 se upar gaye to YouTube saare ignore kar deta hai, isliye ginti kam
