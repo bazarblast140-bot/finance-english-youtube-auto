@@ -994,10 +994,11 @@
   },
   "paheli|2026-11-01": {
    "attempts": 1,
-   "state": "dispatched",
+   "state": "uploaded",
    "dispatched_at": "2026-10-31T07:28:02Z",
    "quota_day": "2026-10-31",
-   "counts_quota": true
+   "counts_quota": true,
+   "uploaded_at": "2026-10-31T07:38:34Z"
   }
  }
 }
