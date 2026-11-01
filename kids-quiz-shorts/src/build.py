@@ -293,6 +293,15 @@ def main():
     shutil.rmtree(frames_dir)
 
     meta = build_seo(questions, args.slot)
+    # Custom thumbnail / cover (auto-frame kabhi nahi). Fail ho to video phir bhi.
+    try:
+        import thumbnail
+        th = thumbnail.make(questions[0], outdir / "thumbnail.jpg", len(questions))
+        meta["thumbnail_file"] = th["path"]
+        meta["thumbnail_text"] = th["text"]
+        print(f"[thumb] {th['path']}  '{th['text']}'")
+    except Exception as e:
+        print(f"[thumb] WARNING: thumbnail nahi bana: {e}")
     meta["video_file"] = str(mp4)
     meta["hook_line"] = hook
     meta["subjects"] = [q.get("sub", "GK") for q in questions]
