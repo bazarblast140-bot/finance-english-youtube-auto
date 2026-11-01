@@ -94,9 +94,32 @@ class SeoTests(unittest.TestCase):
 
     def test_title_has_search_keyword_and_fits(self):
         m = seo.build(self._qs(), "morning", datetime(2026, 9, 30))
-        self.assertTrue(m["title"].startswith("माचू पिच्चू"))
-        self.assertIn("World GK Quiz", m["title"])
+        self.assertTrue(m["title"].startswith("World GK Quiz in Hindi | माचू पिच्चू"))
+        self.assertIn("🤔 | World GK Question Answer", m["title"])
         self.assertLessEqual(len(m["title"]), 100)
+
+    def test_title_variants_and_long_question(self):
+        for sub, head in [("सामान्य ज्ञान", "GK Quiz in Hindi |"),
+                          ("विज्ञान", "Science GK Quiz in Hindi |"),
+                          ("भारत", "India GK Quiz in Hindi |"),
+                          (C.PAHELI_SUB, "Hindi Paheli Quiz |")]:
+            qs = self._qs(sub)
+            qs[0]["q"] = "बहुत लंबा सवाल " * 20
+            m = seo.build(qs, "noon", datetime(2026, 9, 30))
+            self.assertTrue(m["title"].startswith(head), m["title"])
+            self.assertLessEqual(len(m["title"]), 100)
+            self.assertIn("…", m["title"])
+
+    def test_fixed_hashtags(self):
+        m = seo.build(self._qs(), "noon", datetime(2026, 9, 30))
+        last = m["description"].rstrip().split("\n")[-1]
+        self.assertEqual(last, "#gkquiz #gkinhindi #gkquestion #quiz #paheli #shorts")
+        self.assertIn("GK Quiz in Hindi | GK Question Answer", m["description"])
+
+    def test_spoken_hook_used_on_screen(self):
+        import build
+        if C.SPOKEN_HOOK:
+            self.assertEqual(build.hook_line(self._qs(), "noon"), C.SPOKEN_HOOK_LINE)
 
     def test_no_kids_targeting_metadata(self):
         for slot in C.SLOT_ORDER:
