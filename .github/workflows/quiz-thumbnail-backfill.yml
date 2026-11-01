@@ -1,0 +1,51 @@
+name: Quiz Thumbnail Backfill
+
+# Scheduled (private + publishAt future) QUIZ PATHSHALA Shorts par custom
+# thumbnail lagata hai. Sirf thumbnails.set — visibility/schedule/upload
+# kuch nahi badalta. apply=false = sirf list + images (artifact).
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "true = thumbnails.set, false = dry-run"
+        type: choice
+        options: ["false", "true"]
+        default: "false"
+
+defaults:
+  run:
+    working-directory: kids-quiz-shorts
+
+permissions:
+  contents: read
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-core fonts-indic libraqm0
+      - run: pip install -r requirements.txt
+      - name: Backfill
+        env:
+          YT_CLIENT_ID:     ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          if [ "${{ inputs.apply }}" = "true" ]; then
+            python src/thumbnail.py --backfill --apply
+          else
+            python src/thumbnail.py --backfill
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: thumbnails
+          path: kids-quiz-shorts/out/thumb_backfill/

@@ -463,6 +463,21 @@ def upload(meta_path: Path, privacy="public", publish_at=None, target_slot=None,
     vid = resp["id"]
     print(f"[upload] done -> https://youtube.com/shorts/{vid}")
 
+    # Custom thumbnail (thumbnails.set). Fail = sirf warning, upload pass.
+    thumb_set = False
+    tf = meta.get("thumbnail_file")
+    if tf:
+        tp = Path(tf)
+        if not tp.exists():
+            tp = meta_path.parent / tp.name
+        if tp.exists():
+            from thumbnail import set_thumbnail
+            thumb_set = set_thumbnail(yt, vid, tp)
+        else:
+            print(f"[thumb] WARNING: thumbnail file nahi mili: {tf}")
+    else:
+        print("[thumb] WARNING: metadata me thumbnail_file nahi — auto frame rahega")
+
     pinned = meta.get("pinned_comment")
     posted = None
     attempts = 0
@@ -504,6 +519,7 @@ def upload(meta_path: Path, privacy="public", publish_at=None, target_slot=None,
         "pinned_comment": pinned if not mfk else None,
         "comment_posted": posted,
         "comment_attempts": attempts,
+        "thumbnail_set": thumb_set,
     })
     _save_ledger(rows)
 
