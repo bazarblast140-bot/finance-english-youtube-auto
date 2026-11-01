@@ -1,39 +1,36 @@
 # Last run
-- when   : 2026-11-01 07:38 UTC
-- slot   : night
+- when   : 2026-11-01 07:41 UTC
+- slot   : morning
 - privacy: public
 - upload : success
 
 ## metadata
-- title: दुनिया की सबसे ऊँची मूर्ति कौन सी है? 🤔 | World GK Quiz
-- duration_sec: 19.1
-- voice_engines: ['edge', 'gemini']
-- youtube_url: https://youtube.com/shorts/X3FYZX-7Ktc
-- scheduled_for: 2026-11-01T15:00:00Z
+- title: मकड़ी किस वर्ग (class) का जीव है? 🤔 | GK Quiz Hindi
+- duration_sec: 18.67
+- voice_engines: ['gemini']
+- youtube_url: https://youtube.com/shorts/Af0y5CImqtU
+- scheduled_for: 2026-11-02T02:00:00Z
 
 ## upload output (tail)
 ```
-[upload] privacy=private + publishAt=2026-11-01T15:00:00Z
+[upload] privacy=private + publishAt=2026-11-02T02:00:00Z
 [upload] token scopes: youtube, youtube.force-ssl, youtube.readonly, youtube.upload
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/X3FYZX-7Ktc
+[upload] done -> https://youtube.com/shorts/Af0y5CImqtU
 [upload] comment abhi skip: video private/scheduled hai (YouTube 403 deta). Public hone ke baad catch-up pending comment daalega.
 ```
 
 ## pick / hook (repeat + bank stock)
 ```
-[pick] stock quiz: 51/344 fresh (~12.8 din)
+[pick] stock quiz: 50/344 fresh (~12.5 din)
 [pick] stock paheli: 27/128 fresh (~27.0 din)
-[pick] दुनिया/g190: दुनिया की सबसे ऊँची मूर्ति कौन सी है?
-[hook] on-screen: ये आता है आपको?
+[pick] सामान्य ज्ञान/g199: मकड़ी किस वर्ग (class) का जीव है?
+[hook] on-screen: आज का GK चैलेंज
 ```
 
 ## voice
 ```
-[tts] Gemini bad response (key#1): 'content'
-[tts] Gemini bad response (key#1): 'content'
-[tts] ElevenLabs FAIL 401: {"detail":{"type":"payment_required","code":"payment_issue","message":"Your subscription has a failed or incomplete payment. Complete the latest invoice to continue usage.","status":"payment_issue","request_id":"eeddebe9eca5020401853b5ddb047051"}}
-🎙  voice: edge, gemini  <- ElevenLabs fail hua, free voice pe chala
+🎙  voice: gemini
 ```
 
 ## telegram
