@@ -210,7 +210,7 @@ NEXT_QUESTION_TEASER = True
 # 31-Oct-2026: SPOKEN hook — Q1 se pehle ~1s challenge line bolti hai, aur
 # wahi line on-screen hook banti hai. False = purana behaviour (sirf on-screen).
 SPOKEN_HOOK = os.getenv("QUIZ_SPOKEN_HOOK", "1") != "0"
-SPOKEN_HOOK_LINE = "सिर्फ 1% लोग सही जवाब देंगे!"
+SPOKEN_HOOK_LINE = "क्या आप सही जवाब दे पाएंगे?"
 # Subscribe CTA:
 #   "end"           -> sirf AAKHRI reveal par ek chhota visual pill (value dene
 #                      ke baad, koi extra second nahi, koi bolne wali line nahi)
