@@ -4578,5 +4578,26 @@
   "comment_posted": null,
   "comment_attempts": 0,
   "thumbnail_set": true
+ },
+ {
+  "video_id": "yoV5xuUMXXM",
+  "slot": "paheli",
+  "date": "2026-11-03",
+  "uploaded_ist": "2026-11-03 15:38",
+  "publish_at": "2026-11-04T10:30:00Z",
+  "privacy": "public",
+  "title": "Hindi Paheli Quiz | पानी डालो तो सब बह जाए, आटा डालो तो छन जाए — वो क्या है? 🤔 | Paheli with Answer",
+  "subject": "पहेली",
+  "question_ids": [
+   "ph114"
+  ],
+  "hook_line": "क्या आप सही जवाब दे पाएंगे?",
+  "duration_sec": 21.8,
+  "channel_id": "UCSIJMHyB_h02gHc5HZkmYqg",
+  "made_for_kids": false,
+  "pinned_comment": "जवाब कमेंट करें 👇 A, B, C या D — आपका जवाब क्या है?\nरोज़ नए सवाल आते हैं — सब्सक्राइब करके रोज़ खेलिए 🔔\nकिस विषय के सवाल और चाहिए — भारत, विज्ञान, दुनिया या पहेली?",
+  "comment_posted": null,
+  "comment_attempts": 0,
+  "thumbnail_set": true
  }
 ]
