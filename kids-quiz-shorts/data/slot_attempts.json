@@ -665,10 +665,11 @@
   },
   "night|2026-11-03": {
    "attempts": 1,
-   "state": "dispatched",
+   "state": "uploaded",
    "dispatched_at": "2026-11-03T09:59:29Z",
    "quota_day": "2026-11-03",
-   "counts_quota": true
+   "counts_quota": true,
+   "uploaded_at": "2026-11-03T10:02:26Z"
   },
   "noon|2026-10-03": {
    "attempts": 1,
