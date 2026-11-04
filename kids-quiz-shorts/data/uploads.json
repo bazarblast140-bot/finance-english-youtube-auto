@@ -4662,5 +4662,26 @@
   "comment_posted": null,
   "comment_attempts": 0,
   "thumbnail_set": true
+ },
+ {
+  "video_id": "-2UlSHKm9oY",
+  "slot": "noon",
+  "date": "2026-11-04",
+  "uploaded_ist": "2026-11-04 13:46",
+  "publish_at": "2026-11-05T08:00:00Z",
+  "privacy": "public",
+  "title": "Science GK Quiz in Hindi | जिराफ़ की लंबी गर्दन में कितनी हड्डियाँ (… 🤔 | Science GK Question Answer",
+  "subject": "विज्ञान",
+  "question_ids": [
+   "g298"
+  ],
+  "hook_line": "क्या आप सही जवाब दे पाएंगे?",
+  "duration_sec": 25.27,
+  "channel_id": "UCSIJMHyB_h02gHc5HZkmYqg",
+  "made_for_kids": false,
+  "pinned_comment": "जवाब कमेंट करें 👇 A, B, C या D — आपका जवाब क्या है?\nरोज़ नए सवाल आते हैं — सब्सक्राइब करके रोज़ खेलिए 🔔\nकिस विषय के सवाल और चाहिए — भारत, विज्ञान, दुनिया या पहेली?",
+  "comment_posted": null,
+  "comment_attempts": 0,
+  "thumbnail_set": true
  }
 ]
