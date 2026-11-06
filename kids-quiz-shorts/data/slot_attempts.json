@@ -738,9 +738,9 @@
    "uploaded_at": "2026-11-05T11:41:37Z"
   },
   "night|2026-11-06": {
-   "attempts": 1,
+   "attempts": 2,
    "state": "dispatched",
-   "dispatched_at": "2026-11-06T10:57:44Z",
+   "dispatched_at": "2026-11-06T14:00:44Z",
    "quota_day": "2026-11-06",
    "counts_quota": true
   },
