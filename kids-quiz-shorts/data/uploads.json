@@ -4851,5 +4851,26 @@
   "comment_posted": null,
   "comment_attempts": 0,
   "thumbnail_set": true
+ },
+ {
+  "video_id": "-rfmNqFCed8",
+  "slot": "noon",
+  "date": "2026-11-06",
+  "uploaded_ist": "2026-11-06 16:34",
+  "publish_at": "2026-11-07T08:00:00Z",
+  "privacy": "public",
+  "title": "Science GK Quiz in Hindi | सूरज की रोशनी को धरती तक पहुँचने में लगभग… 🤔 | Science GK Question Answer",
+  "subject": "विज्ञान",
+  "question_ids": [
+   "g297"
+  ],
+  "hook_line": "क्या आप सही जवाब दे पाएंगे?",
+  "duration_sec": 23.0,
+  "channel_id": "UCSIJMHyB_h02gHc5HZkmYqg",
+  "made_for_kids": false,
+  "pinned_comment": "जवाब कमेंट करें 👇 A, B, C या D — आपका जवाब क्या है?\nरोज़ नए सवाल आते हैं — सब्सक्राइब करके रोज़ खेलिए 🔔\nकिस विषय के सवाल और चाहिए — भारत, विज्ञान, दुनिया या पहेली?",
+  "comment_posted": null,
+  "comment_attempts": 0,
+  "thumbnail_set": true
  }
 ]
