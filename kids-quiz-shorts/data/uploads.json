@@ -5208,5 +5208,26 @@
   "comment_posted": null,
   "comment_attempts": 0,
   "thumbnail_set": true
+ },
+ {
+  "video_id": "tKbofqT1QH8",
+  "slot": "paheli",
+  "date": "2026-11-09",
+  "uploaded_ist": "2026-11-09 17:41",
+  "publish_at": "2026-11-10T10:30:00Z",
+  "privacy": "public",
+  "title": "Hindi Paheli Quiz | पेट में उँगली, सिर पर पत्थर — वो क्या है? 🤔 | Paheli with Answer",
+  "subject": "पहेली",
+  "question_ids": [
+   "ph83"
+  ],
+  "hook_line": "क्या आप सही जवाब दे पाएंगे?",
+  "duration_sec": 21.03,
+  "channel_id": "UCSIJMHyB_h02gHc5HZkmYqg",
+  "made_for_kids": false,
+  "pinned_comment": "जवाब कमेंट करें 👇 A, B, C या D — आपका जवाब क्या है?\nरोज़ नए सवाल आते हैं — सब्सक्राइब करके रोज़ खेलिए 🔔\nकिस विषय के सवाल और चाहिए — भारत, विज्ञान, दुनिया या पहेली?",
+  "comment_posted": null,
+  "comment_attempts": 0,
+  "thumbnail_set": true
  }
 ]
