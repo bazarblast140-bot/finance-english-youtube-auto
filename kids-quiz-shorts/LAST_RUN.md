@@ -1,39 +1,37 @@
 # Last run
-- when   : 2026-11-11 08:21 UTC
-- slot   : night
+- when   : 2026-11-11 08:24 UTC
+- slot   : morning
 - privacy: public
 - upload : success
 
 ## metadata
-- title: World GK Quiz in Hindi | रूस की मुद्रा का नाम क्या है? 🤔 | World GK Question Answer
-- duration_sec: 18.43
-- voice_engines: ['elevenlabs', 'gemini']
-- youtube_url: https://youtube.com/shorts/iECKF4Xdv8k
-- scheduled_for: 2026-11-11T15:00:00Z
+- title: GK Quiz in Hindi | बुलफ़ाइट में साँड़ लाल कपड़े पर क्यों झपटता है? 🤔 | GK Question Answer
+- duration_sec: 22.47
+- voice_engines: ['gemini']
+- youtube_url: https://youtube.com/shorts/235c-y5H1a8
+- scheduled_for: 2026-11-12T02:00:00Z
 
 ## upload output (tail)
 ```
-[upload] privacy=private + publishAt=2026-11-11T15:00:00Z
+[upload] privacy=private + publishAt=2026-11-12T02:00:00Z
 [upload] token scopes: youtube, youtube.force-ssl, youtube.readonly, youtube.upload
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/iECKF4Xdv8k
-[thumb] set OK -> iECKF4Xdv8k
+[upload] done -> https://youtube.com/shorts/235c-y5H1a8
+[thumb] set OK -> 235c-y5H1a8
 [upload] comment abhi skip: video private/scheduled hai (YouTube 403 deta). Public hone ke baad catch-up pending comment daalega.
 ```
 
 ## pick / hook (repeat + bank stock)
 ```
-[pick] stock quiz: 11/344 fresh (~2.8 din) — WARNING: 7 din se kam. Naye sawaal data/questions.json me jodo; tab tak sabse purane sawaal (least-recently-used) dobara jaayenge.
+[pick] stock quiz: 10/344 fresh (~2.5 din) — WARNING: 7 din se kam. Naye sawaal data/questions.json me jodo; tab tak sabse purane sawaal (least-recently-used) dobara jaayenge.
 [pick] stock paheli: 17/128 fresh (~17.0 din)
-[pick] दुनिया/g248: रूस की मुद्रा का नाम क्या है?
+[pick] सामान्य ज्ञान/g340: बुलफ़ाइट में साँड़ लाल कपड़े पर क्यों झपटता है?
 [hook] on-screen: क्या आप सही जवाब दे पाएंगे?
 ```
 
 ## voice
 ```
-[tts] Gemini bad response (key#1): 'content'
-[tts] Gemini bad response (key#1): 'content'
-🎙  voice: elevenlabs, gemini
+🎙  voice: gemini
 ```
 
 ## telegram
