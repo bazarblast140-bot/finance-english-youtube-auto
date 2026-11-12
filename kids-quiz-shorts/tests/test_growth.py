@@ -230,16 +230,40 @@ class AudienceTests(unittest.TestCase):
                       ["selfDeclaredMadeForKids"], False)
 
 
+_BANK_SUBS = {"सामान्य ज्ञान", "विज्ञान", "भारत", "दुनिया", "पहेली"}
+_BANK_KEYS = {"id", "sub", "q", "opts", "ans", "why"}
+
+
+def _norm_question(text):
+    import re
+    import unicodedata
+    text = unicodedata.normalize("NFC", text)
+    text = re.sub(r"[?？!।,.，、'\"‘’“”()\[\]{}—–\-:;؛…«»]", " ", text)
+    return re.sub(r"\s+", " ", text).strip().lower()
+
+
 class BankIntegrityTests(unittest.TestCase):
     def setUp(self):
         self.bank = json.loads((C.DATA / "questions.json").read_text(encoding="utf-8"))
 
     def test_shape(self):
         for q in self.bank:
+            self.assertTrue(_BANK_KEYS <= set(q), q["id"])
+            self.assertIn(q["sub"], _BANK_SUBS, q["id"])
             self.assertEqual(len(q["opts"]), 4, q["id"])
             self.assertEqual(len(set(q["opts"])), 4, q["id"])
+            self.assertTrue(all(str(o).strip() for o in q["opts"]), q["id"])
             self.assertIn(q["ans"], range(4), q["id"])
             self.assertTrue(q.get("why"), q["id"])
+            self.assertTrue(str(q["q"]).strip().endswith("?"), q["id"])
+            self.assertTrue(str(q["id"]).strip(), q["id"])
+
+    def test_normalized_questions_are_unique(self):
+        seen = {}
+        for q in self.bank:
+            key = _norm_question(q["q"])
+            self.assertNotIn(key, seen, f"{q['id']} repeats {seen.get(key)}")
+            seen[key] = q["id"]
 
     def test_no_duplicate_warning(self):
         import io
