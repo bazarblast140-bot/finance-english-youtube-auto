@@ -881,10 +881,11 @@
   },
   "night|2026-11-12": {
    "attempts": 1,
-   "state": "dispatched",
+   "state": "uploaded",
    "dispatched_at": "2026-11-12T08:53:14Z",
    "quota_day": "2026-11-12",
-   "counts_quota": true
+   "counts_quota": true,
+   "uploaded_at": "2026-11-12T08:56:10Z"
   },
   "noon|2026-10-03": {
    "attempts": 1,
