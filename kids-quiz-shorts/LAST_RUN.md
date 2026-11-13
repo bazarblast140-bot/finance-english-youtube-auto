@@ -1,39 +1,38 @@
 # Last run
-- when   : 2026-11-12 09:04 UTC
-- slot   : evening
+- when   : 2026-11-13 08:03 UTC
+- slot   : night
 - privacy: public
 - upload : success
 
 ## metadata
-- title: India GK Quiz in Hindi | ताजमहल किस नदी के किनारे बना है? 🤔 | India GK Question Answer
-- duration_sec: 17.83
-- voice_engines: ['elevenlabs', 'gemini']
-- youtube_url: https://youtube.com/shorts/IMYa8osye2o
-- scheduled_for: 2026-11-13T12:00:00Z
+- title: World GK Quiz in Hindi | पुर्तगाल की राजधानी कौन सी है? 🤔 | World GK Question Answer
+- duration_sec: 18.67
+- voice_engines: ['gemini']
+- youtube_url: https://youtube.com/shorts/GwPeJtd95jM
+- scheduled_for: 2026-11-13T15:00:00Z
 
 ## upload output (tail)
 ```
-[upload] privacy=private + publishAt=2026-11-13T12:00:00Z
+[upload] privacy=private + publishAt=2026-11-13T15:00:00Z
 [upload] token scopes: youtube, youtube.force-ssl, youtube.readonly, youtube.upload
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/IMYa8osye2o
-[thumb] set OK -> IMYa8osye2o
+[upload] done -> https://youtube.com/shorts/GwPeJtd95jM
+[thumb] set OK -> GwPeJtd95jM
 [upload] comment abhi skip: video private/scheduled hai (YouTube 403 deta). Public hone ke baad catch-up pending comment daalega.
 ```
 
 ## pick / hook (repeat + bank stock)
 ```
-[pick] stock quiz: 124/464 fresh (~31.0 din)
+[pick] stock quiz: 123/464 fresh (~30.8 din)
 [pick] stock paheli: 45/158 fresh (~45.0 din)
-[pick] भारत/g369: ताजमहल किस नदी के किनारे बना है?
+[pick] दुनिया/g414: पुर्तगाल की राजधानी कौन सी है?
 [hook] on-screen: क्या आप सही जवाब दे पाएंगे?
 ```
 
 ## voice
 ```
-[tts] Gemini key#1 -> 429 daily quota khatam, is run me band
-[tts] Gemini key#2 -> 429 daily quota khatam, is run me band
-🎙  voice: elevenlabs, gemini
+[tts] Gemini bad response (key#1): 'content'
+🎙  voice: gemini
 ```
 
 ## telegram
