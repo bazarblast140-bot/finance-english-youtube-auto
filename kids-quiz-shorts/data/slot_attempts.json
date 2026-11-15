@@ -1274,10 +1274,11 @@
   },
   "noon|2026-11-16": {
    "attempts": 1,
-   "state": "dispatched",
+   "state": "uploaded",
    "dispatched_at": "2026-11-15T10:58:53Z",
    "quota_day": "2026-11-15",
-   "counts_quota": true
+   "counts_quota": true,
+   "uploaded_at": "2026-11-15T11:06:45Z"
   },
   "paheli|2026-10-03": {
    "attempts": 1,
