@@ -1,39 +1,37 @@
 # Last run
-- when   : 2026-11-16 11:32 UTC
-- slot   : morning
+- when   : 2026-11-16 11:33 UTC
+- slot   : noon
 - privacy: public
 - upload : success
 
 ## metadata
-- title: GK Quiz in Hindi | टेबल टेनिस का एक गेम कम से कम कितने अंक पर जीता जाता है? 🤔 | GK Question Answer
-- duration_sec: 20.4
-- voice_engines: ['elevenlabs', 'gemini']
-- youtube_url: https://youtube.com/shorts/P-AxfJmEt0Y
-- scheduled_for: 2026-11-17T02:00:00Z
+- title: Science GK Quiz in Hindi | प्राकृतिक चयन का सिद्धांत मुख्यतः किस वैज… 🤔 | Science GK Question Answer
+- duration_sec: 21.23
+- voice_engines: ['gemini']
+- youtube_url: https://youtube.com/shorts/b3-zYueBDx0
+- scheduled_for: 2026-11-17T08:00:00Z
 
 ## upload output (tail)
 ```
-[upload] privacy=private + publishAt=2026-11-17T02:00:00Z
+[upload] privacy=private + publishAt=2026-11-17T08:00:00Z
 [upload] token scopes: youtube, youtube.force-ssl, youtube.readonly, youtube.upload
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/P-AxfJmEt0Y
-[thumb] set OK -> P-AxfJmEt0Y
+[upload] done -> https://youtube.com/shorts/b3-zYueBDx0
+[thumb] set OK -> b3-zYueBDx0
 [upload] comment abhi skip: video private/scheduled hai (YouTube 403 deta). Public hone ke baad catch-up pending comment daalega.
 ```
 
 ## pick / hook (repeat + bank stock)
 ```
-[pick] stock quiz: 110/464 fresh (~27.5 din)
+[pick] stock quiz: 109/464 fresh (~27.2 din)
 [pick] stock paheli: 42/158 fresh (~42.0 din)
-[pick] सामान्य ज्ञान/g454: टेबल टेनिस का एक गेम कम से कम कितने अंक पर जीता जाता है?
+[pick] विज्ञान/g386: प्राकृतिक चयन का सिद्धांत मुख्यतः किस वैज्ञानिक से जुड़ा है?
 [hook] on-screen: क्या आप सही जवाब दे पाएंगे?
 ```
 
 ## voice
 ```
-[tts] Gemini bad response (key#1): 'content'
-[tts] Gemini bad response (key#1): 'content'
-🎙  voice: elevenlabs, gemini
+🎙  voice: gemini
 ```
 
 ## telegram
