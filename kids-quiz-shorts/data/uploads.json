@@ -6069,5 +6069,26 @@
   "comment_posted": null,
   "comment_attempts": 0,
   "thumbnail_set": true
+ },
+ {
+  "video_id": "cVQvtbSyFm0",
+  "slot": "evening",
+  "date": "2026-11-17",
+  "uploaded_ist": "2026-11-17 19:37",
+  "publish_at": "2026-11-18T12:00:00Z",
+  "privacy": "public",
+  "title": "India GK Quiz in Hindi | तराइन के पहले युद्ध (1191) में विजय किसकी हुई? 🤔 | India GK Question Answer",
+  "subject": "भारत",
+  "question_ids": [
+   "g350"
+  ],
+  "hook_line": "क्या आप सही जवाब दे पाएंगे?",
+  "duration_sec": 21.63,
+  "channel_id": "UCSIJMHyB_h02gHc5HZkmYqg",
+  "made_for_kids": false,
+  "pinned_comment": "जवाब कमेंट करें 👇 A, B, C या D — आपका जवाब क्या है?\nरोज़ नए सवाल आते हैं — सब्सक्राइब करके रोज़ खेलिए 🔔\nकिस विषय के सवाल और चाहिए — भारत, विज्ञान, दुनिया या पहेली?",
+  "comment_posted": null,
+  "comment_attempts": 0,
+  "thumbnail_set": true
  }
 ]
