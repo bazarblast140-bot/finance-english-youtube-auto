@@ -1,38 +1,39 @@
 # Last run
-- when   : 2026-11-17 13:57 UTC
-- slot   : night
+- when   : 2026-11-17 14:00 UTC
+- slot   : morning
 - privacy: public
 - upload : success
 
 ## metadata
-- title: World GK Quiz in Hindi | यूरोप की सबसे लंबी नदी कौन सी है? 🤔 | World GK Question Answer
-- duration_sec: 19.5
-- voice_engines: ['gemini']
-- youtube_url: https://youtube.com/shorts/xgaIQR5dQOI
-- scheduled_for: 2026-11-17T15:00:00Z
+- title: GK Quiz in Hindi | बास्केटबॉल की रिंग फर्श से कितनी ऊँची लगी होती है? 🤔 | GK Question Answer
+- duration_sec: 20.7
+- voice_engines: ['elevenlabs', 'gemini']
+- youtube_url: https://youtube.com/shorts/SILPnRak_Nc
+- scheduled_for: 2026-11-18T02:00:00Z
 
 ## upload output (tail)
 ```
-[upload] privacy=private + publishAt=2026-11-17T15:00:00Z
+[upload] privacy=private + publishAt=2026-11-18T02:00:00Z
 [upload] token scopes: youtube, youtube.force-ssl, youtube.readonly, youtube.upload
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/xgaIQR5dQOI
-[thumb] set OK -> xgaIQR5dQOI
+[upload] done -> https://youtube.com/shorts/SILPnRak_Nc
+[thumb] set OK -> SILPnRak_Nc
 [upload] comment abhi skip: video private/scheduled hai (YouTube 403 deta). Public hone ke baad catch-up pending comment daalega.
 ```
 
 ## pick / hook (repeat + bank stock)
 ```
-[pick] stock quiz: 107/464 fresh (~26.8 din)
+[pick] stock quiz: 106/464 fresh (~26.5 din)
 [pick] stock paheli: 41/158 fresh (~41.0 din)
-[pick] दुनिया/g415: यूरोप की सबसे लंबी नदी कौन सी है?
+[pick] सामान्य ज्ञान/g447: बास्केटबॉल की रिंग फर्श से कितनी ऊँची लगी होती है?
 [hook] on-screen: क्या आप सही जवाब दे पाएंगे?
 ```
 
 ## voice
 ```
 [tts] Gemini bad response (key#1): 'content'
-🎙  voice: gemini
+[tts] Gemini bad response (key#1): 'content'
+🎙  voice: elevenlabs, gemini
 ```
 
 ## telegram
