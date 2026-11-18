@@ -339,10 +339,11 @@
   },
   "evening|2026-11-19": {
    "attempts": 1,
-   "state": "dispatched",
+   "state": "uploaded",
    "dispatched_at": "2026-11-18T13:26:10Z",
    "quota_day": "2026-11-18",
-   "counts_quota": true
+   "counts_quota": true,
+   "uploaded_at": "2026-11-18T14:03:31Z"
   },
   "morning|2026-10-04": {
    "attempts": 1,
@@ -1026,10 +1027,11 @@
   },
   "night|2026-11-18": {
    "attempts": 1,
-   "state": "dispatched",
+   "state": "uploaded",
    "dispatched_at": "2026-11-18T13:26:10Z",
    "quota_day": "2026-11-18",
-   "counts_quota": true
+   "counts_quota": true,
+   "uploaded_at": "2026-11-18T14:03:31Z"
   },
   "noon|2026-10-03": {
    "attempts": 1,
