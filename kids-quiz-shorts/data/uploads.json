@@ -6468,5 +6468,26 @@
   "comment_posted": null,
   "comment_attempts": 0,
   "thumbnail_set": true
+ },
+ {
+  "video_id": "-GQyf3Afj2M",
+  "slot": "paheli",
+  "date": "2026-11-21",
+  "uploaded_ist": "2026-11-21 14:23",
+  "publish_at": "2026-11-22T10:30:00Z",
+  "privacy": "public",
+  "title": "Hindi Paheli Quiz | रात को सिर के नीचे रहे तो गर्दन को मुलायम सहारा मिले। वो… 🤔 | Paheli with Answer",
+  "subject": "पहेली",
+  "question_ids": [
+   "ph148"
+  ],
+  "hook_line": "क्या आप सही जवाब दे पाएंगे?",
+  "duration_sec": 23.27,
+  "channel_id": "UCSIJMHyB_h02gHc5HZkmYqg",
+  "made_for_kids": false,
+  "pinned_comment": "जवाब कमेंट करें 👇 A, B, C या D — आपका जवाब क्या है?\nरोज़ नए सवाल आते हैं — सब्सक्राइब करके रोज़ खेलिए 🔔\nकिस विषय के सवाल और चाहिए — भारत, विज्ञान, दुनिया या पहेली?",
+  "comment_posted": null,
+  "comment_attempts": 0,
+  "thumbnail_set": true
  }
 ]
