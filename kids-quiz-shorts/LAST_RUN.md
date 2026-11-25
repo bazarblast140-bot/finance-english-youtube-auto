@@ -1,39 +1,39 @@
 # Last run
-- when   : 2026-11-25 10:26 UTC
-- slot   : night
+- when   : 2026-11-25 10:28 UTC
+- slot   : morning
 - privacy: public
 - upload : success
 
 ## metadata
-- title: World GK Quiz in Hindi | संयुक्त राज्य अमेरिका ने स्वतंत्रता की घोषणा… 🤔 | World GK Question Answer
-- duration_sec: 21.57
-- voice_engines: ['elevenlabs', 'gemini']
-- youtube_url: https://youtube.com/shorts/o05l_e-1TJQ
-- scheduled_for: 2026-11-25T15:00:00Z
+- title: GK Quiz in Hindi | ग्रैंड स्लैम टेनिस प्रतियोगिताओं की सालाना संख्या क्या है? 🤔 | GK Question Answer
+- duration_sec: 20.3
+- voice_engines: ['gemini']
+- youtube_url: https://youtube.com/shorts/r6KxjdtDNZ8
+- scheduled_for: 2026-11-26T02:00:00Z
 
 ## upload output (tail)
 ```
-[upload] privacy=private + publishAt=2026-11-25T15:00:00Z
+[upload] privacy=private + publishAt=2026-11-26T02:00:00Z
 [upload] token scopes: youtube, youtube.force-ssl, youtube.readonly, youtube.upload
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/o05l_e-1TJQ
-[thumb] set OK -> o05l_e-1TJQ
+[upload] done -> https://youtube.com/shorts/r6KxjdtDNZ8
+[thumb] set OK -> r6KxjdtDNZ8
 [upload] comment abhi skip: video private/scheduled hai (YouTube 403 deta). Public hone ke baad catch-up pending comment daalega.
 ```
 
 ## pick / hook (repeat + bank stock)
 ```
-[pick] stock quiz: 75/464 fresh (~18.8 din)
+[pick] stock quiz: 74/464 fresh (~18.5 din)
 [pick] stock paheli: 33/158 fresh (~33.0 din)
-[pick] दुनिया/g430: संयुक्त राज्य अमेरिका ने स्वतंत्रता की घोषणा किस वर्ष की?
+[pick] सामान्य ज्ञान/g448: ग्रैंड स्लैम टेनिस प्रतियोगिताओं की सालाना संख्या क्या है?
 [hook] on-screen: क्या आप सही जवाब दे पाएंगे?
 ```
 
 ## voice
 ```
 [tts] Gemini bad response (key#1): 'content'
-[tts] Gemini bad response (key#1): 'content'
-🎙  voice: elevenlabs, gemini
+[tts] Gemini key#1 -> 429, 29s cooldown, agli key/retry
+🎙  voice: gemini
 ```
 
 ## telegram
