@@ -1,38 +1,38 @@
 # Last run
-- when   : 2026-11-25 10:28 UTC
-- slot   : morning
+- when   : 2026-11-25 10:31 UTC
+- slot   : noon
 - privacy: public
 - upload : success
 
 ## metadata
-- title: GK Quiz in Hindi | ग्रैंड स्लैम टेनिस प्रतियोगिताओं की सालाना संख्या क्या है? 🤔 | GK Question Answer
-- duration_sec: 20.3
+- title: Science GK Quiz in Hindi | स्वस्थ मनुष्य के शरीर का सामान्य तापमान ल… 🤔 | Science GK Question Answer
+- duration_sec: 25.23
 - voice_engines: ['gemini']
-- youtube_url: https://youtube.com/shorts/r6KxjdtDNZ8
-- scheduled_for: 2026-11-26T02:00:00Z
+- youtube_url: https://youtube.com/shorts/fvF8CueumpE
+- scheduled_for: 2026-11-26T08:00:00Z
 
 ## upload output (tail)
 ```
-[upload] privacy=private + publishAt=2026-11-26T02:00:00Z
+[upload] privacy=private + publishAt=2026-11-26T08:00:00Z
 [upload] token scopes: youtube, youtube.force-ssl, youtube.readonly, youtube.upload
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/r6KxjdtDNZ8
-[thumb] set OK -> r6KxjdtDNZ8
+[upload] done -> https://youtube.com/shorts/fvF8CueumpE
+[thumb] set OK -> fvF8CueumpE
 [upload] comment abhi skip: video private/scheduled hai (YouTube 403 deta). Public hone ke baad catch-up pending comment daalega.
 ```
 
 ## pick / hook (repeat + bank stock)
 ```
-[pick] stock quiz: 74/464 fresh (~18.5 din)
+[pick] stock quiz: 73/464 fresh (~18.2 din)
 [pick] stock paheli: 33/158 fresh (~33.0 din)
-[pick] सामान्य ज्ञान/g448: ग्रैंड स्लैम टेनिस प्रतियोगिताओं की सालाना संख्या क्या है?
+[pick] विज्ञान/g377: स्वस्थ मनुष्य के शरीर का सामान्य तापमान लगभग कितना माना जाता है?
 [hook] on-screen: क्या आप सही जवाब दे पाएंगे?
 ```
 
 ## voice
 ```
-[tts] Gemini bad response (key#1): 'content'
-[tts] Gemini key#1 -> 429, 29s cooldown, agli key/retry
+[tts] Gemini key#1 -> 429 daily quota khatam, is run me band
+[tts] Gemini bad response (key#2): 'content'
 🎙  voice: gemini
 ```
 
