@@ -1994,10 +1994,11 @@
   },
   "paheli|2026-11-26": {
    "attempts": 1,
-   "state": "dispatched",
+   "state": "uploaded",
    "dispatched_at": "2026-11-25T10:24:35Z",
    "quota_day": "2026-11-25",
-   "counts_quota": true
+   "counts_quota": true,
+   "uploaded_at": "2026-11-25T10:35:12Z"
   }
  }
 }
