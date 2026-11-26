@@ -1,36 +1,38 @@
 # Last run
-- when   : 2026-11-26 09:37 UTC
-- slot   : morning
+- when   : 2026-11-26 09:42 UTC
+- slot   : noon
 - privacy: public
 - upload : success
 
 ## metadata
-- title: GK Quiz in Hindi | क्रिकेट के एक मानक ओवर में कितनी वैध गेंदें होती हैं? 🤔 | GK Question Answer
-- duration_sec: 19.17
+- title: Science GK Quiz in Hindi | निकट दृष्टि दोष ठीक करने के लिए कौन सा ले… 🤔 | Science GK Question Answer
+- duration_sec: 20.63
 - voice_engines: ['gemini']
-- youtube_url: https://youtube.com/shorts/J9grqvUh_GA
-- scheduled_for: 2026-11-27T02:00:00Z
+- youtube_url: https://youtube.com/shorts/mXUwlVR3hQo
+- scheduled_for: 2026-11-27T08:00:00Z
 
 ## upload output (tail)
 ```
-[upload] privacy=private + publishAt=2026-11-27T02:00:00Z
+[upload] privacy=private + publishAt=2026-11-27T08:00:00Z
 [upload] token scopes: youtube, youtube.force-ssl, youtube.readonly, youtube.upload
 [upload] channel: QUIZ PATHSHALA
-[upload] done -> https://youtube.com/shorts/J9grqvUh_GA
-[thumb] set OK -> J9grqvUh_GA
+[upload] done -> https://youtube.com/shorts/mXUwlVR3hQo
+[thumb] set OK -> mXUwlVR3hQo
 [upload] comment abhi skip: video private/scheduled hai (YouTube 403 deta). Public hone ke baad catch-up pending comment daalega.
 ```
 
 ## pick / hook (repeat + bank stock)
 ```
-[pick] stock quiz: 70/464 fresh (~17.5 din)
+[pick] stock quiz: 69/464 fresh (~17.2 din)
 [pick] stock paheli: 32/158 fresh (~32.0 din)
-[pick] सामान्य ज्ञान/g443: क्रिकेट के एक मानक ओवर में कितनी वैध गेंदें होती हैं?
+[pick] विज्ञान/g399: निकट दृष्टि दोष ठीक करने के लिए कौन सा लेंस लगाया जाता है?
 [hook] on-screen: क्या आप सही जवाब दे पाएंगे?
 ```
 
 ## voice
 ```
+[tts] Gemini key#1 -> 429 daily quota khatam, is run me band
+[tts] Gemini bad response (key#2): 'content'
 🎙  voice: gemini
 ```
 
