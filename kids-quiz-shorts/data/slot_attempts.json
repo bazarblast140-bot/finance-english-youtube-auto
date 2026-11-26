@@ -403,10 +403,11 @@
   },
   "evening|2026-11-27": {
    "attempts": 1,
-   "state": "dispatched",
+   "state": "uploaded",
    "dispatched_at": "2026-11-26T09:33:36Z",
    "quota_day": "2026-11-26",
-   "counts_quota": true
+   "counts_quota": true,
+   "uploaded_at": "2026-11-26T13:05:12Z"
   },
   "morning|2026-10-04": {
    "attempts": 1,
